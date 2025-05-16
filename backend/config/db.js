@@ -1,7 +1,7 @@
 // config/db.js
 const mongoose = require('mongoose');
 
-const mongoURL = 'mongodb+srv://maher:4422@cluster0.mg1um.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const mongoURL = 'mongodb+srv://mahzar:4422@cluster0.qgmfshp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
 
 mongoose.connect(mongoURL, {
   useUnifiedTopology: true,
