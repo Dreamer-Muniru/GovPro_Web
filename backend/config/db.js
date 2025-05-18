@@ -15,7 +15,7 @@ db.on('open', () => {
 });
 
 db.on('error', (err) => {
-  console.error('❌ MongoDB connection error:', err);
+  console.error('MongoDB connection error:', err);
 });
 
 module.exports = db;
