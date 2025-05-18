@@ -1,39 +1,18 @@
-// models/Project.js
 const mongoose = require('mongoose');
 
-const projectSchema = new mongoose.Schema({
+const ProjectSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  type: {
-    type: String,
-    enum: [
-      'School', 'Hospital', 'Road', 'Residential Bungalow',
-      'Market Stall', 'Drainage System', 'Bridge', 'Water System',
-      'Power Project', 'Sanitation Facility', 'Government Office',
-      'Sports & Recreation Center', 'Other'
-    ],
-    required: true,
-  },
-  description: { type: String, required: true },
-  region: { type: String, required: true },     
-  district: { type: String, required: true },       
-  location: {
-    address: String,
-    city: String,
-    region: String
-  },
+  type: { type: String, required: true },
+  description: { type: String },
+  region: { type: String, required: true },
+  district: { type: String, required: true },
+  location: { type: String, required: true },
   gps: {
-    latitude: Number,
-    longitude: Number
+    lat: { type: String },
+    lng: { type: String }
   },
-  contractor: { type: String, default: 'Unknown' },
-  imageUrl: { type: String, required: true },
-  dateSubmitted: { type: Date, default: Date.now },
-  status: {
-    type: String,
-    enum: ['Uncompleted', 'Abandoned', 'Resumed', 'Completed'],
-    default: 'Uncompleted',
-  },
-  submittedBy: { type: String, default: 'Anonymous' },
-});
+  contractorName: { type: String },
+  imageUrl: { type: String }
+}, { timestamps: true });
 
-module.exports = mongoose.model('Project', projectSchema);
+module.exports = mongoose.model('Project', ProjectSchema);
