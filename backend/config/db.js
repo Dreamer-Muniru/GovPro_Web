@@ -1,21 +1,19 @@
-// config/db.js
 const mongoose = require('mongoose');
 
-const mongoURL = 'mongodb+srv://mahzar:4422@cluster0.qgmfshp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+const connectDB = async () => {
+  try {
+    const mongoURL = 'mongodb+srv://mahzar:4422@cluster0.qgmfshp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
-mongoose.connect(mongoURL, {
-  useUnifiedTopology: true,
-  useNewUrlParser: true
-});
+    await mongoose.connect(mongoURL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-const db = mongoose.connection;
+    console.log('✅ Connected to MongoDB');
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err.message);
+    process.exit(1); // Exit the app if DB connection fails
+  }
+};
 
-db.on('open', () => {
-  console.log('Connected to MongoDB');
-});
-
-db.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
-});
-
-module.exports = db;
+module.exports = connectDB;
