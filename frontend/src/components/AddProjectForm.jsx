@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import ghanaRegions from '../data/ghanaRegions'
+import ghanaRegions from '../data/ghanaRegions';
 
 const projectTypes = [
   'School', 'Hospital', 'Road', 'Residential Bungalow', 'Market Stall',
@@ -29,8 +29,10 @@ const AddProjectForm = () => {
     submittedBy: ''
   });
 
+  const [districts, setDistricts] = useState([]);
   const [message, setMessage] = useState('');
 
+  // Auto-fetch GPS coordinates on mount
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -48,16 +50,23 @@ const AddProjectForm = () => {
     }
   }, []);
 
+  // Update districts when region changes
   const handleRegionChange = (e) => {
-    setFormData({
-      ...formData,
-      region: e.target.value,
+    const selectedRegion = e.target.value;
+    const regionObj = ghanaRegions.find(r => r.name === selectedRegion);
+    const regionDistricts = regionObj ? regionObj.districts : [];
+    
+    setFormData((prev) => ({
+      ...prev,
+      region: selectedRegion,
       district: '',
-    });
+    }));
+    setDistricts(regionDistricts);
   };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
+
     if (name === 'image') {
       setFormData({ ...formData, image: files[0] });
     } else {
@@ -84,7 +93,10 @@ const AddProjectForm = () => {
     data.append('status', formData.status);
     data.append('startDate', formData.startDate);
     data.append('submittedBy', formData.submittedBy);
-    if (formData.image) data.append('image', formData.image);
+
+    if (formData.image) {
+      data.append('image', formData.image);
+    }
 
     try {
       const res = await axios.post('http://localhost:5000/api/projects', data, {
@@ -92,7 +104,8 @@ const AddProjectForm = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      setMessage('Project submitted successfully!');
+      setMessage('✅ Project submitted successfully!');
+      
       setFormData({
         title: '',
         type: '',
@@ -110,14 +123,16 @@ const AddProjectForm = () => {
         startDate: '',
         submittedBy: ''
       });
+      setDistricts([]);
     } catch (error) {
-      console.error('Error submitting project:', error);
-      setMessage('Failed to submit project.');
+      console.error('❌ Error submitting project:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to submit project.';
+      setMessage(`❌ ${errorMsg}`);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} encType="multipart/form-data">
       <input type="text" name="title" placeholder="Project Title" value={formData.title} onChange={handleChange} required />
 
       <select name="type" value={formData.type} onChange={handleChange} required>
@@ -142,7 +157,7 @@ const AddProjectForm = () => {
 
       <select name="district" value={formData.district} onChange={handleChange} required>
         <option value="">Select District</option>
-        {ghanaRegions.find(r => r.name === formData.region)?.districts.map((district) => (
+        {districts.map((district) => (
           <option key={district} value={district}>{district}</option>
         ))}
       </select>
@@ -162,8 +177,8 @@ const AddProjectForm = () => {
 
       <input type="file" name="image" accept="image/*" onChange={handleChange} />
 
-      <p>GPS Latitude: {formData.latitude}</p>
-      <p>GPS Longitude: {formData.longitude}</p>
+      <p>GPS Latitude: {formData.latitude || 'Not fetched yet'}</p>
+      <p>GPS Longitude: {formData.longitude || 'Not fetched yet'}</p>
 
       <button type="submit">Submit Project</button>
       {message && <p>{message}</p>}

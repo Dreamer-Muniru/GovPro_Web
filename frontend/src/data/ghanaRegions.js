@@ -2,12 +2,12 @@
 
 const ghanaRegions = [
   {
-    region: "Greater Accra",
-    district: ["Accra Metropolitan", "Tema Metropolitan", "Ga West", "Ga East", "Ga South", "Ada East", "Ada West", "Others..."]
+    name: "Greater Accra",
+    districts: ["Accra Metropolitan", "Tema Metropolitan", "Ga West", "Ga East", "Ga South", "Ada East", "Ada West", "Others..."]
   },
   {
-    region: "Ahafo Region",
-    district: ["Asunafo North", "Asunafo South", "Asutifi North", "Asutifi South", "Tano North", "Tano South"]
+    name: "Ahafo Region",
+    districts: ["Asunafo North", "Asunafo South", "Asutifi North", "Asutifi South", "Tano North", "Tano South"]
   },
   {
     region: "Ashanti Region",
