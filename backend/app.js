@@ -4,15 +4,13 @@ const multer = require('multer');
 const path = require('path');
 require('dotenv').config();
 
-const connectDB = require('../backend/config/db')
-const Project = require('./models/projects')
-
+const connectDB = require('../backend/config/db');
+const Project = require('./models/projects');
 
 const app = express();
 
 // Connect to DB
 connectDB();
-
 
 // Middleware
 app.use(cors());
@@ -35,7 +33,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Only image files are allowed!'), false);
@@ -49,7 +47,9 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
   try {
     const {
       title, type, description, region, district,
-      contractor, status, submittedBy, startDate
+      contractor, status, submittedBy, startDate,
+      location_address, location_city, location_region,
+      gps_latitude, gps_longitude
     } = req.body;
 
     const project = new Project({
@@ -58,15 +58,16 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
       description,
       region,
       district,
-      location: {
-        address: req.body['location[address]'],
-        city: req.body['location[city]'],
-        region: req.body['location[region]']
-      },
-      gps: {
-        latitude: req.body['gps[latitude]'],
-        longitude: req.body['gps[longitude]']
-      },
+    location: {
+      address: req.body.address,
+      city: req.body.city,
+      region: req.body.region,
+    },
+    gps: {
+      latitude: req.body.latitude,
+      longitude: req.body.longitude
+    },
+
       contractor,
       status,
       startDate,
@@ -82,7 +83,7 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
   }
 });
 
-// Include other routes (e.g., GET all projects, GET by ID)
+// Include other routes
 const projectRoutes = require('./routes/projectRoutes');
 app.use('/api/projects', projectRoutes);
 
@@ -91,7 +92,6 @@ app.get('/', (req, res) => {
   res.send('Welcome to the Ghana Project Tracker API');
 });
 
-// Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

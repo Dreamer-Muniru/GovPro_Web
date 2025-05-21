@@ -33,7 +33,7 @@ const projectSchema = new mongoose.Schema({
 
   contractor: { type: String, default: 'Unknown' },
 
-  imageUrl: { type: String, required: true }, // Will store image filename or full URL
+  imageUrl: { type: String, required: true }, 
 
   status: {
     type: String,
