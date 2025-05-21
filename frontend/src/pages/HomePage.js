@@ -14,6 +14,7 @@ const HomePage = () => {
   const fetchProjects = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/projects');
+      console.log('Fetched projects:', res.data.projects); // Log to inspect data
       setProjects(res.data.projects);
     } catch (err) {
       console.error('Error fetching projects:', err);
@@ -36,9 +37,9 @@ const HomePage = () => {
   });
 
   // Extract unique values for dropdowns
-  const regions = [...new Set(projects.map(p => p.region))];
-  const districts = [...new Set(projects.map(p => p.district))];
-  const types = [...new Set(projects.map(p => p.type))];
+  const regions = [...new Set(projects.map(p => p.region).filter(Boolean))];
+  const districts = [...new Set(projects.map(p => p.district).filter(Boolean))];
+  const types = [...new Set(projects.map(p => p.type).filter(Boolean))];
 
   return (
     <div style={{ padding: '20px' }}>
@@ -66,15 +67,25 @@ const HomePage = () => {
       ) : (
         filteredProjects.map((project) => (
           <div key={project._id} style={{ border: '1px solid #ccc', marginBottom: '10px', padding: '10px' }}>
-            <h2>{project.title}</h2>
-            <p><strong>Type:</strong> {project.type}</p>
-            <p><strong>Description:</strong> {project.description}</p>
-            <p><strong>Region:</strong> {project.region}</p>
-            <p><strong>District:</strong> {project.district}</p>
-            <p><strong>Location:</strong> {project.location}</p>
-            <p><strong>Contractor:</strong> {project.contractorName}</p>
-            <p><strong>GPS:</strong> Lat {project.gps.lat}, Lng {project.gps.lng}</p>
-            {project.imageUrl && <img src={project.imageUrl} alt={project.title} style={{ width: '200px' }} />}
+            <h2>{project.title || 'Untitled Project'}</h2>
+            <p><strong>Type:</strong> {project.type || 'N/A'}</p>
+            <p><strong>Description:</strong> {project.description || 'N/A'}</p>
+            <p><strong>Region:</strong> {project.region || 'N/A'}</p>
+            <p><strong>District:</strong> {project.district || 'N/A'}</p>
+            <p><strong>Location:</strong> {project.location || 'N/A'}</p>
+            <p><strong>Contractor:</strong> {project.contractorName || 'N/A'}</p>
+            <p><strong>GPS:</strong> 
+              {project.gps && project.gps.lat && project.gps.lng
+                ? `Lat ${project.gps.lat}, Lng ${project.gps.lng}`
+                : 'N/A'}
+            </p>
+            {project.imageUrl && (
+              <img
+                src={project.imageUrl}
+                alt={project.title || 'Project Image'}
+                style={{ width: '200px', objectFit: 'cover' }}
+              />
+            )}
           </div>
         ))
       )}
