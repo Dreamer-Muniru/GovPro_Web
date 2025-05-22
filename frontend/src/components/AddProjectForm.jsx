@@ -77,23 +77,23 @@ const AddProjectForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const data = new FormData();
+ const data = new FormData();
     data.append('title', formData.title);
     data.append('type', formData.type === 'Other' ? formData.customType : formData.type);
     data.append('customType', formData.customType);
     data.append('description', formData.description);
     data.append('region', formData.region);
     data.append('district', formData.district);
-    data.append('location[address]', formData.address);
-    data.append('location[city]', formData.city);
-    data.append('location[region]', formData.region);
     data.append('contractor', formData.contractor);
-    data.append('gps[latitude]', formData.latitude);
-    data.append('gps[longitude]', formData.longitude);
     data.append('status', formData.status);
     data.append('startDate', formData.startDate);
     data.append('submittedBy', formData.submittedBy);
 
+    // Include location and GPS fields as flat keys (let backend reconstruct them)
+    data.append('address', formData.address);
+    data.append('city', formData.city);
+    data.append('latitude', formData.latitude);
+    data.append('longitude', formData.longitude);
     if (formData.image) {
       data.append('image', formData.image);
     }
