@@ -1,14 +1,18 @@
-// src/App.js
+// src/App.js or src/index.js (whichever wraps your root component)
 import React from 'react';
-import ProjectList from '../src/components/ProjectList';
-import HomePage from '../src/pages/HomePage';
+import { ProjectProvider } from './context/ProjectContext';
+import AddProjectForm from './components/AddProjectForm'; // adjust the path as needed
+import HomePage from './pages/HomePage'; // your homepage component
 
-const App = () => {
+function App() {
   return (
-    <div className="App">
-      <HomePage />
-    </div>
+    <ProjectProvider>
+      <div>
+    
+        <HomePage />
+      </div>
+    </ProjectProvider>
   );
-};
+}
 
 export default App;
