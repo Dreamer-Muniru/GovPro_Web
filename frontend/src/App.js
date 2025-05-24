@@ -7,10 +7,7 @@ import HomePage from './pages/HomePage'; // your homepage component
 function App() {
   return (
     <ProjectProvider>
-      <div>
-    
         <HomePage />
-      </div>
     </ProjectProvider>
   );
 }

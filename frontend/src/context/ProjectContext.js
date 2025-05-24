@@ -5,18 +5,12 @@ const ProjectContext = createContext();
 export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
 
-  // This is the critical fix - using useCallback to maintain referential equality
   const addProject = useCallback((newProject) => {
     setProjects(prevProjects => {
-      // Check if project already exists (by _id)
-      const existingIndex = prevProjects.findIndex(p => p._id === newProject._id);
-      if (existingIndex >= 0) {
-        // Update existing project
-        const updated = [...prevProjects];
-        updated[existingIndex] = newProject;
-        return updated;
+      // Check if project exists by _id
+      if (!newProject._id || prevProjects.some(p => p._id === newProject._id)) {
+        return prevProjects;
       }
-      // Add new project to beginning of array
       return [newProject, ...prevProjects];
     });
   }, []);
@@ -36,10 +30,4 @@ export const ProjectProvider = ({ children }) => {
   );
 };
 
-export const useProjectContext = () => {
-  const context = useContext(ProjectContext);
-  if (!context) {
-    throw new Error('useProjectContext must be used within a ProjectProvider');
-  }
-  return context;
-};
+export const useProjectContext = () => useContext(ProjectContext);

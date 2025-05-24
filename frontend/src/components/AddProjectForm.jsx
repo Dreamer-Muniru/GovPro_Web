@@ -9,8 +9,6 @@ const projectTypes = [
   'Sanitation Facility', 'Government Office', 'Sports & Recreation Center', 'Other'
 ];
 
-const statusOptions = ['Uncompleted', 'Abandoned', 'Resumed', 'Completed'];
-
 const initialFormState = {
   title: '',
   type: '',
@@ -90,19 +88,6 @@ const AddProjectForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Validate required fields
-    const requiredFields = ['title', 'type', 'description', 'region', 'district'];
-    const missingFields = requiredFields.filter(field => !formData[field]);
-    
-    if (missingFields.length > 0) {
-      setMessage({
-        text: `Missing required fields: ${missingFields.join(', ')}`,
-        type: 'error'
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
     const data = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       if (key === 'type' && formData.type === 'Other') {
@@ -122,14 +107,25 @@ const AddProjectForm = () => {
       });
 
       if (res.data?._id) {
-        addProject({
+        const completeProject = {
           ...res.data,
+          title: formData.title,
+          type: formData.type === 'Other' ? formData.customType : formData.type,
+          region: formData.region,
+          district: formData.district,
+          status: formData.status,
+          address: formData.address,
+          city: formData.city,
+          contractor: formData.contractor,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          startDate: formData.startDate,
+          submittedBy: formData.submittedBy,
           imageUrl: res.data.imageUrl || null
-        });
-        setMessage({
-          text: '✅ Project submitted successfully!',
-          type: 'success'
-        });
+        };
+
+        addProject(completeProject);
+        setMessage({ text: '✅ Project submitted successfully!', type: 'success' });
         resetForm();
       }
     } catch (error) {
@@ -144,27 +140,37 @@ const AddProjectForm = () => {
   };
 
   return (
-   <form onSubmit={handleSubmit} encType="multipart/form-data" className="project-form">
-      <h2>Add New Project</h2>
+    <form onSubmit={handleSubmit} encType="multipart/form-data" style={{ 
+      maxWidth: '600px', 
+      margin: '0 auto',
+      padding: '20px',
+      backgroundColor: '#f9f9f9',
+      borderRadius: '8px'
+    }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Add New Project</h2>
       
-      <div className="form-group">
-        <label>Project Title*</label>
+      {/* Project Title */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Project Title*</label>
         <input
           type="text"
           name="title"
           value={formData.title}
           onChange={handleChange}
           required
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         />
       </div>
 
-      <div className="form-group">
-        <label>Project Type*</label>
+      {/* Project Type */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Project Type*</label>
         <select
           name="type"
           value={formData.type}
           onChange={handleChange}
           required
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         >
           <option value="">Select Type</option>
           {projectTypes.map(type => (
@@ -175,30 +181,35 @@ const AddProjectForm = () => {
           <input
             type="text"
             name="customType"
-            placeholder="Specify type"
+            placeholder="Specify project type"
             value={formData.customType}
             onChange={handleChange}
+            style={{ width: '100%', padding: '8px', marginTop: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
           />
         )}
       </div>
 
-      <div className="form-group">
-        <label>Description*</label>
+      {/* Description */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Description*</label>
         <textarea
           name="description"
           value={formData.description}
           onChange={handleChange}
           required
+          style={{ width: '100%', padding: '8px', minHeight: '100px', borderRadius: '4px', border: '1px solid #ddd' }}
         />
       </div>
 
-      <div className="form-group">
-        <label>Region*</label>
+      {/* Region */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Region*</label>
         <select
           name="region"
           value={formData.region}
           onChange={handleRegionChange}
           required
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         >
           <option value="">Select Region</option>
           {ghanaRegions.map(region => (
@@ -207,14 +218,16 @@ const AddProjectForm = () => {
         </select>
       </div>
 
-      <div className="form-group">
-        <label>District*</label>
+      {/* District */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>District*</label>
         <select
           name="district"
           value={formData.district}
           onChange={handleChange}
           required
           disabled={!formData.region}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         >
           <option value="">Select District</option>
           {districts.map(district => (
@@ -223,145 +236,156 @@ const AddProjectForm = () => {
         </select>
       </div>
 
-      <div className="form-group">
-        <label>Address</label>
+      {/* Address */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Address</label>
         <input
           type="text"
           name="address"
           value={formData.address}
           onChange={handleChange}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         />
       </div>
 
-      <div className="form-group">
-        <label>City</label>
+      {/* City */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>City</label>
         <input
           type="text"
           name="city"
           value={formData.city}
           onChange={handleChange}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         />
       </div>
 
-      <div className="form-group">
-        <label>Contractor</label>
+      {/* Contractor */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Contractor</label>
         <input
           type="text"
           name="contractor"
           value={formData.contractor}
           onChange={handleChange}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         />
       </div>
 
-      <div className="form-group">
-        <label>Status</label>
+      {/* Status */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Status</label>
         <select
           name="status"
           value={formData.status}
           onChange={handleChange}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         >
-          {statusOptions.map(status => (
-            <option key={status} value={status}>{status}</option>
-          ))}
+          <option value="Uncompleted">Uncompleted</option>
+          <option value="Abandoned">Abandoned</option>
+          <option value="Resumed">Resumed</option>
+          <option value="Completed">Completed</option>
         </select>
       </div>
 
-      <div className="form-group">
-        <label>Start Date</label>
+      {/* Start Date */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Start Date</label>
         <input
           type="date"
           name="startDate"
           value={formData.startDate}
           onChange={handleChange}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         />
       </div>
 
-      <div className="form-group">
-        <label>Submitted By</label>
+      {/* Submitted By */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Submitted By</label>
         <input
           type="text"
           name="submittedBy"
           value={formData.submittedBy}
           onChange={handleChange}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         />
       </div>
 
-      <div className="form-group">
-        <label>Project Image</label>
+      {/* GPS Coordinates */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>GPS Coordinates</label>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Latitude</label>
+            <input
+              type="text"
+              name="latitude"
+              value={formData.latitude}
+              onChange={handleChange}
+              readOnly
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', backgroundColor: '#f0f0f0' }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Longitude</label>
+            <input
+              type="text"
+              name="longitude"
+              value={formData.longitude}
+              onChange={handleChange}
+              readOnly
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', backgroundColor: '#f0f0f0' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Image Upload */}
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Project Image</label>
         <input
           type="file"
           name="image"
           accept="image/*"
           onChange={handleChange}
           key={fileInputKey}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
         />
       </div>
 
-      <div className="form-group">
-        <p>📍 Latitude: {formData.latitude || 'Not available'}</p>
-        <p>📍 Longitude: {formData.longitude || 'Not available'}</p>
-      </div>
-
-      <button type="submit" disabled={isSubmitting}>
+      {/* Submit Button */}
+      <button 
+        type="submit" 
+        disabled={isSubmitting}
+        style={{
+          width: '100%',
+          padding: '12px',
+          backgroundColor: isSubmitting ? '#cccccc' : '#4CAF50',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          marginTop: '10px'
+        }}
+      >
         {isSubmitting ? 'Submitting...' : 'Submit Project'}
       </button>
 
+      {/* Message Display */}
       {message.text && (
-        <div className={`message ${message.type}`}>
+        <div style={{
+          marginTop: '15px',
+          padding: '10px',
+          backgroundColor: message.type === 'error' ? '#ffdddd' : '#ddffdd',
+          borderLeft: `5px solid ${message.type === 'error' ? '#f44336' : '#4CAF50'}`,
+          borderRadius: '4px'
+        }}>
           {message.text}
         </div>
       )}
-
-      <style jsx>{`
-        .project-form {
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 20px;
-          background: #f9f9f9;
-          border-radius: 8px;
-        }
-        .form-group {
-          margin-bottom: 15px;
-        }
-        label {
-          display: block;
-          margin-bottom: 5px;
-          font-weight: bold;
-        }
-        input, select, textarea {
-          width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-        textarea {
-          min-height: 100px;
-        }
-        button {
-          background: #4CAF50;
-          color: white;
-          padding: 10px 15px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-        button:disabled {
-          background: #cccccc;
-        }
-        .message {
-          padding: 10px;
-          margin-top: 15px;
-          border-radius: 4px;
-        }
-        .success {
-          background: #dff0d8;
-          color: #3c763d;
-        }
-        .error {
-          background: #f2dede;
-          color: #a94442;
-        }
-      `}</style>
     </form>
   );
 };
