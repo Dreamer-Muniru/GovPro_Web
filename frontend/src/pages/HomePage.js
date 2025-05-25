@@ -7,6 +7,7 @@ import { useProjectContext } from '../context/ProjectContext';
 import AddProjectForm from '../components/AddProjectForm';
 import Modal from 'react-modal';
 
+
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({

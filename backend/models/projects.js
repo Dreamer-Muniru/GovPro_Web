@@ -13,7 +13,7 @@ const projectSchema = new mongoose.Schema({
     ],
     required: true,
   },
-  otherType: { type: String }, // Only used if type === 'Other'
+  otherType: { type: String }, 
 
   description: { type: String, required: true },
 
@@ -41,7 +41,7 @@ const projectSchema = new mongoose.Schema({
     default: 'Uncompleted'
   },
 
-  projectStartDate: { type: Date }, // NEW: Project Start Date
+  projectStartDate: { type: Date },
 
   dateSubmitted: { type: Date, default: Date.now },
 
