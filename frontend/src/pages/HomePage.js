@@ -7,7 +7,6 @@ import { useProjectContext } from '../context/ProjectContext';
 import AddProjectForm from '../components/AddProjectForm';
 import Modal from 'react-modal';
 
-
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -190,6 +189,16 @@ const HomePage = () => {
                           <p style={{ margin: '4px 0' }}><strong>Type:</strong> {project.type}</p>
                           <p style={{ margin: '4px 0' }}><strong>Status:</strong> {project.status}</p>
                           <p style={{ margin: '4px 0' }}><strong>Region:</strong> {project.region}</p>
+                          <p style={{ margin: '4px 0' }}><strong>District:</strong> {project.district}</p>
+                          {project.city && (
+                            <p style={{ margin: '4px 0' }}><strong>City:</strong> {project.city}</p>
+                          )}
+                          {project.address && (
+                            <p style={{ margin: '4px 0' }}><strong>Address:</strong> {project.address}</p>
+                          )}
+                          <p style={{ margin: '4px 0' }}>
+                            <strong>GPS:</strong> {parseFloat(project.latitude).toFixed(6)}, {parseFloat(project.longitude).toFixed(6)}
+                          </p>
                           {project.imageUrl && (
                             <img 
                               src={project.imageUrl} 
@@ -210,8 +219,6 @@ const HomePage = () => {
               </MapContainer>
               
             </div>
-            
-           
           </div>
         </div>
 
@@ -357,11 +364,36 @@ const HomePage = () => {
                   <p style={{ margin: '8px 0' }}><strong>Type:</strong> {project.type}</p>
                   <p style={{ margin: '8px 0' }}><strong>Status:</strong> {project.status}</p>
                   <p style={{ margin: '8px 0' }}><strong>Location:</strong> {project.region}, {project.district}</p>
+                 {project.gps && project.gps.latitude && project.gps.longitude && (
+                  <p style={{ margin: '8px 0', fontSize: '14px', color: '#666' }}>
+                    <strong>GPS Coordinates:</strong> {parseFloat(project.gps.latitude).toFixed(6)}, {parseFloat(project.gps.longitude).toFixed(6)}
+                  </p>
+                )}
+                                  
+                  {/* Added missing fields here */}
+                  {project.address && (
+                    <p style={{ margin: '8px 0' }}><strong>Address:</strong> {project.address}</p>
+                  )}
+                  {project.city && (
+                    <p style={{ margin: '8px 0' }}><strong>City:</strong> {project.city}</p>
+                  )}
+                  {project.contractor && (
+                    <p style={{ margin: '8px 0' }}><strong>Contractor:</strong> {project.contractor}</p>
+                  )}
+                  {project.startDate && (
+                    <p style={{ margin: '8px 0' }}><strong>Start Date:</strong> {new Date(project.startDate).toLocaleDateString()}</p>
+                  )}
+                  {project.submittedBy && (
+                    <p style={{ margin: '8px 0' }}><strong>Submitted By:</strong> {project.submittedBy}</p>
+                  )}
+                  
+                  {/* GPS Coordinates */}
                   {project.latitude && project.longitude && (
                     <p style={{ margin: '8px 0', fontSize: '14px', color: '#666' }}>
-                      <strong>Coordinates:</strong> {parseFloat(project.latitude).toFixed(6)}, {parseFloat(project.longitude).toFixed(6)}
+                      <strong>GPS Coordinates:</strong> {parseFloat(project.latitude).toFixed(6)}, {parseFloat(project.longitude).toFixed(6)}
                     </p>
                   )}
+                  
                   {project.description && (
                     <>
                       <p style={{ margin: '8px 0' }}><strong>Description:</strong></p>
