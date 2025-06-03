@@ -1,4 +1,3 @@
-// models/Project.js
 const mongoose = require('mongoose');
 
 const projectSchema = new mongoose.Schema({
@@ -33,7 +32,12 @@ const projectSchema = new mongoose.Schema({
 
   contractor: { type: String, default: 'Unknown' },
 
-  imageUrl: { type: String, required: true }, 
+  imageUrl: { type: String }, // Made this optional for flexibility
+  
+  imageData: {
+    type: Buffer, // Storing image binary data (if needed)
+    contentType: String
+  },
 
   status: {
     type: String,
