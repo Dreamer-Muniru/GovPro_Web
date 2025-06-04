@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
+const { GridFSBucket } = require('mongodb');
+const mongoose = require('mongoose');
+const stream = require('stream');
 require('dotenv').config();
 
 const connectDB = require('../backend/config/db');
@@ -12,37 +14,23 @@ const app = express();
 // Connect to DB
 connectDB();
 
+const conn = mongoose.connection;
+let gfs, gridBucket;
+conn.once('open', () => {
+  gridBucket = new GridFSBucket(conn.db, { bucketName: 'uploads' });
+  console.log('GridFS initialized');
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// Serve static image uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Multer setup
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
-});
+// Multer setup (store images in memory instead of local disk)
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('Only image files are allowed!'), false);
-    }
-    cb(null, true);
-  }
-});
-
-// POST route for creating project with image
+// POST route for creating a project with image (GridFS storage)
 app.post('/api/projects', upload.single('image'), async (req, res) => {
   try {
     const {
@@ -58,28 +46,57 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
       description,
       region,
       district,
-    location: {
-      address: req.body.address,
-      city: req.body.city,
-      region: req.body.region,
-    },
-    gps: {
-      latitude: req.body.latitude,
-      longitude: req.body.longitude
-    },
-
+      location: {
+        address: location_address,
+        city: location_city,
+        region: location_region,
+      },
+      gps: {
+        latitude: gps_latitude,
+        longitude: gps_longitude
+      },
       contractor,
       status,
       startDate,
-      submittedBy,
-      imageUrl: req.file ? `/uploads/${req.file.filename}` : ''
+      submittedBy
     });
 
-    await project.save();
-    res.status(201).json({ message: 'Project created successfully' });
+    if (req.file) {
+      const readableStream = new stream.PassThrough();
+      readableStream.end(req.file.buffer);
+
+      const uploadStream = gridBucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype,
+      });
+
+      readableStream.pipe(uploadStream);
+      
+      uploadStream.on('finish', async () => {
+        project.imageUrl = `/api/uploads/${uploadStream.id}`;
+        await project.save();
+        res.status(201).json({ message: 'Project created successfully', project });
+      });
+    } else {
+      await project.save();
+      res.status(201).json({ message: 'Project created successfully', project });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET route for retrieving images from GridFS
+app.get('/api/uploads/:id', async (req, res) => {
+  try {
+    const fileId = new mongoose.Types.ObjectId(req.params.id);
+    const downloadStream = gridBucket.openDownloadStream(fileId);
+
+    res.setHeader('Content-Type', 'image/png'); 
+    downloadStream.pipe(res);
+  } catch (error) {
+    console.error(error);
+    res.status(404).json({ message: 'Image not found' });
   }
 });
 
