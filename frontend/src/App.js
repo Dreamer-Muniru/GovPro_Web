@@ -5,7 +5,6 @@ import HomePage from './pages/HomePage';
 import AddProjectForm from './components/AddProjectForm';
 
 
-
 function App() {
   return (
    <Router>
