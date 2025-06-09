@@ -7,7 +7,7 @@ import '../home.css';
 
 // Custom pinpoint marker icon
 const pinpointIcon = new Icon({
-  iconUrl: '/images/marker-icon.png', // Ensure this exists in the public/images folder
+  iconUrl: '/images/marker-icon.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });

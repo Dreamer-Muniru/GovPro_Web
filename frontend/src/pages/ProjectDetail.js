@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import axios from 'axios';
-//
 
 // Custom pinpoint marker icon
 const pinpointIcon = new Icon({

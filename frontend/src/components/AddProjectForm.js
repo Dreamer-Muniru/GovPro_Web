@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../addProjectForm.css'
 
+
 const AddProjectForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     title: '',
