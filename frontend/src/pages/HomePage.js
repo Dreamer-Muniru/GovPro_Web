@@ -7,7 +7,7 @@ import '../home.css';
 
 // Custom pinpoint marker icon
 const pinpointIcon = new Icon({
-  iconUrl: '/images/marker-icon.png',
+  iconUrl: '/images/marker-icon.png', // Ensure this exists in the public/images folder
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
@@ -73,6 +73,8 @@ const HomePage = () => {
                 <p><strong>Status:</strong> {project.status}</p>
                 <p><strong>Region:</strong> {project.region}, {project.district}</p>
                 <p><strong>GPS:</strong> {parseFloat(project.gps.latitude).toFixed(6)}, {parseFloat(project.gps.longitude).toFixed(6)}</p>
+                {/* View Details Button inside Popup */}
+                <button onClick={() => navigate(`/project/${project._id}`)} className="view-details-btn">View Details</button>
               </Popup>
             </Marker>
           ) : null
@@ -114,6 +116,8 @@ const HomePage = () => {
             {project.submittedBy && <p><strong>Submitted By:</strong> {project.submittedBy}</p>}
             <p><strong>Description:</strong> {project.description}</p>
             {project.imageUrl && <img src={`http://localhost:5000${project.imageUrl}`} alt={project.title} className="project-image" />}
+            {/* View Details Button for each listed project */}
+            <button onClick={() => navigate(`/project/${project._id}`)} className="view-details-btn">View Details</button>
           </div>
         ))}
       </div>
