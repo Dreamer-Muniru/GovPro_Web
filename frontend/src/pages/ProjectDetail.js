@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import axios from 'axios';
+// import '../projectDetail.css';
 
 // Custom pinpoint marker icon
 const pinpointIcon = new Icon({
@@ -55,13 +56,16 @@ const ProjectDetail = () => {
       {project.submittedBy && <p><strong>Submitted By:</strong> {project.submittedBy}</p>}
       <p><strong>Description:</strong> {project.description}</p>
 
-      {/* Interactive Map */}
+      {/* Interactive Map with Marker Popup */}
       <h3>Project Location</h3>
-      <MapContainer center={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} zoom={14} style={{ height: '300px', width: '100%' }}>
+      <MapContainer center={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} zoom={14} style={{ height: '250px', width: '100%' }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <Marker position={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} icon={pinpointIcon}>
           <Popup>
             <h4>{project.title}</h4>
+            <p><strong>Type:</strong> {project.type}</p>
+            <p><strong>Status:</strong> {project.status}</p>
+            <p><strong>Region:</strong> {project.region}, {project.district}</p>
             <a 
               href={`https://www.google.com/maps?q=${project.gps.latitude},${project.gps.longitude}`} 
               target="_blank" 
