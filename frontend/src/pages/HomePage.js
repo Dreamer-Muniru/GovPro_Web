@@ -61,7 +61,7 @@ const HomePage = () => {
       </div>
 
       {/* Map Section */}
-      <MapContainer center={[5.6037, -0.1870]} zoom={7} style={{ height: '400px', width: '100%' }}>
+      <MapContainer center={[5.6037, -0.1870]} zoom={5} style={{ height: '400px', width: '100%' }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {filteredProjects.map(project => 
           project.gps?.latitude && project.gps?.longitude ? (

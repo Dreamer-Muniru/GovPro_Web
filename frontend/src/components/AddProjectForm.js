@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import ghanaRegions from '../data/ghanaRegions';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
@@ -16,6 +16,8 @@ const pinpointIcon = new Icon({
 
 const AddProjectForm = () => {
   const navigate = useNavigate();
+  const mapRef = useRef(null);
+
   const [formData, setFormData] = useState({
     title: '',
     type: '',
@@ -61,6 +63,20 @@ const AddProjectForm = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (mapRef.current) {
+      mapRef.current.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        setPosition([lat, lng]);
+        setFormData((prev) => ({
+          ...prev,
+          gps_latitude: lat.toFixed(6),
+          gps_longitude: lng.toFixed(6),
+        }));
+      });
+    }
+  }, [mapKey]);
+
   const handleMarkerDrag = (event) => {
     const { lat, lng } = event.target.getLatLng();
     setPosition([lat, lng]);
@@ -94,7 +110,7 @@ const AddProjectForm = () => {
       await axios.post('http://localhost:5000/api/projects', formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      navigate('/'); // ✅ Redirect to HomePage.js after success
+      navigate('/'); // Redirect after success
     } catch (err) {
       console.error('Submission error:', err);
       setError('Failed to submit project. Please check all fields and try again.');
@@ -109,7 +125,13 @@ const AddProjectForm = () => {
 
       <div className="form-section">
         <h3>Project Location</h3>
-        <MapContainer key={mapKey} center={position} zoom={15} style={{ height: '250px', width: '100%' }}>
+        <MapContainer
+          key={mapKey}
+          center={position}
+          zoom={7}
+          style={{ height: '250px', width: '100%' }}
+          whenCreated={(mapInstance) => (mapRef.current = mapInstance)}
+        >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <Marker
             position={position}
@@ -134,51 +156,45 @@ const AddProjectForm = () => {
         <input type="text" name="location_address" placeholder="Location Address" onChange={handleChange} required />
         <input type="text" name="location_city" placeholder="Location City" onChange={handleChange} required />
 
-       <select
-        name="type"
-        value={formData.type}
-        onChange={handleChange}
-        required
-      >
-        <option value="">Select Type</option>
-        <option value="School">School</option>
-        <option value="Hospital">Hospital</option>
-        <option value="Road">Road</option>
-        <option value="Residential Bungalow">Residential Bungalow</option>
-        <option value="Market Stall">Market Stall</option>
-        <option value="Drainage System">Drainage System</option>
-        <option value="Bridge">Bridge</option>
-        <option value="Water System">Water System</option>
-        <option value="Power Project">Power Project</option>
-        <option value="Sanitation Facility">Sanitation Facility</option>
-        <option value="Government Office">Government Office</option>
-        <option value="Sports & Recreation Center">Sports & Recreation Center</option>
-        <option value="Other">Other</option>
-      </select>
+        <select name="type" value={formData.type} onChange={handleChange} required>
+          <option value="">Select Type</option>
+          <option value="School">School</option>
+          <option value="Hospital">Hospital</option>
+          <option value="Road">Road</option>
+          <option value="Residential Bungalow">Residential Bungalow</option>
+          <option value="Market Stall">Market Stall</option>
+          <option value="Drainage System">Drainage System</option>
+          <option value="Bridge">Bridge</option>
+          <option value="Water System">Water System</option>
+          <option value="Power Project">Power Project</option>
+          <option value="Sanitation Facility">Sanitation Facility</option>
+          <option value="Government Office">Government Office</option>
+          <option value="Sports & Recreation Center">Sports & Recreation Center</option>
+          <option value="Other">Other</option>
+        </select>
 
+        <select name="status" value={formData.status} onChange={handleChange} required>
+          <option value="">Select Status</option>
+          <option value="Uncompleted">Uncompleted</option>
+          <option value="Abandoned">Abandoned</option>
+          <option value="Resumed">Resumed</option>
+          <option value="Completed">Completed</option>
+        </select>
 
-    <select
-      name="status"
-      value={formData.status}
-      onChange={handleChange}
-      required
-    >
-      <option value="">Select Status</option>
-      <option value="Uncompleted">Uncompleted</option>
-      <option value="Abandoned">Abandoned</option>
-      <option value="Resumed">Resumed</option>
-      <option value="Completed">Completed</option>
-    </select>
-
-
-        <select name="region" onChange={handleChange} required>
+        <select name="region" value={formData.region} onChange={handleChange} required>
           <option value="">Select Region</option>
           {ghanaRegions.map((region) => (
             <option key={region.name} value={region.name}>{region.name}</option>
           ))}
         </select>
 
-        <select name="district" onChange={handleChange} required disabled={!formData.region}>
+        <select
+          name="district"
+          value={formData.district}
+          onChange={handleChange}
+          required
+          disabled={!formData.region}
+        >
           <option value="">Select District</option>
           {ghanaRegions.find(r => r.name === formData.region)?.districts.map((district) => (
             <option key={district} value={district}>{district}</option>
