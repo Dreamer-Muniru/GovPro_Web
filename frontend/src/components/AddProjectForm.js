@@ -119,8 +119,24 @@ const AddProjectForm = () => {
           />
         </MapContainer>
         <div className="gps-display">
-          <input type="text" name="gps_latitude" value={formData.gps_latitude} readOnly />
-          <input type="text" name="gps_longitude" value={formData.gps_longitude} readOnly />
+          <input
+              type="text"
+              name="gps_latitude"
+              value={formData.gps_latitude}
+              onChange={handleChange}
+              placeholder="Latitude"
+              required
+            />
+
+            <input
+              type="text"
+              name="gps_longitude"
+              value={formData.gps_longitude}
+              onChange={handleChange}
+              placeholder="Longitude"
+              required
+            />
+
         </div>
       </div>
 
