@@ -103,6 +103,9 @@ app.get('/api/uploads/:id', async (req, res) => {
 // Include other routes
 const projectRoutes = require('./routes/projectRoutes');
 app.use('/api/projects', projectRoutes);
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 
 // Welcome route
 app.get('/', (req, res) => {
