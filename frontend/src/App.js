@@ -1,21 +1,24 @@
-// src/App.js or src/index.js (whichever wraps your root component)
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import AddProjectForm from './components/AddProjectForm';
-import ProjectDetail from './pages/ProjectDetail';
-
+import AboutPage from './pages/AboutPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 
 function App() {
   return (
-   <Router>
+    <Router>
+      <Navbar /> {/* ✅ Always visible */}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/add-project" element={<AddProjectForm />} />
-        <Route path="/project/:id" element={<ProjectDetail />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Routes>
     </Router>
   );
 }
 
-export default App;
+export default App
