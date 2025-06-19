@@ -118,6 +118,8 @@ const HomePage = () => {
             {project.imageUrl && <img src={`http://localhost:5000${project.imageUrl}`} alt={project.title} className="project-image" />}
             {/* View Details Button for each listed project */}
             <button onClick={() => navigate(`/project/${project._id}`)} className="view-details-btn">View Details</button>
+           
+
           </div>
         ))}
       </div>
