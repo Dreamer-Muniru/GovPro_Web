@@ -5,9 +5,10 @@ const { GridFSBucket } = require('mongodb');
 const mongoose = require('mongoose');
 const stream = require('stream');
 require('dotenv').config();
-
+const projectRoutes = require('./routes/projectRoutes');
 const connectDB = require('../backend/config/db');
 const Project = require('./models/projects');
+// const authRoutes = require('./routes/auth');
 
 const app = express();
 
@@ -99,9 +100,19 @@ app.get('/api/uploads/:id', async (req, res) => {
     res.status(404).json({ message: 'Image not found' });
   }
 });
+app.get('/:id', async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    res.json(project);
+  } catch (err) {
+    console.error('Error fetching project by ID:', err);
+    res.status(500).json({ error: 'Failed to fetch project' });
+  }
+});
 
 // Include other routes
-const projectRoutes = require('./routes/projectRoutes');
+// const projectRoutes = require('./routes/projectRoutes');
 app.use('/api/projects', projectRoutes);
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);

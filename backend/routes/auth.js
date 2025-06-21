@@ -3,9 +3,14 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Project = require('../models/projects')
+
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'yoursecret';
+
 
 // Register
 router.post('/register', [
@@ -31,6 +36,18 @@ router.post('/register', [
     res.status(500).send('Server error');
   }
 });
+
+
+
+router.get('/projects', async (req, res) => {
+  const projects = await Project.find().sort({ createdAt: -1 });
+  res.json(projects);
+});
+
+
+
+// Editing route for a specific project
+
 
 // Login
 router.post('/login', async (req, res) => {

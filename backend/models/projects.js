@@ -44,12 +44,16 @@ const projectSchema = new mongoose.Schema({
     enum: ['Uncompleted', 'Abandoned', 'Resumed', 'Completed'],
     default: 'Uncompleted'
   },
+  approved: {
+  type: Boolean,
+  default: false,
+}, 
 
   projectStartDate: { type: Date },
 
   dateSubmitted: { type: Date, default: Date.now },
 
   submittedBy: { type: String, default: 'Anonymous' }
-});
+},{ timestamps: true });
 
 module.exports = mongoose.model('Project', projectSchema);
