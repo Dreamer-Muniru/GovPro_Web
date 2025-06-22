@@ -115,7 +115,7 @@ const HomePage = () => {
             {project.startDate && <p><strong>Start Date:</strong> {new Date(project.startDate).toLocaleDateString()}</p>}
             {project.submittedBy && <p><strong>Submitted By:</strong> {project.submittedBy}</p>}
             <p><strong>Description:</strong> {project.description}</p>
-            {project.imageUrl && <img src={`http://localhost:5000${project.imageUrl}`} alt={project.title} className="project-image" />}
+            {project.imageUrl && <img src={`http://localhost:5000${project.imageUrl}?${Date.now()}`} alt={project.title} className="project-image" />}
             {/* View Details Button for each listed project */}
             <button onClick={() => navigate(`/project/${project._id}`)} className="view-details-btn">View Details</button>
            

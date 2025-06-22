@@ -65,7 +65,7 @@ const EditProject = () => {
           setPosition([parseFloat(data.gps_latitude), parseFloat(data.gps_longitude)]);
         }
 
-        setPreviewUrl(`http://localhost:5000/api/projects/${id}/image`);
+        setPreviewUrl(`http://localhost:5000/api/projects/${id}/image?${Date.now()}`);
       } catch (err) {
         console.error('Failed to load project:', err);
         setError('Could not load project data.');
