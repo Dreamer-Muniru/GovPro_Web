@@ -45,10 +45,6 @@ router.get('/projects', async (req, res) => {
 });
 
 
-
-// Editing route for a specific project
-
-
 // Login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
