@@ -1,10 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const { GridFSBucket } = require('mongodb');
 const mongoose = require('mongoose');
 const stream = require('stream');
-require('dotenv').config();
 const projectRoutes = require('./routes/projectRoutes');
 const connectDB = require('../backend/config/db');
 const Project = require('./models/projects');

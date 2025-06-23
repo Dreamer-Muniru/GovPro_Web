@@ -70,9 +70,12 @@ router.delete('/:id', verifyAdminToken, async (req, res) => {
   try {
     await Project.findByIdAndDelete(req.params.id);
     res.json({ success: true });
+    console.log('DELETE request received for ID:', req.params.id);
+
   } catch (err) {
     res.status(500).json({ error: 'Delete failed' });
   }
 });
+
 
 module.exports = router;

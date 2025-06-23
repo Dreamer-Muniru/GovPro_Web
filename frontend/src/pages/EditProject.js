@@ -37,29 +37,30 @@ const EditProject = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [position, setPosition] = useState([10.853388, -0.174521]);
   const [error, setError] = useState('');
-  const [mapKey, setMapKey] = useState(Date.now());
+  
 
   useEffect(() => {
     const fetchProject = async () => {
       try {
         const res = await axios.get(`http://localhost:5000/api/projects/${id}`);
         const data = res.data;
+        console.log('Fetched project:', data);
+       setFormData({
+        title: data.title || '',
+        description: data.description || '',
+        type: data.type || '',
+        region: data.region || '',
+        district: data.district || '',
+        location_address: data.location_address || '',
+        location_city: data.location_city || '',
+        gps_latitude: data.gps_latitude || '',
+        gps_longitude: data.gps_longitude || '',
+        contractor: data.contractor || '',
+        status: data.status || '',
+        startDate: data.startDate ? data.startDate.slice(0, 10) : '',
+        submittedBy: data.submittedBy || '',
+      });
 
-        setFormData({
-          title: data.title || '',
-          type: data.type || '',
-          description: data.description || '',
-          region: data.region || '',
-          district: data.district || '',
-          location_address: data.location_address || '',
-          location_city: data.location_city || '',
-          gps_latitude: data.gps_latitude || '',
-          gps_longitude: data.gps_longitude || '',
-          contractor: data.contractor || '',
-          status: data.status || '',
-          startDate: data.startDate ? data.startDate.slice(0, 10) : '',
-          submittedBy: data.submittedBy || '',
-        });
 
         if (data.gps_latitude && data.gps_longitude) {
           setPosition([parseFloat(data.gps_latitude), parseFloat(data.gps_longitude)]);
@@ -127,7 +128,6 @@ const EditProject = () => {
       <div className="form-section">
         <h3>Project Location</h3>
         <MapContainer
-          key={mapKey}
           center={position}
           zoom={15}
           style={{ height: '250px', width: '100%' }}
@@ -140,24 +140,21 @@ const EditProject = () => {
             eventHandlers={{ dragend: handleMarkerDrag }}
           />
         </MapContainer>
-        <div className="gps-display">
-          <input
-            type="text"
-            name="gps_latitude"
-            value={formData.gps_latitude}
-            onChange={handleChange}
-            placeholder="Latitude"
-            required
-          />
-          <input
-            type="text"
-            name="gps_longitude"
-            value={formData.gps_longitude}
-            onChange={handleChange}
-            placeholder="Longitude"
-            required
-          />
-        </div>
+        <input
+        type="text"
+        name="gps_latitude"
+        value={formData.gps_latitude}
+        onChange={handleChange}
+        required
+      />
+      <input
+        type="text"
+        name="gps_longitude"
+        value={formData.gps_longitude}
+        onChange={handleChange}
+        required
+      />
+
       </div>
 
       <div className="form-section">
@@ -165,10 +162,30 @@ const EditProject = () => {
         <input type="text" name="title" value={formData.title} onChange={handleChange} required />
         <textarea name="description" value={formData.description} onChange={handleChange} required />
         <input type="text" name="submittedBy" value={formData.submittedBy} onChange={handleChange} required />
-        <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} required />
+        <input
+              type="date"
+              name="startDate"
+              value={formData.startDate}
+              onChange={handleChange}
+              required
+            />
+
         <input type="text" name="contractor" value={formData.contractor} onChange={handleChange} required />
-        <input type="text" name="location_address" value={formData.location_address} onChange={handleChange} required />
-        <input type="text" name="location_city" value={formData.location_city} onChange={handleChange} required />
+        <input
+              type="text"
+              name="location_address"
+              value={formData.location_address}
+              onChange={handleChange}
+              required
+            />
+            <input
+              type="text"
+              name="location_city"
+              value={formData.location_city}
+              onChange={handleChange}
+              required
+            />
+
 
         <select name="type" value={formData.type} onChange={handleChange} required>
           <option value="">Select Type</option>
@@ -221,10 +238,11 @@ const EditProject = () => {
         <input type="file" accept="image/*" onChange={handleImageChange} />
 
         {previewUrl && (
-          <div className="image-preview">
-            <img src={previewUrl} alt="Preview" style={{ width: '200px' }} />
-          </div>
-        )}
+            <div className="image-preview">
+              <img src={previewUrl} alt="Preview" style={{ width: '200px' }} />
+            </div>
+          )}
+
 
         <button type="submit">Update Project</button>
       </div>
