@@ -116,6 +116,10 @@ app.get('/:id', async (req, res) => {
 app.use('/api/projects', projectRoutes);
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
+// 
+const authAdminRoutes = require('./routes/authAdmin');
+app.use('/api/admin-auth', authAdminRoutes);
+
 
 
 // Welcome route
