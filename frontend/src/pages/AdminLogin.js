@@ -1,15 +1,21 @@
-import { useState, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { AuthContext } from '../context/AuthContext';
 
 const AdminLogin = () => {
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
-  const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
+  useEffect(() => {
+    if (user?.isAdmin) {
+      navigate('/admin'); // ✅ Bounce them to the dashboard
+    }
+  }, [user, navigate]);
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };

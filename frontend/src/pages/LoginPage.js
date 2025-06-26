@@ -1,39 +1,39 @@
-import React, { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
 const LoginPage = () => {
   const [form, setForm] = useState({ username: '', password: '' });
-  const { login } = useContext(AuthContext);
-  const navigate = useNavigate();
   const [error, setError] = useState('');
+  const { login, user } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/add-project');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const res = await axios.post('http://localhost:5000/api/auth/login', form);
-      login(res.data.user, res.data.token);
-      navigate('/add-project');
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Login failed');
+      const decoded = jwtDecode(res.data.token);
+      login(decoded, res.data.token);
+    } catch {
+      setError('Login failed');
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <h2>Login</h2>
-      <input name="username" placeholder="Username" onChange={(e) => setForm({ ...form, username: e.target.value })} required />
-      <input type="password" name="password" placeholder="Password" onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+      <h2>User Login</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <input name="username" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="Username" />
+      <input name="password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Password" />
       <button type="submit">Login</button>
-      <p>Don't have an account? <Link to="/register">Register here</Link></p>
-      {error && <p>{error}</p>}
-
-      <a href="http://localhost:5000/api/auth/google">
-        <button>Continue with Google</button>
-      </a>
-
-
     </form>
   );
 };

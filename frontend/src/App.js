@@ -11,6 +11,7 @@ import EditProject from './pages/EditProject';
 import { AuthContext } from './context/AuthContext';
 import { useContext } from 'react';
 import AdminLogin from './pages/AdminLogin'
+import { ToastContainer } from 'react-toastify';
 
 function App() {
   const ProtectedRoute = ({ children }) => {
@@ -20,7 +21,8 @@ function App() {
 
   return (
     <Router>
-      <Navbar /> 
+      <Navbar />
+       <ToastContainer /> 
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/add-project" element={<AddProjectForm />} />
