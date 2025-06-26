@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { useNavigate, useParams } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
-import '../addProjectForm.css';
+import '../css/EditProject.css'
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -36,40 +36,41 @@ const EditProject = () => {
   const [image, setImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [position, setPosition] = useState([10.853388, -0.174521]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
 
   useEffect(() => {
     const fetchProject = async () => {
       try {
         const res = await axios.get(`http://localhost:5000/api/projects/${id}`);
         const data = res.data;
-        console.log('Fetched project:', data);
-       setFormData({
-        title: data.title || '',
-        description: data.description || '',
-        type: data.type || '',
-        region: data.region || '',
-        district: data.district || '',
-        location_address: data.location_address || '',
-        location_city: data.location_city || '',
-        gps_latitude: data.gps_latitude || '',
-        gps_longitude: data.gps_longitude || '',
-        contractor: data.contractor || '',
-        status: data.status || '',
-        startDate: data.startDate ? data.startDate.slice(0, 10) : '',
-        submittedBy: data.submittedBy || '',
-      });
+        
+        setFormData({
+          title: data.title || '',
+          description: data.description || '',
+          type: data.type || '',
+          region: data.region || '',
+          district: data.district || '',
+          location_address: data.location_address || '',
+          location_city: data.location_city || '',
+          gps_latitude: data.gps.latitude || '',
+          gps_longitude: data.gps.longitude || '',
+          contractor: data.contractor || '',
+          status: data.status || '',
+          startDate: data.startDate ? data.startDate.slice(0, 10) : '',
+          submittedBy: data.submittedBy || '',
+        });
 
-
-        if (data.gps_latitude && data.gps_longitude) {
-          setPosition([parseFloat(data.gps_latitude), parseFloat(data.gps_longitude)]);
+        if (data.gps.latitude && data.gps.longitude) {
+          setPosition([parseFloat(data.gps.latitude), parseFloat(data.gps.longitude)]);
         }
 
-        setPreviewUrl(`http://localhost:5000/api/projects/${id}/image?${Date.now()}`);
+        setPreviewUrl(`http://localhost:5000${data.imageUrl}?${Date.now()}`);
       } catch (err) {
         console.error('Failed to load project:', err);
         setError('Could not load project data.');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -121,134 +122,264 @@ const EditProject = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="edit-project-container">
+        <div className="loading-spinner"></div>
+        <p>Loading project data...</p>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="project-form">
-      <h1>Edit Project</h1>
-
-      <div className="form-section">
-        <h3>Project Location</h3>
-        <MapContainer
-          center={position}
-          zoom={15}
-          style={{ height: '250px', width: '100%' }}
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <Marker
-            position={position}
-            icon={pinpointIcon}
-            draggable
-            eventHandlers={{ dragend: handleMarkerDrag }}
-          />
-        </MapContainer>
-        <input
-        type="text"
-        name="gps_latitude"
-        value={formData.gps_latitude}
-        onChange={handleChange}
-        required
-      />
-      <input
-        type="text"
-        name="gps_longitude"
-        value={formData.gps_longitude}
-        onChange={handleChange}
-        required
-      />
-
+    <div className="edit-project-container">
+      <div className="edit-header">
+        <h1 className="edit-title">Edit Project</h1>
       </div>
 
-      <div className="form-section">
-        <h3>Project Details</h3>
-        <input type="text" name="title" value={formData.title} onChange={handleChange} required />
-        <textarea name="description" value={formData.description} onChange={handleChange} required />
-        <input type="text" name="submittedBy" value={formData.submittedBy} onChange={handleChange} required />
-        <input
-              type="date"
-              name="startDate"
-              value={formData.startDate}
-              onChange={handleChange}
-              required
-            />
+      <form onSubmit={handleSubmit} className="edit-form">
+        <div className="form-section">
+          <h3 className="section-title">Location Information</h3>
+          
+          <div className="form-group">
+            <label className="form-label">Project Location</label>
+            <div className="map-container">
+              <MapContainer
+                center={position}
+                zoom={15}
+                style={{ height: '100%', width: '100%' }}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Marker
+                  position={position}
+                  icon={pinpointIcon}
+                  draggable
+                  eventHandlers={{ dragend: handleMarkerDrag }}
+                />
+              </MapContainer>
+            </div>
+          </div>
 
-        <input type="text" name="contractor" value={formData.contractor} onChange={handleChange} required />
-        <input
-              type="text"
-              name="location_address"
-              value={formData.location_address}
-              onChange={handleChange}
+          <div className="form-group">
+            <div className="gps-coordinates">
+              <div>
+                <label className="form-label">Latitude</label>
+                <input
+                  type="text"
+                  name="gps_latitude"
+                  value={formData.gps_latitude}
+                  onChange={handleChange}
+                  className="form-input"
+                  required
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="form-label">Longitude</label>
+                <input
+                  type="text"
+                  name="gps_longitude"
+                  value={formData.gps_longitude}
+                  onChange={handleChange}
+                  className="form-input"
+                  required
+                  readOnly
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Region</label>
+            <select 
+              name="region" 
+              value={formData.region} 
+              onChange={handleChange} 
+              className="form-select" 
               required
-            />
+            >
+              <option value="">Select Region</option>
+              {ghanaRegions.map((region) => (
+                <option key={region.name} value={region.name}>{region.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">District</label>
+            <select
+              name="district"
+              value={formData.district}
+              onChange={handleChange}
+              className="form-select"
+              required
+              disabled={!formData.region}
+            >
+              <option value="">Select District</option>
+              {ghanaRegions
+                .find((r) => r.name === formData.region)
+                ?.districts.map((district) => (
+                  <option key={district} value={district}>{district}</option>
+                ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">City/Town</label>
             <input
               type="text"
               name="location_city"
               value={formData.location_city}
               onChange={handleChange}
+              className="form-input"
               required
             />
+          </div>
 
+          <div className="form-group">
+            <label className="form-label">Address</label>
+            <input
+              type="text"
+              name="location_address"
+              value={formData.location_address}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+        </div>
 
-        <select name="type" value={formData.type} onChange={handleChange} required>
-          <option value="">Select Type</option>
-          <option value="School">School</option>
-          <option value="Hospital">Hospital</option>
-          <option value="Road">Road</option>
-          <option value="Residential Bungalow">Residential Bungalow</option>
-          <option value="Market Stall">Market Stall</option>
-          <option value="Drainage System">Drainage System</option>
-          <option value="Bridge">Bridge</option>
-          <option value="Water System">Water System</option>
-          <option value="Power Project">Power Project</option>
-          <option value="Sanitation Facility">Sanitation Facility</option>
-          <option value="Government Office">Government Office</option>
-          <option value="Sports & Recreation Center">Sports & Recreation Center</option>
-          <option value="Other">Other</option>
-        </select>
+        <div className="form-section">
+          <h3 className="section-title">Project Details</h3>
 
-        <select name="status" value={formData.status} onChange={handleChange} required>
-          <option value="">Select Status</option>
-          <option value="Uncompleted">Uncompleted</option>
-          <option value="Abandoned">Abandoned</option>
-          <option value="Resumed">Resumed</option>
-          <option value="Completed">Completed</option>
-        </select>
+          <div className="form-group">
+            <label className="form-label">Project Title</label>
+            <input 
+              type="text" 
+              name="title" 
+              value={formData.title} 
+              onChange={handleChange} 
+              className="form-input" 
+              required 
+            />
+          </div>
 
-        <select name="region" value={formData.region} onChange={handleChange} required>
-          <option value="">Select Region</option>
-          {ghanaRegions.map((region) => (
-            <option key={region.name} value={region.name}>{region.name}</option>
-          ))}
-        </select>
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea 
+              name="description" 
+              value={formData.description} 
+              onChange={handleChange} 
+              className="form-textarea" 
+              required 
+            />
+          </div>
 
-        <select
-          name="district"
-          value={formData.district}
-          onChange={handleChange}
-          required
-          disabled={!formData.region}
-        >
-          <option value="">Select District</option>
-          {ghanaRegions
-            .find((r) => r.name === formData.region)
-            ?.districts.map((district) => (
-              <option key={district} value={district}>{district}</option>
-            ))}
-        </select>
+          <div className="form-group">
+            <label className="form-label">Project Type</label>
+            <select 
+              name="type" 
+              value={formData.type} 
+              onChange={handleChange} 
+              className="form-select" 
+              required
+            >
+              <option value="">Select Type</option>
+              <option value="School">School</option>
+              <option value="Hospital">Hospital</option>
+              <option value="Road">Road</option>
+              <option value="Residential Bungalow">Residential Bungalow</option>
+              <option value="Market Stall">Market Stall</option>
+              <option value="Drainage System">Drainage System</option>
+              <option value="Bridge">Bridge</option>
+              <option value="Water System">Water System</option>
+              <option value="Power Project">Power Project</option>
+              <option value="Sanitation Facility">Sanitation Facility</option>
+              <option value="Government Office">Government Office</option>
+              <option value="Sports & Recreation Center">Sports & Recreation Center</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
 
-        <label>Update Image (optional):</label>
-        <input type="file" accept="image/*" onChange={handleImageChange} />
+          <div className="form-group">
+            <label className="form-label">Project Status</label>
+            <select 
+              name="status" 
+              value={formData.status} 
+              onChange={handleChange} 
+              className="form-select" 
+              required
+            >
+              <option value="">Select Status</option>
+              <option value="Uncompleted">Uncompleted</option>
+              <option value="Abandoned">Abandoned</option>
+              <option value="Resumed">Resumed</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
 
-        {previewUrl && (
-            <div className="image-preview">
-              <img src={previewUrl} alt="Preview" style={{ width: '200px' }} />
-            </div>
-          )}
+          <div className="form-group">
+            <label className="form-label">Start Date</label>
+            <input
+              type="date"
+              name="startDate"
+              value={formData.startDate}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
 
+          <div className="form-group">
+            <label className="form-label">Contractor</label>
+            <input 
+              type="text" 
+              name="contractor" 
+              value={formData.contractor} 
+              onChange={handleChange} 
+              className="form-input" 
+              required 
+            />
+          </div>
 
-        <button type="submit">Update Project</button>
-      </div>
+          <div className="form-group">
+            <label className="form-label">Submitted By</label>
+            <input 
+              type="text" 
+              name="submittedBy" 
+              value={formData.submittedBy} 
+              onChange={handleChange} 
+              className="form-input" 
+              required 
+            />
+          </div>
 
-      {error && <p className="error-message">{error}</p>}
-    </form>
+          <div className="form-group image-upload">
+            <label className="form-label">Project Image</label>
+            <label className="file-upload-label">
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange} 
+                className="file-upload-input" 
+              />
+              Choose New Image
+            </label>
+            {previewUrl && (
+              <div className="image-preview">
+                <img src={previewUrl} alt="Project Preview" />
+              </div>
+            )}
+          </div>
+
+          <button type="submit" className="submit-btn">
+            Update Project
+          </button>
+        </div>
+      </form>
+
+      {error && <div className="error-message">{error}</div>}
+    </div>
   );
 };
 

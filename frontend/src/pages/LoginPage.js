@@ -1,6 +1,6 @@
 import { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { jwtDecode } from 'jwt-decode';
 
@@ -28,6 +28,7 @@ const LoginPage = () => {
   };
 
   return (
+    <div>
     <form onSubmit={handleSubmit}>
       <h2>User Login</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
@@ -35,6 +36,8 @@ const LoginPage = () => {
       <input name="password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Password" />
       <button type="submit">Login</button>
     </form>
+    <p>Already have an account? <Link to="/register">Login here</Link></p>
+    </div>
   );
 };
 

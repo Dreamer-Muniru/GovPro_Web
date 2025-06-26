@@ -1,0 +1,173 @@
+/* Edit Project Container */
+.edit-project-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Form Header */
+.edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.edit-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a365d;
+  margin: 0;
+}
+
+/* Form Layout */
+.edit-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.form-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a365d;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+}
+
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Map Container */
+.map-container {
+  height: 300px;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+/* GPS Coordinates */
+.gps-coordinates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Image Upload */
+.image-upload {
+  margin-top: 1.5rem;
+}
+
+.image-preview {
+  margin-top: 1rem;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-upload-label {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  background: #f7fafc;
+  border: 1px dashed #cbd5e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 1rem;
+}
+
+.file-upload-label:hover {
+  border-color: #3182ce;
+  background: #ebf8ff;
+}
+
+.file-upload-input {
+  display: none;
+}
+
+/* Submit Button */
+.submit-btn {
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.submit-btn:hover {
+  background-color: #2c5282;
+  transform: translateY(-2px);
+}
+
+/* Error Message */
+.error-message {
+  color: #e53e3e;
+  background: #fff5f5;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  border: 1px solid #fed7d7;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .edit-form {
+    grid-template-columns: 1fr;
+  }
+  
+  .gps-coordinates {
+    grid-template-columns: 1fr;
+  }
+}

@@ -2,33 +2,84 @@ import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
 const RegisterPage = () => {
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({
+    fullName: '',
+    phone: '',
+    username: '',
+    password: '',
+  });
+
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const [error, setError] = useState('');
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const res = await axios.post('http://localhost:5000/api/auth/register', form);
-      login(res.data.user, res.data.token);
+
+      // Assuming backend sends back token and user info
+      const token = res.data.token;
+      const decoded = jwtDecode(token);
+
+      login(decoded, token);
       navigate('/add-project');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Registration failed');
+      const backendMsg = err.response?.data?.error || 'Registration failed';
+      setError(backendMsg);
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <h2>Register</h2>
-      <input name="username" placeholder="Username" onChange={(e) => setForm({ ...form, username: e.target.value })} required />
-      <input type="password" name="password" placeholder="Password" onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
+      <input
+        name="fullName"
+        placeholder="Full Name"
+        value={form.fullName}
+        onChange={handleChange}
+        required
+      />
+
+      <input
+        name="phone"
+        placeholder="Phone Number"
+        value={form.phone}
+        onChange={handleChange}
+        required
+      />
+
+      <input
+        name="username"
+        placeholder="Username"
+        value={form.username}
+        onChange={handleChange}
+        required
+      />
+
+      <input
+        type="password"
+        name="password"
+        placeholder="Password"
+        value={form.password}
+        onChange={handleChange}
+        required
+      />
+
       <button type="submit">Register</button>
+
       <p>Already have an account? <Link to="/login">Login here</Link></p>
 
-      {error && <p>{error}</p>}
+     
     </form>
   );
 };
