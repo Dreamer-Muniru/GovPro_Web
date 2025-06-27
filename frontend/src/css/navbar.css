@@ -1,110 +1,172 @@
 /* Navbar Container */
 .navbar {
-  background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
-  padding: 0 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 1000;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Navbar List */
-.nav-list {
+/* Ghana Flag Top Stripe */
+.ghana-flag-stripe {
+  height: 6px;
+  background: linear-gradient(to right, 
+    #CE1126 0%, #CE1126 33%, 
+    #FCD116 33%, #FCD116 66%, 
+    #006B3F 66%, #006B3F 100%);
+}
+
+/* Navbar Content */
+.navbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Logo/Brand */
+.nav-brand {
   display: flex;
   align-items: center;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  height: 70px;
+  gap: 0.75rem;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #1a365d;
+  text-decoration: none;
 }
 
-/* Nav Items */
-.nav-item {
-  margin: 0 0.5rem;
-  position: relative;
+.nav-brand img {
+  height: 40px;
 }
 
-/* Links and Buttons */
-.nav-link, .nav-button {
-  color: white;
+/* Navigation Links */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: #4a5568;
   text-decoration: none;
   font-weight: 500;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  display: inline-block;
+  padding: 0.5rem 0;
+  position: relative;
+  transition: color 0.2s;
 }
 
-.nav-link:hover, .nav-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
+.nav-link:hover {
+  color: #CE1126;
 }
 
-/* Special Add Project Button */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #CE1126;
+  transition: width 0.3s;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* Buttons */
+.nav-button {
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
 .add-project-btn {
-  background: #38a169;
+  background: #CE1126;
   color: white;
   border: none;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .add-project-btn:hover {
-  background: #2f855a;
+  background: #a50e20;
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* User Greeting */
 .user-greeting {
-  color: white;
-  font-weight: 500;
-  margin-right: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  color: #4a5568;
+  font-weight: 500;
 }
 
-.user-greeting::before {
-  content: "";
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: #38a169;
-  border-radius: 50%;
-  margin-right: 0.5rem;
-}
-
-/* Logout Button */
 .logout-btn {
-  background: #e53e3e;
+  background: #006B3F;
   color: white;
   border: none;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .logout-btn:hover {
-  background: #c53030;
+  background: #005a36;
+  transform: translateY(-2px);
 }
 
-/* Mobile Responsiveness */
+/* Mobile Menu */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #4a5568;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
-  .navbar {
-    padding: 0 1rem;
+  .navbar-content {
+    padding: 1rem;
   }
-  
-  .nav-list {
-    height: 60px;
+
+  .mobile-menu-btn {
+    display: block;
   }
-  
-  .nav-link, .nav-button {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
+
+  .nav-links {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    background: white;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 0;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+    transform: translateY(-150%);
+    transition: transform 0.3s ease;
+    z-index: 999;
   }
-  
-  .user-greeting {
-    font-size: 0.9rem;
-    margin-right: 0.5rem;
+
+  .nav-links.active {
+    transform: translateY(0);
   }
+
+  .nav-link {
+    padding: 0.75rem 0;
+  }
+
+  .nav-button {
+    margin: 0.5rem 0;
+  }
+}
+
+/* Animation for mobile menu */
+@keyframes slideIn {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
 }
