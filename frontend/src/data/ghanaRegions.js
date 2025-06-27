@@ -11,7 +11,7 @@ const ghanaRegions = [
   },
   {
     name: "Ashanti Region",
-    district: ["Kumasi Metropolitan", "Obuasi Municipal", "Asante Akim North", "Asante Akim South", "Bosome Freho", "Ejura Sekyedumase", "Others..."] 
+    districts: ["Kumasi Metropolitan", "Obuasi Municipal", "Asante Akim North", "Asante Akim South", "Bosome Freho", "Ejura Sekyedumase", "Others..."] 
   },
   {
     name: "bono Region",
@@ -59,7 +59,7 @@ const ghanaRegions = [
   },
   {
     name: 'Western Region',
-    district: ['Sekondi-Takoradi', 'Tarkwa-Nsuaem', 'Bibiani', 'Wiawso', 'Others...']
+    districts: ['Sekondi-Takoradi', 'Tarkwa-Nsuaem', 'Bibiani', 'Wiawso', 'Others...']
   },
   {
     name: 'Western North Region',
