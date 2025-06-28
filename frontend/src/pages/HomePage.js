@@ -93,6 +93,13 @@ const HomePage = () => {
                         src={`https://govpro-web-backend.onrender.com${project.imageUrl}`} 
                         alt={project.title} 
                         className="popup-image"
+                          style={{ 
+                      width: '100px', 
+                      height: '80px', 
+                      display: 'block', 
+                      marginBottom: '5px',
+                      borderRadius: '4px'
+                    }} 
                       />
                     )}
                     <p className="popup-detail"><strong>Type:</strong> {project.type}</p>
