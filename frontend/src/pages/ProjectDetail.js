@@ -72,7 +72,7 @@ const ProjectDetail = () => {
         <h1 className="project-title">{project.title}</h1>
         {project.imageUrl && (
           <img 
-            src={`https://govpro-web-backend.onrender.com/${project.imageUrl}`} 
+            src={`https://govpro-web-backend.onrender.com${project.imageUrl}`} 
             alt={project.title} 
             className="project-image" 
           />

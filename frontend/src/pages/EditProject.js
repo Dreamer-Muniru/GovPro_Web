@@ -65,7 +65,7 @@ const EditProject = () => {
           setPosition([parseFloat(data.gps.latitude), parseFloat(data.gps.longitude)]);
         }
 
-        setPreviewUrl(`https://govpro-web-backend.onrender.com/${data.imageUrl}?${Date.now()}`);
+        setPreviewUrl(`https://govpro-web-backend.onrender.com${data.imageUrl}?${Date.now()}`);
       } catch (err) {
         console.error('Failed to load project:', err);
         setError('Could not load project data.');
