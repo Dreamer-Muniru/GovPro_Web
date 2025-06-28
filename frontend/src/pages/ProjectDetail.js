@@ -166,7 +166,7 @@ const ProjectDetail = () => {
                 <h4>{project.title}</h4>
                 {project.imageUrl && (
                   <img 
-                    src={`https://govpro-web-backend.onrender.com/api${project.imageUrl}`} 
+                    src={`https://govpro-web-backend.onrender.com${project.imageUrl}`} 
                     alt={project.title} 
                     style={{ 
                       width: '100px', 
