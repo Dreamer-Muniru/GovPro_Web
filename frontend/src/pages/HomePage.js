@@ -21,7 +21,7 @@ const HomePage = () => {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/projects');
+      const res = await axios.get('https://govpro-web-backend.onrender.com/api/projects');
       const projectsData = res.data.projects || [];
       setProjects(projectsData);
 
@@ -54,8 +54,8 @@ const HomePage = () => {
 
   // Calculate stats
   const totalProjects = projects.length;
-  const approvedProjects = projects.filter(p => p.approved).length;
-  const pendingProjects = totalProjects - approvedProjects;
+  // const approvedProjects = projects.filter(p => p.approved).length;
+  // const pendingProjects = totalProjects - approvedProjects;
 
   return (
     <div className="home-page">
@@ -90,7 +90,7 @@ const HomePage = () => {
                     <h4 className="popup-title">{project.title}</h4>
                     {project.imageUrl && (
                       <img 
-                        src={`http://localhost:5000${project.imageUrl}`} 
+                        src={`https://govpro-web-backend.onrender.com/${project.imageUrl}`} 
                         alt={project.title} 
                         className="popup-image"
                       />
@@ -148,7 +148,7 @@ const HomePage = () => {
             <div key={project._id} className="project-card">
               {project.imageUrl && (
                 <img 
-                  src={`http://localhost:5000${project.imageUrl}?${Date.now()}`} 
+                  src={`https://govpro-web-backend.onrender.com/${project.imageUrl}?${Date.now()}`} 
                   alt={project.title} 
                   className="project-image"
                 />

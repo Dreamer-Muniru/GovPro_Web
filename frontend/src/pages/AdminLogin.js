@@ -23,7 +23,7 @@ const AdminLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/admin-auth/login', form);
+      const res = await axios.post('https://govpro-web-backend.onrender.com/api/admin-auth/login', form);
       const decoded = jwtDecode(res.data.token);
 
       // ✅ Store token + user in global context
