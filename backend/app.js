@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const multer = require('multer');
 const { GridFSBucket } = require('mongodb');
 const mongoose = require('mongoose');
@@ -26,6 +27,7 @@ conn.once('open', () => {
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Multer setup (store images in memory instead of local disk)
 const storage = multer.memoryStorage();
@@ -119,6 +121,7 @@ app.use('/api/auth', authRoutes);
 // 
 const authAdminRoutes = require('./routes/authAdmin');
 app.use('/api/admin-auth', authAdminRoutes);
+
 
 
 

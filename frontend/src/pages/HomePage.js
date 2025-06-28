@@ -90,7 +90,7 @@ const HomePage = () => {
                     <h4 className="popup-title">{project.title}</h4>
                     {project.imageUrl && (
                       <img 
-                        src={`https://govpro-web-backend.onrender.com/${project.imageUrl}`} 
+                        src={`https://govpro-web-backend.onrender.com${project.imageUrl}`} 
                         alt={project.title} 
                         className="popup-image"
                       />
@@ -148,7 +148,7 @@ const HomePage = () => {
             <div key={project._id} className="project-card">
               {project.imageUrl && (
                 <img 
-                  src={`https://govpro-web-backend.onrender.com/${project.imageUrl}?${Date.now()}`} 
+                  src={`https://govpro-web-backend.onrender.com${project.imageUrl}?${Date.now()}`} 
                   alt={project.title} 
                   className="project-image"
                 />
