@@ -11,6 +11,7 @@ const RegisterPage = () => {
     phone: '',
     username: '',
     password: '',
+    confirmPassword: '',
   });
 
   const { login } = useContext(AuthContext);
@@ -21,26 +22,31 @@ const RegisterPage = () => {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      const res = await axios.post('http://https://govpro-web-backend.onrender.com/api/auth/register', form);
-      const token = res.data.token;
-      const decoded = jwtDecode(token);
+  // Basic client-side password match check
+  if (form.password !== form.confirmPassword) {
+    setError('Passwords do not match');
+    return;
+  }
 
-      login(decoded, token);
-      navigate('/add-project');
-    } catch (err) {
-      const backendMsg = err.response?.data?.error || 'Registration failed. Please try again.';
-      setError(backendMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const res = await axios.post('https://govpro-web-backend.onrender.com/api/auth/register', form);
+    const token = res.data.token;
+    const decoded = jwtDecode(token);
+    login(decoded, token);
+    navigate('/add-project');
+  } catch (err) {
+    const backendMsg = err.response?.data?.error || 'Registration failed. Please try again.';
+    setError(backendMsg);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="register-container">
@@ -93,7 +99,7 @@ const RegisterPage = () => {
             required
           />
         </div>
-
+        {/* Password section */}
         <div className="form-group">
           <label htmlFor="password" className="form-label">Password</label>
           <input
@@ -108,6 +114,22 @@ const RegisterPage = () => {
             minLength="6"
           />
         </div>
+
+        <div className="form-group">
+          <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            placeholder="Re-enter password"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            className="form-input"
+            required
+            minLength="6"
+          />
+        </div>
+
 
         <button type="submit" className="submit-btn" disabled={loading}>
           {loading ? (
