@@ -51,6 +51,7 @@ const handleSubmit = async (e) => {
   return (
     <div className="register-container">
       <div className="register-header">
+        
         <h1 className="register-title">Create Account</h1>
         <p className="register-subtitle">Join Ghana Project Tracker</p>
       </div>
