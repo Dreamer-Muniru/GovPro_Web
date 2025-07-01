@@ -9,11 +9,18 @@ const ghanaRegions = [
   },
   {
     name: "Ahafo Region",
-    districts: ["Asunafo North", "Asunafo South", "Asutifi North", "Asutifi South", "Tano North", "Tano South"]
+    districts: ["Asunafo North", "Asunafo South",  "Asutifi North", "Asutifi South", "Tano North", "Tano South",
+      ,
+    
+    ]
   },
   {
     name: "Ashanti Region",
-    districts: ["Kumasi Metropolitan", "Obuasi Municipal", "Asante Akim North", "Asante Akim South", "Bosome Freho", "Ejura Sekyedumase", "Others..."] 
+    districts: ["Kumasi Metropolitan", "Obuasi Municipal", "Ahafo Ano North Municipal Assembly", "Asante Akim North", "Asante Akim South", "Bosome Freho", "Ejura Sekyedumase", 
+        "Ejisu Municipal Assembly", "Juaben Municipal Assembly", "Kwabre East Municipal Assembly", "Kwadaso Municipal Assembly", "Mampong Municipal Assembly", "Asante Akim Central Municipal",
+        "Asokore Mampong Municipal Assembly", "Asokwa Municipal Assembly", "Atwima Nwabiagya Municipal Assembly", "Bekwai Municipal Assembly", "Offinso Municipal Assembly", "Oforikrom Municipal Assembly",
+        "Old Tafo Municipal Assembly", "Suame Municipal Assembly"
+    ] 
   },
   {
     name: "bono Region",
