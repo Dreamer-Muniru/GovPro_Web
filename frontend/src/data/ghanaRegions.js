@@ -10,7 +10,7 @@ const ghanaRegions = [
   {
     name: "Ahafo Region",
     districts: ["Asunafo North", "Asunafo South",  "Asutifi North", "Asutifi South", "Tano North", "Tano South",
-      ,
+      
     
     ]
   },
