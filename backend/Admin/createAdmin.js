@@ -10,7 +10,7 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
   if (!exists) {
     await User.create({
       username: 'admin_dreamer',
-      password: 'Dreamer4422#', // 🔐 Change this after first login!
+      password: 'Dreamer4422#', 
       isAdmin: false,
     });
     console.log('✅ Admin user created');

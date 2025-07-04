@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { AuthContext } from '../context/AuthContext';
-import '../css/AdminLogin.css'; // Import the CSS file
+import '../css/AdminLogin.css'; 
 
 const AdminLogin = () => {
   const { user } = useContext(AuthContext);
