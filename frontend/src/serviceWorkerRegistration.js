@@ -1,19 +1,78 @@
-// Based on Create React App's serviceWorker setup
+// CRA-provided registration using Workbox
+const isLocalhost = Boolean(
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '[::1]' ||
+  window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)){3}$/)
+);
 
-// Check if browser supports service workers
-export function register() {
-  if ('serviceWorker' in navigator) {
+export function register(config) {
+  if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+    const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
+    if (publicUrl.origin !== window.location.origin) return;
+
     window.addEventListener('load', () => {
-      navigator.serviceWorker
-        .register('/service-worker.js')
-        .then((registration) => {
-          console.log('Service Worker registered: ', registration);
-        })
-        .catch((registrationError) => {
-          console.log('Service Worker registration failed: ', registrationError);
+      const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+
+      if (isLocalhost) {
+        // dev mode: validate SW
+        checkValidServiceWorker(swUrl, config);
+        navigator.serviceWorker.ready.then(() => {
+          console.log('Service worker ready.');
         });
+      } else {
+        // prod: register normally
+        registerValidSW(swUrl, config);
+      }
     });
   }
+}
+
+function registerValidSW(swUrl, config) {
+  navigator.serviceWorker
+    .register(swUrl)
+    .then((registration) => {
+      registration.onupdatefound = () => {
+        const installingWorker = registration.installing;
+        if (!installingWorker) return;
+
+        installingWorker.onstatechange = () => {
+          if (installingWorker.state === 'installed') {
+            if (navigator.serviceWorker.controller) {
+              console.log('New content is available; please refresh.');
+              if (config?.onUpdate) config.onUpdate(registration);
+            } else {
+              console.log('Content is cached for offline use.');
+              if (config?.onSuccess) config.onSuccess(registration);
+            }
+          }
+        };
+      };
+    })
+    .catch((error) => {
+      console.error('Error during service worker registration:', error);
+    });
+}
+
+function checkValidServiceWorker(swUrl, config) {
+  fetch(swUrl, { headers: { 'Service-Worker': 'script' } })
+    .then((response) => {
+      const contentType = response.headers.get('content-type');
+      if (
+        response.status === 404 ||
+        (contentType && !contentType.includes('javascript'))
+      ) {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.unregister().then(() => {
+            window.location.reload();
+          });
+        });
+      } else {
+        registerValidSW(swUrl, config);
+      }
+    })
+    .catch(() => {
+      console.log('No internet connection. App is running in offline mode.');
+    });
 }
 
 export function unregister() {

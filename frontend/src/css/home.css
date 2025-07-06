@@ -276,3 +276,17 @@
     gap: 1rem;
   }
 }
+
+.install-btn {
+  background: #0a66c2;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.install-btn:hover {
+  background: #084a8c;
+  transform: translateY(-2px);
+}

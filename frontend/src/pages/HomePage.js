@@ -17,6 +17,33 @@ const HomePage = () => {
   const [uniqueValues, setUniqueValues] = useState({ regions: [], districts: [], types: [] });
   const [loading, setLoading] = useState(true);
 
+  // Install prompt handling
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+    useEffect(() => {
+      const handler = (e) => {
+        e.preventDefault(); // Stop the auto-popup
+        setDeferredPrompt(e); // Save for later trigger
+      };
+
+      window.addEventListener('beforeinstallprompt', handler);
+
+      return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallClick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      setDeferredPrompt(null); // Reset
+    };
+
+
   const navigate = useNavigate();
 
   const fetchProjects = useCallback(async () => {
@@ -64,6 +91,12 @@ const HomePage = () => {
       </div>
 
       <div className="hero-section">
+      {deferredPrompt && (
+        <button onClick={handleInstallClick} className="install-btn">
+          📲 Install GovPro Tracker
+        </button>
+      )}
+
         {/* Stats Banner */}
         <div className="stats-banner">
           <div className="stat-item">
