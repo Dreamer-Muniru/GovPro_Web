@@ -98,11 +98,7 @@ const HomePage = () => {
       </div>
 
       <div className="hero-section">
-      {/* {deferredPrompt && (
-        <button onClick={handleInstallClick} className="install-btn">
-          📲 Install GovPro Tracker
-        </button>
-      )} */}
+    
 
         {/* Stats Banner */}
         <div className="stats-banner">
