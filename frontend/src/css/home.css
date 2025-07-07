@@ -277,6 +277,8 @@
   }
 }
 
+
+/* Install button styling section */
 .install-btn {
   background: #0a66c2;
   color: white;
@@ -289,4 +291,58 @@
 .install-btn:hover {
   background: #084a8c;
   transform: translateY(-2px);
+}
+
+/* Install Button Styles */
+.install-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #388e3c, #2e7d32); /* Green gradient */
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  margin-top: 70px;
+}
+
+/* Mobile-specific styles */
+@media (min-width: 768px) {
+  .install-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    bottom: auto;
+  }
+}
+
+.install-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.install-btn:active {
+  transform: translateY(0);
+}
+
+.install-icon {
+  font-size: 18px;
+}
+
+.install-text {
+  font-size: 14px;
+}
+
+/* Ensure header doesn't need positioning */
+.ghana-header {
+  text-align: center;
+  padding: 15px 0;
 }

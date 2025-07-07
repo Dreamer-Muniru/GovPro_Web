@@ -88,14 +88,21 @@ const HomePage = () => {
     <div className="home-page">
       <div className="ghana-header">
         <h1 className="page-title">Ghana Project Tracker</h1>
+        {/* Moved install button to header for better visibility */}
+    {deferredPrompt && (
+      <button onClick={handleInstallClick} className="install-btn">
+        <span className="install-icon">📲</span>
+        <span className="install-text">Install App</span>
+      </button>
+    )}
       </div>
 
       <div className="hero-section">
-      {deferredPrompt && (
+      {/* {deferredPrompt && (
         <button onClick={handleInstallClick} className="install-btn">
           📲 Install GovPro Tracker
         </button>
-      )}
+      )} */}
 
         {/* Stats Banner */}
         <div className="stats-banner">
