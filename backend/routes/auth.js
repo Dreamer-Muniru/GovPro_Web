@@ -11,7 +11,6 @@ router.get('/projects', async (req, res) => {
   res.json(projects);
 });
 
-
 // Register route for non-admin users
 router.post('/register', async (req, res) => {
   const { username, password, fullName, phone } = req.body;
