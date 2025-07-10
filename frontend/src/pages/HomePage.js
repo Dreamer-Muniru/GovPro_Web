@@ -4,6 +4,7 @@ import { Icon } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../css/home.css';
+import Footer from '../components/Footer';
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -218,6 +219,7 @@ const HomePage = () => {
           ))}
         </div>
       )}
+      <Footer/>
     </div>
   );
 };

@@ -1,22 +1,92 @@
+/* Footer.css */
 .footer {
-  background-color: #0a66c2;
-  color: white;
-  padding: 20px;
+  margin-top: 100px;
+  background: linear-gradient(135deg, #2c3e50, #34495e);
+  color: #ecf0f1;
+  padding: 3rem 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.footer-section {
+  padding: 0 1rem;
+}
+
+.footer-heading {
+  color: #f1c40f;
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+.footer-heading::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 50px;
+  height: 2px;
+  background: #f1c40f;
+}
+
+.footer-text {
+  margin: 1rem 0;
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+}
+
+.footer-icon {
+  margin-right: 0.8rem;
+  color: #f1c40f;
+  width: 20px;
   text-align: center;
-  font-size: 14px;
-  margin-top: 40px;
 }
 
 .footer a {
-  color: #ffd700;
+  color: #ecf0f1;
   text-decoration: none;
+  transition: all 0.3s ease;
 }
 
 .footer a:hover {
+  color: #f1c40f;
   text-decoration: underline;
 }
 
 .footer-author {
-  font-style: italic;
-  color: #ffcccb;
+  display: inline-block;
+  margin-top: 1rem;
+  font-weight: 600;
+  color: #f1c40f;
+}
+
+.heart-icon {
+  color: #e74c3c;
+  margin: 0 0.3rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .footer-container {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .footer-heading::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .footer-text {
+    justify-content: center;
+  }
 }
