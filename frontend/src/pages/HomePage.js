@@ -22,8 +22,8 @@ const HomePage = () => {
 
     useEffect(() => {
       const handler = (e) => {
-        e.preventDefault(); // Stop the auto-popup
-        setDeferredPrompt(e); // Save for later trigger
+        e.preventDefault(); 
+        setDeferredPrompt(e); 
       };
 
       window.addEventListener('beforeinstallprompt', handler);
@@ -40,7 +40,7 @@ const HomePage = () => {
       } else {
         console.log('User dismissed the install prompt');
       }
-      setDeferredPrompt(null); // Reset
+      setDeferredPrompt(null);
     };
 
 
