@@ -31,7 +31,7 @@ const Footer = () => {
             <li><a href="#"><i className="fas fa-chevron-right"></i> Home</a></li>
             <li><a href="#"><i className="fas fa-chevron-right"></i> Projects</a></li>
             <li><a href="#"><i className="fas fa-chevron-right"></i> About</a></li>
-            <li><a href="#"><i className="fas fa-chevron-right"></i> Contact</a></li>
+            {/* <li><a href="#"><i className="fas fa-chevron-right"></i> Contact</a></li> */}
           </ul>
         </div>
 
