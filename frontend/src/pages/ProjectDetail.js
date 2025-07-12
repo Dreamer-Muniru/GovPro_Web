@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import axios from 'axios';
 import '../ProjectDetail.css';
+import Footer from '../components/Footer';
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -193,6 +194,7 @@ const ProjectDetail = () => {
           </MapContainer>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
