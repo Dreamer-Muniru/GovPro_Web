@@ -178,7 +178,7 @@ const ProjectDetail = () => {
                     }} 
                   />
                 )}
-                <p><strong>Type:</strong> {project.type}</p>
+                <p><strong>Type :</strong> {project.type}</p>
                 <p><strong>Status:</strong> {project.status}</p>
                 <p><strong>Region:</strong> {project.region}, {project.district}</p>
                 <a 

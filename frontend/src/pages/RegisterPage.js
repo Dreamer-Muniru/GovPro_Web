@@ -22,7 +22,8 @@ const RegisterPage = () => {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-const handleSubmit = async (e) => {
+  
+  const handleSubmit = async (e) => {
   e.preventDefault();
   setError('');
 
@@ -57,7 +58,7 @@ const handleSubmit = async (e) => {
       </div>
 
       {error && <div className="error-message">{error}</div>}
-
+      
       <form onSubmit={handleSubmit} className="register-form">
         <div className="form-group">
           <label htmlFor="fullName" className="form-label">Full Name</label>

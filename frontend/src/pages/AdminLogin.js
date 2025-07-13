@@ -13,6 +13,7 @@ const AdminLogin = () => {
   const { login } = useContext(AuthContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  
   useEffect(() => {
     if (user?.isAdmin) {
       navigate('/admin');
