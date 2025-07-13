@@ -92,7 +92,7 @@ export default function AboutPage() {
         {/* Footer Note */}
         <div className="footer-note">
           <p>
-            © 2025. Made with <i className="fas fa-heart heart-icon"></i> by 
+            {/* © 2025. Made with <i className="fas fa-heart heart-icon"></i> by  */}
             <span className="author-name"> Muniru Dreamer</span>.
           </p>
         </div>
