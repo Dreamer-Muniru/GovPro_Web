@@ -32,7 +32,7 @@ const projectSchema = new mongoose.Schema({
 
   contractor: { type: String, default: 'Unknown' },
 
-  imageUrl: { type: String }, // Made this optional for flexibility
+  imageUrl: { type: String }, 
   
   imageData: {
     type: Buffer, // Storing image binary data (if needed)
