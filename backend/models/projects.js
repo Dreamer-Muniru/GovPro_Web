@@ -48,6 +48,15 @@ const projectSchema = new mongoose.Schema({
   type: Boolean,
   default: false,
 }, 
+// Adding comments to the project schema
+comments: [
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    username: String,
+    comment: String,
+    createdAt: { type: Date, default: Date.now }
+  }
+],
 
   projectStartDate: { type: Date },
 
