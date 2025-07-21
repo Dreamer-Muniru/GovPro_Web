@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Project = require('../models/projects')
 const verifyAdminToken = require('../middleware/verifyAdminToken');
 const { createProject, getProjects } = require('../controllers/projectController');
+const authenticateUser = require('../middleware/authenticateUser');
 
 // POST /api/projects
 router.post('/', createProject);
@@ -76,6 +77,31 @@ router.delete('/:id', verifyAdminToken, async (req, res) => {
     res.status(500).json({ error: 'Delete failed' });
   }
 });
+
+// Add comment
+router.post('/:id/comments', authenticateUser, async (req, res) => {
+  const { comment } = req.body;
+  const { id } = req.params;
+
+  try {
+    const project = await Project.findById(id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const newComment = {
+      userId: req.user._id,
+      username: req.user.username,
+      comment
+    };
+
+    project.comments.push(newComment);
+    await project.save();
+
+    res.status(201).json({ message: 'Comment added', comment: newComment });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not post comment' });
+  }
+});
+
 
 
 module.exports = router;

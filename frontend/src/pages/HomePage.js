@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../css/home.css';
 import Footer from '../components/Footer';
+import CommentBox from '../components/CommentBox';
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -17,9 +18,17 @@ const HomePage = () => {
   const [filters, setFilters] = useState({ region: '', district: '', type: '' });
   const [uniqueValues, setUniqueValues] = useState({ regions: [], districts: [], types: [] });
   const [loading, setLoading] = useState(true);
+  const [visibleCommentBoxes, setVisibleCommentBoxes] = useState([]);
+
 
   // Install prompt handling
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  // Toggle comment box visibility
+  const toggleCommentBox = (id) => {
+    setVisibleCommentBoxes((prev) =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  };
 
     useEffect(() => {
       const handler = (e) => {
@@ -148,6 +157,18 @@ const HomePage = () => {
                     >
                       View Details
                     </button>
+                    {/* Comment Button */}
+                    <button
+                        className="comment-toggle-btn"
+                        onClick={() => toggleCommentBox(project._id)}
+                      >
+                        💬 Comment
+                      </button>
+
+                      {visibleCommentBoxes.includes(project._id) && (
+                        <CommentBox projectId={project._id} />
+                      )}
+
                   </Popup>
                 </Marker>
               ) : null
