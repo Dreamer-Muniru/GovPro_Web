@@ -90,7 +90,7 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
     const newComment = {
       userId: req.user._id,
       username: req.user.username,
-      comment
+      comment,
     };
 
     project.comments.push(newComment);

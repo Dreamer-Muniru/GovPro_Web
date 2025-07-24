@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useContext, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,8 @@ import axios from 'axios';
 import '../css/home.css';
 import Footer from '../components/Footer';
 import CommentBox from '../components/CommentBox';
+import { AuthContext } from '../context/AuthContext'; 
+
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -18,19 +20,29 @@ const HomePage = () => {
   const [filters, setFilters] = useState({ region: '', district: '', type: '' });
   const [uniqueValues, setUniqueValues] = useState({ regions: [], districts: [], types: [] });
   const [loading, setLoading] = useState(true);
-  const [visibleCommentBoxes, setVisibleCommentBoxes] = useState([]);
+  // const [visibleCommentBoxes, setVisibleCommentBoxes] = useState([]);
+  // const [activeProjectId, setActiveProjectId] = useState(null); // single open box
+  const [activeProjectId, setActiveProjectId] = useState(null);
+  
+  // const [modalOpenProjectId, setModalOpenProjectId] = useState(null);
+
+  const { token } = useContext(AuthContext);
+
+
+  const toggleCommentBox = (id) => {
+    setActiveProjectId((prev) => (prev === id ? null : id));
+    console.log('Clicked on:', id);
+
+  };
+
 
 
   // Install prompt handling
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   // Toggle comment box visibility
-  const toggleCommentBox = (id) => {
-    setVisibleCommentBoxes((prev) =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
-  };
+  
 
-    useEffect(() => {
+  useEffect(() => {
       const handler = (e) => {
         e.preventDefault(); 
         setDeferredPrompt(e); 
@@ -157,17 +169,6 @@ const HomePage = () => {
                     >
                       View Details
                     </button>
-                    {/* Comment Button */}
-                    <button
-                        className="comment-toggle-btn"
-                        onClick={() => toggleCommentBox(project._id)}
-                      >
-                        💬 Comment
-                      </button>
-
-                      {visibleCommentBoxes.includes(project._id) && (
-                        <CommentBox projectId={project._id} />
-                      )}
 
                   </Popup>
                 </Marker>
@@ -235,6 +236,38 @@ const HomePage = () => {
                 >
                   View Details
                 </button>
+
+                 {/* Comment Button */}
+                 {token ? (
+                  <>
+             <div key={project._id} className="project-card">
+                
+                <button
+                  className="comment-toggle-btn"
+                  onClick={() => toggleCommentBox(project._id)}
+                >
+                  💬 Comment
+                </button>
+                  {project.comments && (
+                    <p className="comment-count">💬 {project.comments.length} Comments</p>
+                  )}
+
+               {activeProjectId === project._id && (
+                <>
+                  {console.log('Rendering comment box for', project._id)}
+                  <div className="comment-popup">
+                    <CommentBox projectId={project._id} />
+                  </div>
+                </>
+              )}
+
+              </div>
+
+              </>
+            ) : (
+              <p className="login-notice">Please log in to comment.</p>
+            )}
+
               </div>
             </div>
           ))}
@@ -245,4 +278,5 @@ const HomePage = () => {
   );
 };
 
+                     
 export default HomePage;
