@@ -318,21 +318,29 @@
 /* ==========comment box============= */
 .project-card {
   position: relative;
+  overflow: visible;
 }
 
 .comment-popup {
-  position: relative;
+  position: absolute;
   top: 100%;
   left: 0;
-  width: 100%;
-  background: white;
-  border: 1px solid #ddd;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  border-radius: 6px;
-  padding: 16px;
   z-index: 100;
+  width: 100%;
+  background-color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  padding: 16px;
   margin-top: 8px;
 }
+
+.comment-count {
+  font-size: 14px;
+  color: #666;
+  margin-top: 8px;
+}
+
 
 
 

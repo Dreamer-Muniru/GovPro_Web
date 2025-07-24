@@ -34,6 +34,20 @@ const HomePage = () => {
     console.log('Clicked on:', id);
 
   };
+  // Increment comment count (fake for now)
+    const incrementCommentCount = (projectId) => {
+      setProjects((prevProjects) =>
+        prevProjects.map((proj) =>
+          proj._id === projectId
+            ? {
+                ...proj,
+                comments: [...(proj.comments || []), { comment: 'placeholder' }], // fake append
+              }
+            : proj
+        )
+      );
+    };
+
 
 
 
@@ -256,7 +270,8 @@ const HomePage = () => {
                 <>
                   {console.log('Rendering comment box for', project._id)}
                   <div className="comment-popup">
-                    <CommentBox projectId={project._id} />
+                    <CommentBox projectId={project._id} onCommentPosted={() => incrementCommentCount(project._id)} />
+
                   </div>
                 </>
               )}

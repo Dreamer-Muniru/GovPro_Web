@@ -7,11 +7,12 @@ import '../css/home.css';
 
 
 const commentCache = {};
-const CommentBox = ({ projectId }) => {
+const CommentBox = ({ projectId, onCommentPosted  }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const {token } = useContext(AuthContext);
+  
 
   useEffect(() => {
   const fetchComments = async () => {
@@ -53,6 +54,7 @@ const CommentBox = ({ projectId }) => {
       );
       setComments((prev) => [...prev, res.data.comment]);
       setNewComment('');
+      if (onCommentPosted) onCommentPosted();
     } catch (err) {
       console.error('Failed to post comment:', err.response?.data || err.message);
       alert('Comment failed: ' + (err.response?.data?.error || 'Unknown error'));
