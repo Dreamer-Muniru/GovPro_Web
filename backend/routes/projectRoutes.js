@@ -9,8 +9,17 @@ const authenticateUser = require('../middleware/authenticateUser');
 // POST /api/projects
 router.post('/', createProject);
 
-// GET /api/projects
-router.get('/', getProjects);
+// GET /api/projects with optional query parameters
+router.get('/', async (req, res) => {
+  const { approved } = req.query;
+  try {
+    const query = approved ? { approved: approved === 'true' } : {};
+    const projects = await Project.find(query);
+    res.json(projects);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
 
 // GET /api/projects/:id
 router.get('/:id', async (req, res) => {
@@ -28,20 +37,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET /api/projects?approved=false
-router.get('/', async (req, res) => {
-  const { approved } = req.query;
-  try {
-    const query = approved ? { approved: approved === 'true' } : {};
-    const projects = await Project.find(query);
-    res.json(projects);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch projects' });
-  }
-});
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() }); // or your GridFS setup
 
+// PUT /api/projects/:id
 router.put('/:id', upload.single('image'), async (req, res) => {
   try {
     const updates = { ...req.body };
@@ -78,7 +77,7 @@ router.delete('/:id', verifyAdminToken, async (req, res) => {
   }
 });
 
-// Add comment
+// POST /api/projects/:id/comments - Add comment
 router.post('/:id/comments', authenticateUser, async (req, res) => {
   const { comment } = req.body;
   const { id } = req.params;
@@ -101,7 +100,5 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
     res.status(500).json({ error: 'Could not post comment' });
   }
 });
-
-
 
 module.exports = router;

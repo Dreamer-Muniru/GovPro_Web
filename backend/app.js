@@ -9,7 +9,6 @@ const stream = require('stream');
 const projectRoutes = require('./routes/projectRoutes');
 const connectDB = require('../backend/config/db');
 const Project = require('./models/projects');
-// const authRoutes = require('./routes/auth');
 
 const app = express();
 
@@ -24,8 +23,14 @@ conn.once('open', () => {
 });
 
 // Middleware
-app.use(cors());
-app.use(cors({ origin: 'https://govprotracker.vercel.app', credentials: true }));
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://govprotracker.vercel.app'] 
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -103,28 +108,15 @@ app.get('/api/uploads/:id', async (req, res) => {
     res.status(404).json({ message: 'Image not found' });
   }
 });
-app.get('/:id', async (req, res) => {
-  try {
-    const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
-    res.json(project);
-  } catch (err) {
-    console.error('Error fetching project by ID:', err);
-    res.status(500).json({ error: 'Failed to fetch project' });
-  }
-});
 
-// Include other routes
-// const projectRoutes = require('./routes/projectRoutes');
+// Include routes
 app.use('/api/projects', projectRoutes);
+
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
-// 
+
 const authAdminRoutes = require('./routes/authAdmin');
 app.use('/api/admin-auth', authAdminRoutes);
-
-
-
 
 // Welcome route
 app.get('/', (req, res) => {
