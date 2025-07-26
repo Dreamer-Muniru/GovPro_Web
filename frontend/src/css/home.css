@@ -317,50 +317,44 @@
 
 /* ==========comment box============= */
 /* Comment Section Styles */
+/* Add these styles to your home.css */
 .comment-section {
   margin-top: 15px;
+  padding-top: 10px;
   border-top: 1px solid #f0f2f5;
-  padding-top: 12px;
 }
 
 .comment-count-container {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   color: #65676B;
   cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border-radius: 6px;
   transition: all 0.2s ease;
-  user-select: none;
-  width: fit-content;
+  background-color: #f5f5f5;
+  margin-top: 10px;
 }
 
 .comment-count-container:hover {
-  background-color: #f0f2f5;
+  background-color: #e9ebee;
+  transform: translateY(-1px);
 }
 
 .comment-icon {
   font-size: 16px;
+  color: var(--ghana-green);
 }
 
 .comment-count-number {
   font-weight: 600;
-  color: #65676B;
+  color: var(--ghana-red);
 }
 
 .comment-count-text {
   font-size: 14px;
-}
-
-.comment-box-container {
-  margin-top: 12px;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  color: var(--ghana-dark);
 }
 
 .login-prompt {
@@ -369,16 +363,159 @@
   gap: 6px;
   color: #65676B;
   font-size: 14px;
-  margin-top: 12px;
+  margin-top: 10px;
+  padding: 8px 0;
+}
+/* Comment Modal Styles */
+.comment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  cursor: pointer; /* Add this to show it's clickable */
 }
 
-.login-prompt i {
-  font-size: 14px;
+.comment-modal {
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  width: 100%;
+  max-width: 500px;
+  overflow: hidden;
+  cursor: default; /* Prevent cursor change when hovering modal */
 }
 
-/* Remove the old comment button styles */
-.comment-toggle-btn, .comment-count {
-  display: none;
+.modal-header {
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #65676B;
+}
+
+.comments-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+}
+
+.comment {
+  margin-bottom: 15px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.no-comments {
+  text-align: center;
+  padding: 20px;
+  color: #65676B;
+  font-style: italic;
+}
+.comment:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.comment-author {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+  object-fit: cover;
+}
+
+.comment-author-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.comment-author {
+  font-weight: 600;
+  color: var(--ghana-red);
+}
+
+.comment-text {
+  padding-left: 8px;
+  line-height: 1.4;
+}
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+
+.comment-time {
+  font-size: 0.8rem;
+  color: #65676B;
+}
+
+.no-comments {
+  text-align: center;
+  color: #65676B;
+  padding: 20px 0;
+}
+
+.comment-input-container {
+  padding: 15px;
+  border-top: 1px solid #ddd;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .comment-modal {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 8px 8px 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  
+  .comment-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+}
+
+/* Animation */
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.comment-modal {
+  animation: modalFadeIn 0.3s ease-out;
 }
 
 
@@ -434,6 +571,7 @@
   font-size: 14px;
   color: #888;
 }
+
 
 /* .comment-box {
   position: absolute;

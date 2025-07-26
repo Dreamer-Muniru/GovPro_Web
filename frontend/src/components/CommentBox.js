@@ -7,7 +7,7 @@ import '../css/home.css';
 
 
 const commentCache = {};
-const CommentBox = ({ projectId, onCommentPosted  }) => {
+const CommentBox = ({ projectId, onCommentPosted, showHeader = true   }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -64,7 +64,12 @@ const CommentBox = ({ projectId, onCommentPosted  }) => {
   };
 
   return (
-    <div className="comment-box">
+    <div className="comment-box" >
+      {showHeader && (
+        <div className="comment-box-header">
+          <span>Anonymous:</span>
+        </div>
+      )}
       <div className="comment-list">
        {comments === null ? (
         <div className="comment-loading">
@@ -77,7 +82,7 @@ const CommentBox = ({ projectId, onCommentPosted  }) => {
           ) : (
           comments.map((c, i) => (
             <div key={i} className="comment-item">
-              <strong>{c.username || 'Anonymous'}</strong>: {c.comment}
+              {/* <strong>{c.username || 'Anonymous'}</strong>: {c.comment} */}
             </div>
           ))
 

@@ -5,9 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../css/home.css';
 import Footer from '../components/Footer';
-import CommentBox from '../components/CommentBox';
+import CommentModal from '../components/CommentModal';
 import { AuthContext } from '../context/AuthContext'; 
-
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -20,65 +19,48 @@ const HomePage = () => {
   const [filters, setFilters] = useState({ region: '', district: '', type: '' });
   const [uniqueValues, setUniqueValues] = useState({ regions: [], districts: [], types: [] });
   const [loading, setLoading] = useState(true);
-  // const [visibleCommentBoxes, setVisibleCommentBoxes] = useState([]);
-  // const [activeProjectId, setActiveProjectId] = useState(null); // single open box
-  const [activeProjectId, setActiveProjectId] = useState(null);
-  
-  // const [modalOpenProjectId, setModalOpenProjectId] = useState(null);
-
+  const [modalProject, setModalProject] = useState(null);
   const { token } = useContext(AuthContext);
 
-
-  const toggleCommentBox = (id) => {
-    setActiveProjectId((prev) => (prev === id ? null : id));
-    console.log('Clicked on:', id);
-
-  };
   // Increment comment count (fake for now)
-    const incrementCommentCount = (projectId) => {
-      setProjects((prevProjects) =>
-        prevProjects.map((proj) =>
-          proj._id === projectId
-            ? {
-                ...proj,
-                comments: [...(proj.comments || []), { comment: 'placeholder' }], // fake append
-              }
-            : proj
-        )
-      );
-    };
-
-
-
+  // const incrementCommentCount = (projectId) => {
+  //   setProjects((prevProjects) =>
+  //     prevProjects.map((proj) =>
+  //       proj._id === projectId
+  //         ? {
+  //             ...proj,
+  //             comments: [...(proj.comments || []), { comment: 'placeholder' }], // fake append
+  //           }
+  //         : proj
+  //     )
+  //   );
+  // };
 
   // Install prompt handling
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  // Toggle comment box visibility
-  
 
   useEffect(() => {
-      const handler = (e) => {
-        e.preventDefault(); 
-        setDeferredPrompt(e); 
-      };
-
-      window.addEventListener('beforeinstallprompt', handler);
-
-      return () => window.removeEventListener('beforeinstallprompt', handler);
-    }, []);
-
-    const handleInstallClick = async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      } else {
-        console.log('User dismissed the install prompt');
-      }
-      setDeferredPrompt(null);
+    const handler = (e) => {
+      e.preventDefault(); 
+      setDeferredPrompt(e); 
     };
 
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+    setDeferredPrompt(null);
+  };
 
   const navigate = useNavigate();
 
@@ -89,11 +71,10 @@ const HomePage = () => {
       setProjects(projectsData);
 
       setUniqueValues({
-        regions: [...new Set(res.data.map(p => p.region))].filter(Boolean),
-        districts: [...new Set(res.data.map(p => p.district))].filter(Boolean),
-        types: [...new Set(res.data.map(p => p.type))].filter(Boolean),
+        regions: [...new Set(projectsData.map(p => p.region))].filter(Boolean),
+        districts: [...new Set(projectsData.map(p => p.district))].filter(Boolean),
+        types: [...new Set(projectsData.map(p => p.type))].filter(Boolean),
       });
-
     } catch (err) {
       console.error('Error fetching projects:', err);
     } finally {
@@ -116,28 +97,21 @@ const HomePage = () => {
     (filters.type ? project.type === filters.type : true)
   );
 
-  // Calculate stats
   const totalProjects = projects.length;
-  // const approvedProjects = projects.filter(p => p.approved).length;
-  // const pendingProjects = totalProjects - approvedProjects;
 
   return (
     <div className="home-page">
       <div className="ghana-header">
         <h1 className="page-title">Ghana Project Tracker</h1>
-        {/* Moved install button to header for better visibility */}
-    {deferredPrompt && (
-      <button onClick={handleInstallClick} className="install-btn">
-        <span className="install-icon">📲</span>
-        <span className="install-text">Install App</span>
-      </button>
-    )}
+        {deferredPrompt && (
+          <button onClick={handleInstallClick} className="install-btn">
+            <span className="install-icon">📲</span>
+            <span className="install-text">Install App</span>
+          </button>
+        )}
       </div>
 
       <div className="hero-section">
-    
-
-        {/* Stats Banner */}
         <div className="stats-banner">
           <div className="stat-item">
             <div className="stat-value">{totalProjects}</div>
@@ -145,7 +119,6 @@ const HomePage = () => {
           </div>    
         </div>
 
-        {/* Map Section */}
         <div className="map-container">
           <MapContainer center={[7.9465, -1.0232]} zoom={5} style={{ height: '100%', width: '100%' }}>
             <TileLayer
@@ -166,13 +139,13 @@ const HomePage = () => {
                         src={`https://govpro-web-backend.onrender.com${project.imageUrl}`} 
                         alt={project.title} 
                         className="popup-image"
-                          style={{ 
-                      width: '100px', 
-                      height: '80px', 
-                      display: 'block', 
-                      marginBottom: '5px',
-                      borderRadius: '4px'
-                    }} 
+                        style={{ 
+                          width: '100px', 
+                          height: '80px', 
+                          display: 'block', 
+                          marginBottom: '5px',
+                          borderRadius: '4px'
+                        }} 
                       />
                     )}
                     <p className="popup-detail"><strong>Type:</strong> {project.type}</p>
@@ -184,7 +157,6 @@ const HomePage = () => {
                     >
                       View Details
                     </button>
-
                   </Popup>
                 </Marker>
               ) : null
@@ -192,7 +164,6 @@ const HomePage = () => {
           </MapContainer>
         </div>
 
-        {/* Filter Section */}
         <div className="filter-section">
           <h3>Filter Projects</h3>
           <div className="filter-controls">
@@ -218,7 +189,6 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Projects Grid */}
       {loading ? (
         <div className="loading-spinner">Loading projects...</div>
       ) : filteredProjects.length === 0 ? (
@@ -239,12 +209,8 @@ const HomePage = () => {
                 <p className="project-detail"><strong>Type:</strong> {project.type}</p>
                 <p className="project-detail"><strong>Status:</strong> {project.status}</p>
                 <p className="project-detail"><strong>Region:</strong> {project.region}, {project.district}</p>
-                {project.city && (
-                  <p className="project-detail"><strong>City:</strong> {project.city}</p>
-                )}
-                {project.address && (
-                  <p className="project-detail"><strong>Address:</strong> {project.address}</p>
-                )}
+                {project.city && <p className="project-detail"><strong>City:</strong> {project.city}</p>}
+                {project.address && <p className="project-detail"><strong>Address:</strong> {project.address}</p>}
                 <button 
                   onClick={() => navigate(`/project/${project._id}`)} 
                   className="view-details-btn"
@@ -252,46 +218,45 @@ const HomePage = () => {
                   View Details
                 </button>
 
-                 {/* Comment Button */}
-               {/* Replace the entire comment section with this */}
-            {token ? (
-              <div className="comment-section">
-                <div 
-                  className="comment-count-container"
-                  onClick={() => toggleCommentBox(project._id)}
-                >
-                  <i className="far fa-comment comment-icon"></i>
-                  <span className="comment-count-number">
-                    {project.comments?.length || 0}
-                  </span>
-                  <span className="comment-count-text">Comments</span>
-                </div>
-
-                {activeProjectId === project._id && (
-                  <div className="comment-box-container">
-                    <CommentBox 
-                      projectId={project._id} 
-                      onCommentPosted={() => incrementCommentCount(project._id)} 
-                    />
+                {token ? (
+                  <div className="comment-section">
+                    <div 
+                      className="comment-count-container"
+                      onClick={() => setModalProject(project)}
+                    >
+                      <i className="far fa-comment comment-icon"></i>
+                      <span className="comment-count-number">
+                        {project.comments?.length || 0}
+                      </span>
+                      <span className="comment-count-text">Comments</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="login-prompt">
+                    <i className="fas fa-lock"></i>
+                    <span>Log in to comment</span>
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="login-prompt">
-                <i className="fas fa-lock"></i>
-                <span>Log in to comment</span>
-              </div>
-            )}
-
               </div>
             </div>
           ))}
         </div>
       )}
+      
+      {modalProject && (
+        <CommentModal 
+          project={modalProject}
+          onClose={() => setModalProject(null)}
+          onCommentPosted={() => {
+            // incrementCommentCount(modalProject._id);
+            setModalProject(null);
+          }}
+        />
+      )}
+      
       <Footer/>
     </div>
   );
 };
 
-                     
 export default HomePage;
