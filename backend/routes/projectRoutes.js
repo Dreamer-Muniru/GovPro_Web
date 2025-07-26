@@ -10,7 +10,7 @@ const authenticateUser = require('../middleware/authenticateUser');
 router.post('/', createProject);
 
 // GET /api/projects
-router.get('/', getProjects);
+// router.get('/', getProjects);
 
 // GET /api/projects/:id
 router.get('/:id', async (req, res) => {

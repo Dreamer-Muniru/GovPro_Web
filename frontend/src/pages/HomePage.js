@@ -85,14 +85,15 @@ const HomePage = () => {
   const fetchProjects = useCallback(async () => {
     try {
       const res = await axios.get('https://govpro-web-backend.onrender.com/api/projects');
-      const projectsData = res.data.projects || [];
+      const projectsData = Array.isArray(res.data) ? res.data : res.data.projects || [];
       setProjects(projectsData);
 
       setUniqueValues({
-        regions: [...new Set(projectsData.map(p => p.region))].filter(Boolean),
-        districts: [...new Set(projectsData.map(p => p.district))].filter(Boolean),
-        types: [...new Set(projectsData.map(p => p.type))].filter(Boolean),
+        regions: [...new Set(res.data.map(p => p.region))].filter(Boolean),
+        districts: [...new Set(res.data.map(p => p.district))].filter(Boolean),
+        types: [...new Set(res.data.map(p => p.type))].filter(Boolean),
       });
+
     } catch (err) {
       console.error('Error fetching projects:', err);
     } finally {

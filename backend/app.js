@@ -16,6 +16,7 @@ const app = express();
 // Connect to DB
 connectDB();
 
+
 const conn = mongoose.connection;
 let gfs, gridBucket;
 conn.once('open', () => {
@@ -23,9 +24,31 @@ conn.once('open', () => {
   console.log('GridFS initialized');
 });
 
+const cors = require('cors');
+
+const allowedOrigins = [
+  'https://govprotracker.vercel.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
+
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true // if you use cookies or sessions
+}));
 // Middleware
-app.use(cors());
-app.use(cors({ origin: 'https://govprotracker.vercel.app', credentials: true }));
+// app.use(cors());
+// app.use(cors({ origin: 'https://govprotracker.vercel.app', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -103,16 +126,19 @@ app.get('/api/uploads/:id', async (req, res) => {
     res.status(404).json({ message: 'Image not found' });
   }
 });
-app.get('/:id', async (req, res) => {
-  try {
-    const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
-    res.json(project);
-  } catch (err) {
-    console.error('Error fetching project by ID:', err);
-    res.status(500).json({ error: 'Failed to fetch project' });
-  }
-});
+
+app.use('/favicon.ico', express.static(path.join(__dirname, 'public', 'favicon.ico')));
+
+// app.get('/:id', async (req, res) => {
+//   try {
+//     const project = await Project.findById(req.params.id);
+//     if (!project) return res.status(404).json({ error: 'Project not found' });
+//     res.json(project);
+//   } catch (err) {
+//     console.error('Error fetching project by ID:', err);
+//     res.status(500).json({ error: 'Failed to fetch project' });
+//   }
+// });
 
 // Include other routes
 // const projectRoutes = require('./routes/projectRoutes');
