@@ -7,36 +7,29 @@ const { GridFSBucket } = require('mongodb');
 const mongoose = require('mongoose');
 const stream = require('stream');
 const projectRoutes = require('./routes/projectRoutes');
-const connectDB = require('../backend/config/db');
+const connectDB = require('./config/db'); // fixed path
 const Project = require('./models/projects');
-// const authRoutes = require('./routes/auth');
 
 const app = express();
 
 // Connect to DB
 connectDB();
 
-
-const conn = mongoose.connection;
-let gfs, gridBucket;
-conn.once('open', () => {
-  gridBucket = new GridFSBucket(conn.db, { bucketName: 'uploads' });
+let gridBucket;
+mongoose.connection.once('open', () => {
+  gridBucket = new GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' });
   console.log('GridFS initialized');
 });
 
-const cors = require('cors');
-
+// CORS setup
 const allowedOrigins = [
   'https://govprotracker.vercel.app',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
 ];
 
-
-
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -44,16 +37,15 @@ app.use(cors({
     }
     return callback(null, true);
   },
-  credentials: true // if you use cookies or sessions
+  credentials: true
 }));
+
 // Middleware
-// app.use(cors());
-// app.use(cors({ origin: 'https://govprotracker.vercel.app', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Multer setup (store images in memory instead of local disk)
+// Multer setup (store images in memory)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -88,7 +80,7 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
       submittedBy
     });
 
-    if (req.file) {
+    if (req.file && gridBucket) {
       const readableStream = new stream.PassThrough();
       readableStream.end(req.file.buffer);
 
@@ -97,7 +89,7 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
       });
 
       readableStream.pipe(uploadStream);
-      
+
       uploadStream.on('finish', async () => {
         project.imageUrl = `/api/uploads/${uploadStream.id}`;
         await project.save();
@@ -117,9 +109,10 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
 app.get('/api/uploads/:id', async (req, res) => {
   try {
     const fileId = new mongoose.Types.ObjectId(req.params.id);
+    if (!gridBucket) throw new Error('GridFS not initialized');
     const downloadStream = gridBucket.openDownloadStream(fileId);
 
-    res.setHeader('Content-Type', 'image/png'); 
+    res.setHeader('Content-Type', 'image/png');
     downloadStream.pipe(res);
   } catch (error) {
     console.error(error);
@@ -129,28 +122,22 @@ app.get('/api/uploads/:id', async (req, res) => {
 
 app.use('/favicon.ico', express.static(path.join(__dirname, 'public', 'favicon.ico')));
 
-// app.get('/:id', async (req, res) => {
-//   try {
-//     const project = await Project.findById(req.params.id);
-//     if (!project) return res.status(404).json({ error: 'Project not found' });
-//     res.json(project);
-//   } catch (err) {
-//     console.error('Error fetching project by ID:', err);
-//     res.status(500).json({ error: 'Failed to fetch project' });
-//   }
-// });
-
-// Include other routes
-// const projectRoutes = require('./routes/projectRoutes');
+// API routes
 app.use('/api/projects', projectRoutes);
-const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
-// 
-const authAdminRoutes = require('./routes/authAdmin');
-app.use('/api/admin-auth', authAdminRoutes);
 
-
-
+// Auth routes (make sure these files exist and export a router)
+try {
+  const authRoutes = require('./routes/auth');
+  app.use('/api/auth', authRoutes);
+} catch (e) {
+  console.warn('auth.js not found or failed to load');
+}
+try {
+  const authAdminRoutes = require('./routes/authAdmin');
+  app.use('/api/admin-auth', authAdminRoutes);
+} catch (e) {
+  console.warn('authAdmin.js not found or failed to load');
+}
 
 // Welcome route
 app.get('/', (req, res) => {
