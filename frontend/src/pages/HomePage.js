@@ -253,35 +253,34 @@ const HomePage = () => {
                 </button>
 
                  {/* Comment Button */}
-                 {token ? (
-                  <>
-             <div key={project._id} className="project-card">
-                
-                <button
-                  className="comment-toggle-btn"
+               {/* Replace the entire comment section with this */}
+            {token ? (
+              <div className="comment-section">
+                <div 
+                  className="comment-count-container"
                   onClick={() => toggleCommentBox(project._id)}
                 >
-                  💬 Comment
-                </button>
-                  {project.comments && (
-                    <p className="comment-count">💬 {project.comments.length} Comments</p>
-                  )}
+                  <i className="far fa-comment comment-icon"></i>
+                  <span className="comment-count-number">
+                    {project.comments?.length || 0}
+                  </span>
+                  <span className="comment-count-text">Comments</span>
+                </div>
 
-               {activeProjectId === project._id && (
-                <>
-                  {console.log('Rendering comment box for', project._id)}
-                  <div className="comment-popup">
-                    <CommentBox projectId={project._id} onCommentPosted={() => incrementCommentCount(project._id)} />
-
+                {activeProjectId === project._id && (
+                  <div className="comment-box-container">
+                    <CommentBox 
+                      projectId={project._id} 
+                      onCommentPosted={() => incrementCommentCount(project._id)} 
+                    />
                   </div>
-                </>
-              )}
-
+                )}
               </div>
-
-              </>
             ) : (
-              <p className="login-notice">Please log in to comment.</p>
+              <div className="login-prompt">
+                <i className="fas fa-lock"></i>
+                <span>Log in to comment</span>
+              </div>
             )}
 
               </div>

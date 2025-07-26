@@ -316,29 +316,69 @@
 }
 
 /* ==========comment box============= */
-.project-card {
-  position: relative;
-  overflow: visible;
+/* Comment Section Styles */
+.comment-section {
+  margin-top: 15px;
+  border-top: 1px solid #f0f2f5;
+  padding-top: 12px;
 }
 
-.comment-popup {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 100;
-  width: 100%;
-  background-color: #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  padding: 16px;
-  margin-top: 8px;
+.comment-count-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #65676B;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  user-select: none;
+  width: fit-content;
 }
 
-.comment-count {
+.comment-count-container:hover {
+  background-color: #f0f2f5;
+}
+
+.comment-icon {
+  font-size: 16px;
+}
+
+.comment-count-number {
+  font-weight: 600;
+  color: #65676B;
+}
+
+.comment-count-text {
   font-size: 14px;
-  color: #666;
-  margin-top: 8px;
+}
+
+.comment-box-container {
+  margin-top: 12px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.login-prompt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #65676B;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.login-prompt i {
+  font-size: 14px;
+}
+
+/* Remove the old comment button styles */
+.comment-toggle-btn, .comment-count {
+  display: none;
 }
 
 

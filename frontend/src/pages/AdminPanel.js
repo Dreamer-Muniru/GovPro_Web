@@ -34,10 +34,10 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    const fetchProjects = async () => {
+   const fetchProjects = async () => {
       try {
         const res = await axios.get('https://govpro-web-backend.onrender.com/api/projects');
-        setProjects(res.data.projects || []);
+        setProjects(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error(err);
       } finally {
