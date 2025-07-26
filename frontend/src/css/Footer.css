@@ -118,7 +118,8 @@
   margin-top: 1.5rem;
 }
 
-.footer-social a {
+.footer-social a,
+.footer-social .social-link {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -126,13 +127,32 @@
   height: 35px;
   background: rgba(255,255,255,0.1);
   border-radius: 50%;
+  border: none;
+  color: inherit;
+  cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.footer-social a:hover {
+.footer-social a:hover,
+.footer-social .social-link:hover {
   background: var(--ghana-yellow);
   color: var(--ghana-red);
   transform: translateY(-3px);
+}
+
+.footer-link-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font-size: inherit;
+  padding: 0;
+  transition: color 0.3s ease;
+}
+
+.footer-link-btn:hover {
+  color: var(--ghana-yellow);
 }
 
 .footer-credits {

@@ -18,19 +18,27 @@ const Footer = () => {
             Gate360, Garu - U/ER
           </p>
           <div className="footer-social">
-            <a href="#"><i className="fab fa-facebook-f"></i></a>
-            <a href="#"><i className="fab fa-twitter"></i></a>
-            <a href="#"><i className="fab fa-instagram"></i></a>
-            <a href="#"><i className="fab fa-linkedin-in"></i></a>
+            <button className="social-link" onClick={() => window.open('https://facebook.com', '_blank')} aria-label="Facebook">
+              <i className="fab fa-facebook-f"></i>
+            </button>
+            <button className="social-link" onClick={() => window.open('https://twitter.com', '_blank')} aria-label="Twitter">
+              <i className="fab fa-twitter"></i>
+            </button>
+            <button className="social-link" onClick={() => window.open('https://instagram.com', '_blank')} aria-label="Instagram">
+              <i className="fab fa-instagram"></i>
+            </button>
+            <button className="social-link" onClick={() => window.open('https://linkedin.com', '_blank')} aria-label="LinkedIn">
+              <i className="fab fa-linkedin-in"></i>
+            </button>
           </div>
         </div>
 
         <div className="footer-section">
           <h3 className="footer-heading">Quick Links</h3>
           <ul className="footer-links">
-            <li><a href="#"><i className="fas fa-chevron-right"></i> Home</a></li>
-            <li><a href="#"><i className="fas fa-chevron-right"></i> Projects</a></li>
-            <li><a href="#"><i className="fas fa-chevron-right"></i> About</a></li>
+            <li><button className="footer-link-btn" onClick={() => window.location.href = '/'}><i className="fas fa-chevron-right"></i> Home</button></li>
+            <li><button className="footer-link-btn" onClick={() => window.location.href = '/'}><i className="fas fa-chevron-right"></i> Projects</button></li>
+            <li><button className="footer-link-btn" onClick={() => window.location.href = '/about'}><i className="fas fa-chevron-right"></i> About</button></li>
             {/* <li><a href="#"><i className="fas fa-chevron-right"></i> Contact</a></li> */}
           </ul>
         </div>
