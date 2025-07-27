@@ -244,25 +244,19 @@ const HomePage = () => {
                   View Details
                 </button>
 
-                {token ? (
-                  <div className="comment-section">
-                    <div 
-                      className="comment-count-container"
-                      onClick={() => setModalProject(project)}
-                    >
-                      <i className="far fa-comment comment-icon"></i>
-                      <span className="comment-count-number">
-                         {project.commentCount ?? project.comments?.length ?? 0}
-                      </span>
-                      <span className="comment-count-text">Comments</span>
-                    </div>
+                {/* Updated comment section - always visible */}
+                <div className="comment-section">
+                  <div 
+                    className="comment-count-container"
+                    onClick={() => setModalProject(project)}
+                  >
+                    <i className="far fa-comment comment-icon"></i>
+                    <span className="comment-count-number">
+                      {project.commentCount ?? project.comments?.length ?? 0}
+                    </span>
+                    <span className="comment-count-text">Comments</span>
                   </div>
-                ) : (
-                  <div className="login-prompt">
-                    <i className="fas fa-lock"></i>
-                    <span>Log in to comment</span>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           ))}
@@ -273,7 +267,7 @@ const HomePage = () => {
         <CommentModal 
           project={modalProject}
           onClose={() => setModalProject(null)}
-           onCommentCountChange={handleCommentCountChange}
+          onCommentCountChange={handleCommentCountChange}
         />
       )}
       
