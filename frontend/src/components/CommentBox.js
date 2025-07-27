@@ -1,37 +1,43 @@
-// components/CommentBox.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import '../css/CommentBox.css';
 import { AuthContext } from '../context/AuthContext';
 import '../css/home.css';
-
+import { formatDistanceToNow } from 'date-fns';
 
 const commentCache = {};
-const CommentBox = ({ projectId, onCommentPosted, showHeader = true   }) => {
+
+const CommentBox = ({ projectId, onCommentPosted, onCommentCountChange, showHeader = true }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
-  const {token } = useContext(AuthContext);
-  
+  const [fetching, setFetching] = useState(true);
+  const { token } = useContext(AuthContext);
 
-  useEffect(() => {
+  // Fetch comments when projectId changes
   const fetchComments = async () => {
-    if (commentCache[projectId]) {
-      setComments(commentCache[projectId]);
-      return;
-    }
+    setFetching(true);
     try {
-      setComments(null); // trigger loading state
       const res = await axios.get(`https://govpro-web-backend.onrender.com/api/projects/${projectId}`);
-      commentCache[projectId] = res.data.comments || [];
-      setComments(commentCache[projectId]);
+      const fetchedComments = res.data.comments || [];
+      commentCache[projectId] = fetchedComments;
+      setComments(fetchedComments);
+      if (onCommentCountChange) onCommentCountChange(fetchedComments.length);
     } catch (err) {
       console.error('Failed to fetch comments:', err.response?.data || err.message);
+      setComments([]);
+      if (onCommentCountChange) onCommentCountChange(0);
+    } finally {
+      setFetching(false);
     }
   };
-  fetchComments();
-}, [projectId]);
 
+  useEffect(() => {
+    fetchComments();
+    // eslint-disable-next-line
+  }, [projectId]);
+
+  // Handle posting a new comment
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -43,7 +49,7 @@ const CommentBox = ({ projectId, onCommentPosted, showHeader = true   }) => {
 
     setLoading(true);
     try {
-      const res = await axios.post(
+      await axios.post(
         `https://govpro-web-backend.onrender.com/api/projects/${projectId}/comments`,
         { comment: newComment },
         {
@@ -52,9 +58,9 @@ const CommentBox = ({ projectId, onCommentPosted, showHeader = true   }) => {
           },
         }
       );
-      setComments((prev) => [...prev, res.data.comment]);
       setNewComment('');
-      if (onCommentPosted) onCommentPosted();
+      // Fetch the updated comments list to get correct createdAt and count
+      await fetchComments();
     } catch (err) {
       console.error('Failed to post comment:', err.response?.data || err.message);
       alert('Comment failed: ' + (err.response?.data?.error || 'Unknown error'));
@@ -64,29 +70,35 @@ const CommentBox = ({ projectId, onCommentPosted, showHeader = true   }) => {
   };
 
   return (
-    <div className="comment-box" >
-      {showHeader && (
+    <div className="comment-box">
+      {/* {showHeader && (
         <div className="comment-box-header">
-          <span>Anonymous:</span>
+          <span>Comments:</span>
+          <span className="comment-count">{comments.length}</span>
         </div>
-      )}
+      )} */}
       <div className="comment-list">
-       {comments === null ? (
-        <div className="comment-loading">
-          <div className="comment-skeleton"></div>
-          <div className="comment-skeleton short"></div>
-        </div>
-          ) : comments.length === 0 ? (
-            <p>No comments yet. Be the first to share your thoughts!</p>
-            
-          ) : (
+        {fetching ? (
+          <div className="comment-loading">
+            <div className="comment-skeleton"></div>
+            <div className="comment-skeleton short"></div>
+          </div>
+        ) : comments.length === 0 ? (
+          <p>No comments yet. Be the first to share your thoughts!</p>
+        ) : (
           comments.map((c, i) => (
-            <div key={i} className="comment-item">
-              {/* <strong>{c.username || 'Anonymous'}</strong>: {c.comment} */}
+            <div key={c._id || i} className="comment-item">
+              <div className="comment-username">
+                {c.user?.name || 'Anonymous'}
+              </div>
+              <div className="comment-text">
+                {c.comment}
+              </div>
+              <div className="comment-time">
+                {formatDistanceToNow(new Date(c.createdAt || new Date()), { addSuffix: true })}
+              </div>
             </div>
           ))
-
-
         )}
       </div>
 
@@ -98,7 +110,7 @@ const CommentBox = ({ projectId, onCommentPosted, showHeader = true   }) => {
           onChange={(e) => setNewComment(e.target.value)}
           disabled={!token || loading}
         />
-        <button type="submit" disabled={!token || loading}>
+        <button type="submit" disabled={!token || loading || !newComment.trim()}>
           {loading ? 'Posting...' : 'Send'}
         </button>
       </form>

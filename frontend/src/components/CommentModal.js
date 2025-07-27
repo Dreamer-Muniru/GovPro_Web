@@ -1,8 +1,9 @@
 import React from 'react';
 import CommentBox from './CommentBox';
-import { formatDistanceToNow } from 'date-fns';
 
-const CommentModal = ({ project, onClose, onCommentPosted }) => {
+const CommentModal = ({ project, onClose, onCommentCountChange }) => {
+  if (!project) return null;
+
   return (
     <div className="comment-modal-overlay" onClick={onClose}>
       <div className="comment-modal" onClick={(e) => e.stopPropagation()}>
@@ -13,36 +14,12 @@ const CommentModal = ({ project, onClose, onCommentPosted }) => {
           </button>
         </div>
         
-        <div className="comments-container">
-          {project.comments?.length > 0 ? (
-            project.comments.map((comment, index) => (
-              <div key={index} className="comment">
-                <div className="comment-header">
-                  <span className="comment-author">
-                    {comment.user?.name || 'Anonymous'}
-                  </span>
-                  <span className="comment-time">
-                    {formatDistanceToNow(new Date(comment.createdAt || new Date()), { addSuffix: true })}
-                  </span>
-                </div>
-                <div className="comment-text">
-                  {comment.text || comment.comment}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="no-comments">No comments yet. Be the first to comment!</div>
-          )}
-        </div>
-        
-        <div className="comment-input-container">
+        {/* Force the CommentBox to render */}
+        <div style={{ padding: '20px' }}>
           <CommentBox 
             projectId={project._id} 
-            onCommentPosted={() => {
-              onCommentPosted();
-              // Don't close the modal after posting
-            }}
-            showHeader={false}  // Add this prop to hide the duplicate header
+            onCommentCountChange={newCount => onCommentCountChange(project._id, newCount)}
+            showHeader={true}  // Changed to true to force header display
           />
         </div>
       </div>

@@ -49,6 +49,9 @@ const Navbar = () => {
           <Link to="/about" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
             About
           </Link>
+          {/* <Link to="/login" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
+            Login
+          </Link> */}
 
           <button 
             onClick={handleAddProjectClick}
