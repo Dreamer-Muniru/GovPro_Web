@@ -17,7 +17,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/add-project');
+      navigate('/');
     }
   }, [user, navigate]);
 
