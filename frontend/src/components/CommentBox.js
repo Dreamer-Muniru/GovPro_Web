@@ -71,12 +71,12 @@ const CommentBox = ({ projectId, onCommentPosted, onCommentCountChange, showHead
 
   return (
     <div className="comment-box">
-      {/* {showHeader && (
+      {showHeader && (
         <div className="comment-box-header">
           <span>Comments:</span>
           <span className="comment-count">{comments.length}</span>
         </div>
-      )} */}
+      )}
       <div className="comment-list">
         {fetching ? (
           <div className="comment-loading">
@@ -102,21 +102,20 @@ const CommentBox = ({ projectId, onCommentPosted, onCommentCountChange, showHead
         )}
       </div>
 
-      <form className="comment-form" onSubmit={handleSend}>
-        <input
-          type="text"
-          placeholder={token ? "Write a comment..." : "Login to comment"}
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          disabled={!token || loading}
-        />
-        <button type="submit" disabled={!token || loading || !newComment.trim()}>
-          {loading ? 'Posting...' : 'Send'}
-        </button>
-      </form>
-
-      {!token && (
-        <p className="login-notice">You must be logged in to submit a comment.</p>
+      {/* Only show comment form if user is logged in */}
+      {token && (
+        <form className="comment-form" onSubmit={handleSend}>
+          <input
+            type="text"
+            placeholder="Write a comment..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            disabled={loading}
+          />
+          <button type="submit" disabled={loading || !newComment.trim()}>
+            {loading ? 'Posting...' : 'Send'}
+          </button>
+        </form>
       )}
     </div>
   );
