@@ -1,7 +1,5 @@
-const express = require('express');
-const app = express();
-app.use(express.json());
 require('dotenv').config();
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
@@ -11,7 +9,8 @@ const stream = require('stream');
 const projectRoutes = require('./routes/projectRoutes');
 const connectDB = require('./config/db'); // fixed path
 const Project = require('./models/projects');
-// const User = require('./models/User');
+
+const app = express();
 
 // Connect to DB
 connectDB();
@@ -24,32 +23,36 @@ mongoose.connection.once('open', () => {
 
 const allowedOrigins = [
   'https://govprotracker.vercel.app',
-  'http://localhost:3000' // for local dev
+  'http://localhost:3000', // for local dev
+  'https://govprotracker-95yz303n3-dreamermunirus-projects.vercel.app', // preview deployments
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+// CORS must come before any route handling
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 
+// Body-parsing middleware **before** routes so req.body is populated
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 const authAdminRoutes = require('./routes/authAdmin');
 app.use('/api/admin-auth', authAdminRoutes);
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// app.options('*', cors()); // Handle preflight requests globally
 
 // Multer setup (store images in memory)
 const storage = multer.memoryStorage();
@@ -59,10 +62,20 @@ const upload = multer({ storage });
 app.post('/api/projects', upload.single('image'), async (req, res) => {
   try {
     const {
-      title, type, description, region, district,
-      contractor, status, submittedBy, startDate,
-      location_address, location_city, location_region,
-      gps_latitude, gps_longitude
+      title,
+      type,
+      description,
+      region,
+      district,
+      contractor,
+      status,
+      submittedBy,
+      startDate,
+      location_address,
+      location_city,
+      location_region,
+      gps_latitude,
+      gps_longitude,
     } = req.body;
 
     const project = new Project({
@@ -78,12 +91,12 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
       },
       gps: {
         latitude: gps_latitude,
-        longitude: gps_longitude
+        longitude: gps_longitude,
       },
       contractor,
       status,
       startDate,
-      submittedBy
+      submittedBy,
     });
 
     if (req.file && gridBucket) {
@@ -130,20 +143,6 @@ app.use('/favicon.ico', express.static(path.join(__dirname, 'public', 'favicon.i
 
 // API routes
 app.use('/api/projects', projectRoutes);
-
-// Auth routes (make sure these files exist and export a router)
-// try {
-//   const authRoutes = require('./routes/auth');
-//   app.use('/api/auth', authRoutes);
-// } catch (e) {
-//   console.warn('auth.js not found or failed to load');
-// }
-// try {
-//   const authAdminRoutes = require('./routes/authAdmin');
-//   app.use('/api/admin-auth', authAdminRoutes);
-// } catch (e) {
-//   console.warn('authAdmin.js not found or failed to load');
-// }
 
 // Welcome route
 app.get('/', (req, res) => {
