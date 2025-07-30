@@ -13,6 +13,7 @@ router.get('/projects', async (req, res) => {
 
 // Register route for non-admin users
 router.post('/register', async (req, res) => {
+  console.log('✅ Register route hit');
   const { username, password, fullName, phone } = req.body;
 
   if (!username || !password || !fullName || !phone) {

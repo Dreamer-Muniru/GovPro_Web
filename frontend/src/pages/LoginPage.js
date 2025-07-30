@@ -31,7 +31,7 @@ const LoginPage = () => {
     setError('');
     
     try {
-      const res = await axios.post('https://govpro-web-backend.onrender.com/api/auth/login', form);
+      const res = await axios.post('https://govpro-web-backend.onrender.com/api/auth/login', form, {withCredentials: true });
       login(res.data.token);
     } catch (err) {
       setError('Login failed. Please check your credentials and try again.');

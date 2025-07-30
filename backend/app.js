@@ -24,13 +24,14 @@ mongoose.connection.once('open', () => {
 // CORS setup
 const allowedOrigins = [
   'https://govprotracker.vercel.app',
-  'https://govpro-web-frontend.onrender.com',
+  // 'https://govpro-web-backend.onrender.com',
   'http://localhost:3000',
 
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    console.log('Incoming request origin:', origin); 
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -40,11 +41,16 @@ app.use(cors({
   },
   credentials: true
 }));
-
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+const authAdminRoutes = require('./routes/authAdmin');
+app.use('/api/admin-auth', authAdminRoutes);
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// app.options('*', cors()); // Handle preflight requests globally
 
 // Multer setup (store images in memory)
 const storage = multer.memoryStorage();
@@ -127,18 +133,18 @@ app.use('/favicon.ico', express.static(path.join(__dirname, 'public', 'favicon.i
 app.use('/api/projects', projectRoutes);
 
 // Auth routes (make sure these files exist and export a router)
-try {
-  const authRoutes = require('./routes/auth');
-  app.use('/api/auth', authRoutes);
-} catch (e) {
-  console.warn('auth.js not found or failed to load');
-}
-try {
-  const authAdminRoutes = require('./routes/authAdmin');
-  app.use('/api/admin-auth', authAdminRoutes);
-} catch (e) {
-  console.warn('authAdmin.js not found or failed to load');
-}
+// try {
+//   const authRoutes = require('./routes/auth');
+//   app.use('/api/auth', authRoutes);
+// } catch (e) {
+//   console.warn('auth.js not found or failed to load');
+// }
+// try {
+//   const authAdminRoutes = require('./routes/authAdmin');
+//   app.use('/api/admin-auth', authAdminRoutes);
+// } catch (e) {
+//   console.warn('authAdmin.js not found or failed to load');
+// }
 
 // Welcome route
 app.get('/', (req, res) => {
