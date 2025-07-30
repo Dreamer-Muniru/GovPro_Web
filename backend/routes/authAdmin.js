@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs'); // or bcrypt
-const User = require('../models/user');
+// const User = require('../models/user');
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;

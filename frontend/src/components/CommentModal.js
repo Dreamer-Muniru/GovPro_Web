@@ -14,7 +14,7 @@ const CommentModal = ({ project, onClose, onCommentCountChange }) => {
     localStorage.setItem('redirectAfterLogin', window.location.pathname);
     navigate('/login');
   };
-
+  
   return (
     <div className="comment-modal-overlay" onClick={onClose}>
       <div className="comment-modal" onClick={(e) => e.stopPropagation()}>
@@ -28,24 +28,25 @@ const CommentModal = ({ project, onClose, onCommentCountChange }) => {
         {/* Only show the mapped comments for non-logged-in users */}
         {!token && (
           <div className="comments-container">
-            {project.comments?.length > 0 ? (
-              project.comments.map((comment, index) => (
-                <div key={comment._id || index} className="comment-item">
-                  <div className="comment-username">
-                    {comment.user?.name || 'Anonymous'}
-                  </div>
-                  <div className="comment-text">
-                    {comment.text || comment.comment}
-                  </div>
-                  <div className="comment-time">
-                    {formatDistanceToNow(new Date(comment.createdAt || new Date()), { addSuffix: true })}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="no-comments">No comments yet. Be the first to comment!</div>
-            )}
-          </div>
+  {project.comments?.length > 0 ? (
+    project.comments.map((comment, index) => (
+      <div key={comment._id || index} className="comment-item">
+        <div className="comment-meta">
+          <strong>{comment.username || 'Anonymous'}</strong>{' '}
+          <span className="comment-time">
+            • {formatDistanceToNow(new Date(comment.createdAt || new Date()), { addSuffix: true })}
+          </span>
+        </div>
+        <div className="comment-text">
+          {comment.text || comment.comment}
+        </div>
+      </div>
+    ))
+  ) : (
+    <div className="no-comments">No comments yet. Be the first to comment!</div>
+  )}
+</div>
+
         )}
 
         <div className="comment-input-container">

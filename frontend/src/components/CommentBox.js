@@ -38,37 +38,41 @@ const CommentBox = ({ projectId, onCommentPosted, onCommentCountChange, showHead
   }, [projectId]);
 
   // Handle posting a new comment
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
+ const handleSend = async (e) => {
+  e.preventDefault();
+  if (!newComment.trim()) return;
 
-    if (!token) {
-      alert('You must be logged in to comment.');
-      return;
-    }
+  if (!token) {
+    alert('You must be logged in to comment.');
+    return;
+  }
 
-    setLoading(true);
-    try {
-      await axios.post(
-        `https://govpro-web-backend.onrender.com/api/projects/${projectId}/comments`,
-        { comment: newComment },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setNewComment('');
-      // Fetch the updated comments list to get correct createdAt and count
-      await fetchComments();
-    } catch (err) {
-      console.error('Failed to post comment:', err.response?.data || err.message);
-      alert('Comment failed: ' + (err.response?.data?.error || 'Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  setLoading(true);
+  try {
+    console.log('Sending comment request...'); // Debug log
+    console.log('Token:', token); // Debug log
+    
+    const res = await axios.post(
+      `https://govpro-web-backend.onrender.com/api/projects/${projectId}/comments`,
+      { comment: newComment },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    console.log('Comment response:', res.data); // Debug log
+    
+    setNewComment('');
+    await fetchComments();
+  } catch (err) {
+    console.error('Failed to post comment:', err.response?.data || err.message);
+    alert('Comment failed: ' + (err.response?.data?.error || 'Unknown error'));
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="comment-box">
       {showHeader && (
@@ -84,12 +88,14 @@ const CommentBox = ({ projectId, onCommentPosted, onCommentCountChange, showHead
             <div className="comment-skeleton short"></div>
           </div>
         ) : comments.length === 0 ? (
+          
           <p>No comments yet. Be the first to share your thoughts!</p>
         ) : (
           comments.map((c, i) => (
+            
             <div key={c._id || i} className="comment-item">
               <div className="comment-username">
-                {c.user?.name || 'Anonymous'}
+                {c.username || 'Anonymous'}
               </div>
               <div className="comment-text">
                 {c.comment}
