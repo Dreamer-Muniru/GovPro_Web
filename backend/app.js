@@ -23,9 +23,11 @@ mongoose.connection.once('open', () => {
 
 const allowedOrigins = [
   'https://govprotracker.vercel.app',
-  'http://localhost:3000' // for local dev
+  'http://localhost:3000', // for local dev
+  'https://govprotracker-95yz303n3-dreamermunirus-projects.vercel.app', // preview deployments
 ];
 
+// CORS must come before any route handling
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -34,19 +36,21 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
 }));
 
+// Body-parsing middleware **before** routes so req.body is populated
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 const authAdminRoutes = require('./routes/authAdmin');
 app.use('/api/admin-auth', authAdminRoutes);
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // app.options('*', cors()); // Handle preflight requests globally
 
