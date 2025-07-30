@@ -24,9 +24,16 @@ router.post('/register', async (req, res) => {
     const user = new User({ username, password, fullName, phone, isAdmin: false });
     await user.save();
 
+    // Ensure we have a secret – if not, surface a clear error instead of crashing
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('❌ JWT_SECRET is not set. Please define it in your environment variables.');
+      return res.status(500).json({ error: 'Server configuration error. Please contact support.' });
+    }
+
     const token = jwt.sign(
       { id: user._id, username: user.username, isAdmin: user.isAdmin },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: '1d' }
     );
 
