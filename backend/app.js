@@ -1,5 +1,7 @@
-require('dotenv').config();
 const express = require('express');
+const app = express();
+app.use(express.json());
+require('dotenv').config();
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
@@ -9,8 +11,7 @@ const stream = require('stream');
 const projectRoutes = require('./routes/projectRoutes');
 const connectDB = require('./config/db'); // fixed path
 const Project = require('./models/projects');
-
-const app = express();
+// const User = require('./models/User');
 
 // Connect to DB
 connectDB();
