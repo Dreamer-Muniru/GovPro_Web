@@ -16,11 +16,11 @@ const userSchema = new mongoose.Schema({
     message: props => `${props.value} is not a valid Ghanaian phone number. Use +233XXXXXXXXX or 0XXXXXXXXX`,
   },
 },
-  username: { 
-    type: String, 
-    username: { type: String, required: true },
-    // unique: true, 
-    // trim: true 
+  username: {
+    type: String,
+    required: [true, 'Username is required'],
+    unique: true,
+    trim: true,
   },
   password: { 
     type: String, 
