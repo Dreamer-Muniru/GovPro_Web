@@ -21,26 +21,24 @@ mongoose.connection.once('open', () => {
   console.log('GridFS initialized');
 });
 
-// CORS setup
 const allowedOrigins = [
   'https://govprotracker.vercel.app',
-  // 'https://govpro-web-backend.onrender.com',
-  'http://localhost:3000',
-
+  'http://localhost:3000' // for local dev
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    console.log('Incoming request origin:', origin); 
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(null, true);
   },
   credentials: true
 }));
+
+
+
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 const authAdminRoutes = require('./routes/authAdmin');
