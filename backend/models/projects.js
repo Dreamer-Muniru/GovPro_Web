@@ -51,9 +51,9 @@ const projectSchema = new mongoose.Schema({
 // Adding comments to the project schema
 comments: [
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    username: String,
     comment: String,
+    username: String,
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now }
   }
 ],

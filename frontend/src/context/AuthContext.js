@@ -7,32 +7,42 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
 
+  const login = (token) => {
+    try {
+      const decodedUser = jwtDecode(token);
 
-  const login = (decodedUser, token) => {
-    localStorage.setItem('token', token);
-    setUser(decodedUser); // ✅ decodedUser includes username now
-    setToken(token);
+      console.log("🎯 AuthContext decoded user:", decodedUser); // Optional: Debug log
+
+      localStorage.setItem('token', token);
+      setUser(decodedUser); // ✅ Includes username
+      setToken(token);
+    } catch (err) {
+      console.error("❌ Invalid token during login:", err);
+      logout();
+    }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    setToken(null); 
+    setToken(null);
   };
 
   useEffect(() => {
-  const storedToken = localStorage.getItem('token');
-  if (storedToken) {
-    try {
-      const decoded = jwtDecode(storedToken);
-      setUser(decoded);
-      setToken(storedToken);
-    } catch {
-      logout();
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      try {
+        const decodedUser = jwtDecode(storedToken);
+        setUser(decodedUser);
+        setToken(storedToken);
+      } catch (err) {
+        console.error("❌ Failed to decode stored token:", err);
+        logout();
+      }
+      
     }
-  }
-}, []);
-
+    
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout }}>

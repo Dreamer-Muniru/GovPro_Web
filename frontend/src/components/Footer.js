@@ -18,19 +18,19 @@ const Footer = () => {
             Gate360, Garu - U/ER
           </p>
           <div className="footer-social">
-            <a href="#"><i className="fab fa-facebook-f"></i></a>
-            <a href="#"><i className="fab fa-twitter"></i></a>
-            <a href="#"><i className="fab fa-instagram"></i></a>
-            <a href="#"><i className="fab fa-linkedin-in"></i></a>
+             <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"><i className="fab fa-facebook-f"></i></a>
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"><i className="fab fa-twitter"></i></a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"><i className="fab fa-instagram"></i></a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer"><i className="fab fa-linkedin-in"></i></a>
           </div>
         </div>
 
         <div className="footer-section">
           <h3 className="footer-heading">Quick Links</h3>
           <ul className="footer-links">
-            <li><a href="#"><i className="fas fa-chevron-right"></i> Home</a></li>
-            <li><a href="#"><i className="fas fa-chevron-right"></i> Projects</a></li>
-            <li><a href="#"><i className="fas fa-chevron-right"></i> About</a></li>
+            <li><a href="/"><i className="fas fa-chevron-right"></i> Home</a></li>
+            <li><a href="/projects"><i className="fas fa-chevron-right"></i> Projects</a></li>
+            <li><a href="/about"><i className="fas fa-chevron-right"></i> About</a></li>
             {/* <li><a href="#"><i className="fas fa-chevron-right"></i> Contact</a></li> */}
           </ul>
         </div>

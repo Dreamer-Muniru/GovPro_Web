@@ -2,7 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { jwtDecode } from 'jwt-decode';
+// import { jwtDecode } from 'jwt-decode';
 import '../css/LoginPage.css';
 
 const LoginPage = () => {
@@ -17,7 +17,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/add-project');
+      navigate('/');
     }
   }, [user, navigate]);
 
@@ -32,8 +32,7 @@ const LoginPage = () => {
     
     try {
       const res = await axios.post('https://govpro-web-backend.onrender.com/api/auth/login', form);
-      const decoded = jwtDecode(res.data.token);
-      login(decoded, res.data.token);
+      login(res.data.token);
     } catch (err) {
       setError('Login failed. Please check your credentials and try again.');
     } finally {

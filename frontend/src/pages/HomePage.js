@@ -6,6 +6,7 @@ import axios from 'axios';
 import '../css/home.css';
 import Footer from '../components/Footer';
 import CommentModal from '../components/CommentModal';
+// import CommentBox from '../components/CommentBox';
 import { AuthContext } from '../context/AuthContext'; 
 
 const pinpointIcon = new Icon({
@@ -63,12 +64,20 @@ const HomePage = () => {
   };
 
   const navigate = useNavigate();
+  
 
   const fetchProjects = useCallback(async () => {
     try {
       const res = await axios.get('https://govpro-web-backend.onrender.com/api/projects');
       const projectsData = Array.isArray(res.data) ? res.data : res.data.projects || [];
       setProjects(projectsData);
+
+      // Add commentCount property for each project
+      const projectsWithCount = projectsData.map(p => ({
+        ...p,
+        commentCount: p.comments ? p.comments.length : 0,
+      }));
+      setProjects(projectsWithCount);
 
       setUniqueValues({
         regions: [...new Set(projectsData.map(p => p.region))].filter(Boolean),
@@ -89,6 +98,23 @@ const HomePage = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  // This function will be called from the modal/CommentBox
+  const handleCommentCountChange = (projectId, newCount) => {
+    setProjects(prev =>
+      prev.map(p =>
+        p._id === projectId
+          ? { ...p, commentCount: newCount }
+          : p
+      )
+    );
+    // Also update modalProject if open, so the modal stays in sync
+    setModalProject(prev =>
+      prev && prev._id === projectId
+        ? { ...prev, commentCount: newCount }
+        : prev
+    );
   };
 
   const filteredProjects = projects.filter(project =>
@@ -218,25 +244,19 @@ const HomePage = () => {
                   View Details
                 </button>
 
-                {token ? (
-                  <div className="comment-section">
-                    <div 
-                      className="comment-count-container"
-                      onClick={() => setModalProject(project)}
-                    >
-                      <i className="far fa-comment comment-icon"></i>
-                      <span className="comment-count-number">
-                        {project.comments?.length || 0}
-                      </span>
-                      <span className="comment-count-text">Comments</span>
-                    </div>
+                {/* Updated comment section - always visible */}
+                <div className="comment-section">
+                  <div 
+                    className="comment-count-container"
+                    onClick={() => setModalProject(project)}
+                  >
+                    <i className="far fa-comment comment-icon"></i>
+                    <span className="comment-count-number">
+                      {project.commentCount ?? project.comments?.length ?? 0}
+                    </span>
+                    <span className="comment-count-text">Comments</span>
                   </div>
-                ) : (
-                  <div className="login-prompt">
-                    <i className="fas fa-lock"></i>
-                    <span>Log in to comment</span>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           ))}
@@ -247,10 +267,7 @@ const HomePage = () => {
         <CommentModal 
           project={modalProject}
           onClose={() => setModalProject(null)}
-          onCommentPosted={() => {
-            // incrementCommentCount(modalProject._id);
-            setModalProject(null);
-          }}
+          onCommentCountChange={handleCommentCountChange}
         />
       )}
       
