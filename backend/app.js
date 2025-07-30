@@ -25,7 +25,7 @@ mongoose.connection.once('open', () => {
 const allowedOrigins = [
   'https://govprotracker.vercel.app',
   'http://localhost:3000',
-  'http://127.0.0.1:3000'
+  // 'https://govprotracker-95yz303n3-dreamermunirus-projects.vercel.app',
 ];
 
 app.use(cors({
