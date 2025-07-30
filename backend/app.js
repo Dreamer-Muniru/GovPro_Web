@@ -24,6 +24,7 @@ mongoose.connection.once('open', () => {
 // CORS setup
 const allowedOrigins = [
   'https://govprotracker.vercel.app',
+  'https://govpro-web-frontend.onrender.com',
   'http://localhost:3000',
 
 ];
