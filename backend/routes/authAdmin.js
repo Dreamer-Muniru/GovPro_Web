@@ -24,11 +24,22 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  const token = await jwt.sign({ id: user._id, isAdmin: true }, process.env.JWT_SECRET, {
-    expiresIn: '1d',
-  });
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    console.error('❌ JWT_SECRET is not set. Cannot issue token.');
+    return res.status(500).json({ error: 'Server misconfiguration' });
+  }
 
-  res.json({ token });
+  try {
+    const token = await jwt.sign({ id: user._id, isAdmin: true }, jwtSecret, {
+      expiresIn: '1d',
+    });
+
+    res.json({ token });
+  } catch (err) {
+    console.error('❌ Failed to sign JWT:', err);
+    res.status(500).json({ error: 'Failed to generate token' });
+  }
 });
 
 

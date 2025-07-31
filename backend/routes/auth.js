@@ -60,6 +60,12 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    console.error('❌ JWT_SECRET is not set. Cannot issue token.');
+    return res.status(500).json({ error: 'Server misconfiguration. Please contact support.' });
+  }
+
   // 🔍 Find user by username
   const user = await User.findOne({ username });
   if (!user || user.isAdmin) {
@@ -86,14 +92,19 @@ router.post('/login', async (req, res) => {
   console.log('🧬 Reloaded user for confirmation:', finalUser.username);
 }
 
-const token = await jwt.sign(
-  { id: finalUser._id, username: finalUser.username },
-  process.env.JWT_SECRET,
-  { expiresIn: '24h' }
-);
+try {
+  const token = await jwt.sign(
+    { id: finalUser._id, username: finalUser.username },
+    jwtSecret,
+    { expiresIn: '24h' }
+  );
 
   console.log('🎟️ Generated token:', token);
   res.status(200).json({ token });
+} catch (err) {
+  console.error('❌ Failed to sign JWT:', err);
+  res.status(500).json({ error: 'Failed to generate token' });
+}
 });
 
 
