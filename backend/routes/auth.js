@@ -31,7 +31,7 @@ router.post('/register', async (req, res) => {
       return res.status(500).json({ error: 'Server configuration error. Please contact support.' });
     }
 
-    const token = jwt.sign(
+    const token = await jwt.sign(
       { id: user._id, username: user.username, isAdmin: user.isAdmin },
       jwtSecret,
       { expiresIn: '1d' }
@@ -86,7 +86,7 @@ router.post('/login', async (req, res) => {
   console.log('🧬 Reloaded user for confirmation:', finalUser.username);
 }
 
-const token = jwt.sign(
+const token = await jwt.sign(
   { id: finalUser._id, username: finalUser.username },
   process.env.JWT_SECRET,
   { expiresIn: '24h' }
