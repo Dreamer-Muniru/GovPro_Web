@@ -97,7 +97,7 @@ const AddProjectForm = () => {
     if (image) formDataToSend.append('image', image);
 
     try {
-      await axios.post('https://govpro-web-backend.onrender.com/api/projects', formDataToSend, {
+      await axios.post('http://localhost:5000/api/projects', formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       navigate('/');

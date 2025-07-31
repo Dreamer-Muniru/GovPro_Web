@@ -28,7 +28,7 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await axios.post('https://govpro-web-backend.onrender.com/api/admin-auth/login', form, {withCredentials: true });
+      const res = await axios.post('http://localhost:5000/api/admin-auth/login', form, {withCredentials: true });
       const decoded = jwtDecode(res.data.token);
       login(decoded, res.data.token);
       navigate('/admin');

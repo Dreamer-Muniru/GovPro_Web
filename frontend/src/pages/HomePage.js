@@ -1,4 +1,4 @@
-import React, { useEffect, useContext, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import '../css/home.css';
 import Footer from '../components/Footer';
 import CommentModal from '../components/CommentModal';
 // import CommentBox from '../components/CommentBox';
-import { AuthContext } from '../context/AuthContext'; 
+// import { AuthContext } from '../context/AuthContext'; 
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -21,7 +21,7 @@ const HomePage = () => {
   const [uniqueValues, setUniqueValues] = useState({ regions: [], districts: [], types: [] });
   const [loading, setLoading] = useState(true);
   const [modalProject, setModalProject] = useState(null);
-  const { token } = useContext(AuthContext);
+  // const { token } = useContext(AuthContext);
 
   // Increment comment count (fake for now)
   // const incrementCommentCount = (projectId) => {
@@ -68,7 +68,7 @@ const HomePage = () => {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await axios.get('https://govpro-web-backend.onrender.com/api/projects');
+      const res = await axios.get('http://localhost:5000/api/projects');
       const projectsData = Array.isArray(res.data) ? res.data : res.data.projects || [];
       setProjects(projectsData);
 
@@ -162,7 +162,7 @@ const HomePage = () => {
                     <h4 className="popup-title">{project.title}</h4>
                     {project.imageUrl && (
                       <img 
-                        src={`https://govpro-web-backend.onrender.com${project.imageUrl}`} 
+                        src={`http://localhost:5000${project.imageUrl}`} 
                         alt={project.title} 
                         className="popup-image"
                         style={{ 
@@ -225,7 +225,7 @@ const HomePage = () => {
             <div key={project._id} className="project-card">
               {project.imageUrl && (
                 <img 
-                  src={`https://govpro-web-backend.onrender.com${project.imageUrl}?${Date.now()}`} 
+                  src={`http://localhost:5000${project.imageUrl}?${Date.now()}`} 
                   alt={project.title} 
                   className="project-image"
                 />

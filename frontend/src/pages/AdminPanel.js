@@ -11,7 +11,7 @@ const AdminPanel = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`https://govpro-web-backend.onrender.com/api/projects/${id}`, {
+      await axios.delete(`http://localhost:5000/api/projects/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProjects(prev => prev.filter(p => p._id !== id));
@@ -22,7 +22,7 @@ const AdminPanel = () => {
 
   const toggleApproval = async (id, currentStatus) => {
     try {
-      const updated = await axios.put(`https://govpro-web-backend.onrender.com/api/projects/${id}/approve`, {
+      const updated = await axios.put(`http://localhost:5000/api/projects/${id}/approve`, {
         approved: !currentStatus,
       });
       setProjects(prev =>
@@ -36,7 +36,7 @@ const AdminPanel = () => {
   useEffect(() => {
    const fetchProjects = async () => {
       try {
-        const res = await axios.get('https://govpro-web-backend.onrender.com/api/projects');
+        const res = await axios.get('http://localhost:5000/api/projects');
         setProjects(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error(err);

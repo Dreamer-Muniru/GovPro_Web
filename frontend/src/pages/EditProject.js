@@ -42,7 +42,7 @@ const EditProject = () => {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const res = await axios.get(`https://govpro-web-backend.onrender.com/api/projects/${id}`);
+        const res = await axios.get(`http://localhost:5000/api/projects/${id}`);
         const data = res.data;
         
         setFormData({
@@ -65,7 +65,7 @@ const EditProject = () => {
           setPosition([parseFloat(data.gps.latitude), parseFloat(data.gps.longitude)]);
         }
 
-        setPreviewUrl(`https://govpro-web-backend.onrender.com${data.imageUrl}?${Date.now()}`);
+        setPreviewUrl(`http://localhost:5000${data.imageUrl}?${Date.now()}`);
       } catch (err) {
         console.error('Failed to load project:', err);
         setError('Could not load project data.');
@@ -112,7 +112,7 @@ const EditProject = () => {
     if (image) updatedData.append('image', image);
 
     try {
-      await axios.put(`https://govpro-web-backend.onrender.com/api/projects/${id}`, updatedData, {
+      await axios.put(`http://localhost:5000/api/projects/${id}`, updatedData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       navigate('/admin');
