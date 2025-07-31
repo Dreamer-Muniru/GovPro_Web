@@ -21,17 +21,16 @@ const ProjectDetail = () => {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const res = await axios.get('https://govpro-web-backend.onrender.com/api/projects');
-        const selectedProject = res.data.projects.find(p => p._id === id);
-
-        if (selectedProject) {
-          setProject(selectedProject);
+        const res = await axios.get(`https://govpro-web-backend.onrender.com/api/projects/${id}`);
+        if (res.data) {
+          setProject(res.data);
         } else {
           console.error('Project not found');
           navigate('/not-found');
         }
       } catch (err) {
         console.error('Error fetching project details:', err);
+        navigate('/not-found');
       } finally {
         setLoading(false);
       }
