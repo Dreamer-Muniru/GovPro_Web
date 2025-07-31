@@ -68,7 +68,7 @@ const HomePage = () => {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/projects');
+      const res = await axios.get('https://govpro-web-backend-gely.onrender.com/api/projects');
       const projectsData = Array.isArray(res.data) ? res.data : res.data.projects || [];
       setProjects(projectsData);
 
@@ -162,7 +162,7 @@ const HomePage = () => {
                     <h4 className="popup-title">{project.title}</h4>
                     {project.imageUrl && (
                       <img 
-                        src={`http://localhost:5000${project.imageUrl}`} 
+                        src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
                         alt={project.title} 
                         className="popup-image"
                         style={{ 
@@ -225,7 +225,7 @@ const HomePage = () => {
             <div key={project._id} className="project-card">
               {project.imageUrl && (
                 <img 
-                  src={`http://localhost:5000${project.imageUrl}?${Date.now()}`} 
+                  src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}?${Date.now()}`} 
                   alt={project.title} 
                   className="project-image"
                 />

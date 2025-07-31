@@ -2,7 +2,6 @@ import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
 import '../css/RegisterPage.css';
 
 const RegisterPage = () => {
@@ -35,10 +34,9 @@ const RegisterPage = () => {
 
   setLoading(true);
   try {
-    const res = await axios.post('http://localhost:5000/api/auth/register', form);
+    const res = await axios.post('https://govpro-web-backend-gely.onrender.com/api/auth/register', form);
     const token = res.data.token;
-    const decoded = jwtDecode(token);
-    login(decoded, token);
+    login(token);
     navigate('/add-project');
   } catch (err) {
     const backendMsg = err.response?.data?.error || 'Registration failed. Please try again.';

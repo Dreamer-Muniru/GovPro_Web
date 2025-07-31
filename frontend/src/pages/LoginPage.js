@@ -2,7 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-// import { jwtDecode } from 'jwt-decode';
+
 import '../css/LoginPage.css';
 
 const LoginPage = () => {
@@ -31,7 +31,7 @@ const LoginPage = () => {
     setError('');
     
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', form, {withCredentials: true });
+      const res = await axios.post('https://govpro-web-backend-gely.onrender.com/api/auth/login', form, {withCredentials: true });
       login(res.data.token);
     } catch (err) {
       setError('Login failed. Please check your credentials and try again.');

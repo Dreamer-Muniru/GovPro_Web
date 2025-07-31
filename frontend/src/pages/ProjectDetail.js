@@ -21,7 +21,7 @@ const ProjectDetail = () => {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/projects');
+        const res = await axios.get('https://govpro-web-backend-gely.onrender.com/api/projects');
         const selectedProject = res.data.projects.find(p => p._id === id);
 
         if (selectedProject) {
@@ -73,7 +73,7 @@ const ProjectDetail = () => {
         <h1 className="project-title">{project.title}</h1>
         {project.imageUrl && (
           <img 
-            src={`http://localhost:5000${project.imageUrl}`} 
+            src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
             alt={project.title} 
             className="project-image" 
           />
@@ -167,7 +167,7 @@ const ProjectDetail = () => {
                 <h4>{project.title}</h4>
                 {project.imageUrl && (
                   <img 
-                    src={`http://localhost:5000${project.imageUrl}`} 
+                    src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
                     alt={project.title} 
                     style={{ 
                       width: '100px', 

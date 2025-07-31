@@ -18,7 +18,7 @@ const CommentBox = ({ projectId, onCommentPosted, onCommentCountChange, showHead
   const fetchComments = async () => {
     setFetching(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/projects/${projectId}`);
+      const res = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/projects/${projectId}`);
       const fetchedComments = res.data.comments || [];
       commentCache[projectId] = fetchedComments;
       setComments(fetchedComments);
@@ -53,7 +53,7 @@ const CommentBox = ({ projectId, onCommentPosted, onCommentCountChange, showHead
     console.log('Token:', token); // Debug log
     
     const res = await axios.post(
-      `http://localhost:5000/api/projects/${projectId}/comments`,
+      `https://govpro-web-backend-gely.onrender.com/api/projects/${projectId}/comments`,
       { comment: newComment },
       {
         headers: {

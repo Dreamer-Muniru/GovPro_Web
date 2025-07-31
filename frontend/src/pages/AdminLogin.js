@@ -1,7 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
 import { AuthContext } from '../context/AuthContext';
 import '../css/AdminLogin.css'; 
 
@@ -28,9 +27,8 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/admin-auth/login', form, {withCredentials: true });
-      const decoded = jwtDecode(res.data.token);
-      login(decoded, res.data.token);
+      const res = await axios.post('https://govpro-web-backend-gely.onrender.com/api/admin-auth/login', form, {withCredentials: true });
+      login(res.data.token);
       navigate('/admin');
     } catch (err) {
       setError('Login failed. Invalid credentials.');
