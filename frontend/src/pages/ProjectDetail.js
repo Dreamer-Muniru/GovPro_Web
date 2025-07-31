@@ -18,29 +18,33 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const res = await axios.get('https://govpro-web-backend-gely.onrender.com/api/projects');
-        const selectedProject = res.data.projects.find(p => p._id === id);
+ useEffect(() => {
+  const fetchProject = async () => {
+    try {
+      // fetch ONE project by its id
+      const res = await axios.get(
+        `https://govpro-web-backend-gely.onrender.com/api/projects/${id}`
+      );
 
-        if (selectedProject) {
-          setProject(selectedProject);
-        } else {
-          console.error('Project not found');
-          navigate('/not-found');
-        }
-      } catch (err) {
-        console.error('Error fetching project details:', err);
-      } finally {
-        setLoading(false);
+      if (res.data) {
+        setProject(res.data);        // store the project
+      } else {
+        console.error('Project not found');
+        navigate('/not-found');
       }
-    };
-
-    if (id) {
-      fetchProject();
+    } catch (err) {
+      console.error('Error fetching project details:', err);
+      navigate('/not-found');
+    } finally {
+      setLoading(false);
     }
-  }, [id, navigate]);
+  };
+
+  if (id) {
+    fetchProject();
+  }
+}, [id, navigate]);
+
 
   if (loading) {
     return (
