@@ -5,7 +5,7 @@ const Project = require('../models/projects')
 const verifyAdminToken = require('../middleware/verifyAdminToken');
 const { createProject, getProjects } = require('../controllers/projectController');
 const authenticateUser = require('../middleware/authenticateUser');
-// const User = require('../models/User')
+// const User = require('../models/user')
 // POST /api/projects
 router.post('/', createProject);
 
