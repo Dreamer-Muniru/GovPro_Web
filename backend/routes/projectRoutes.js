@@ -136,42 +136,54 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
 router.get('/stats', async (req, res) => {
   try {
     const stats = await Project.aggregate([
-      // First, count projects per region & status
+      {
+        $project: {
+          // force region & status to consistent casing for comparison
+          region: { $ifNull: [ "$region", "Unknown" ] },
+          statusLower: { $toLower: "$status" }
+        }
+      },
       {
         $group: {
-          _id: { region: "$region", status: "$status" },
+          _id: { region: "$region", status: "$statusLower" },
           count: { $sum: 1 }
         }
       },
-      // Next, reshape so each document represents a single region
       {
         $group: {
           _id: "$_id.region",
-          completed: {
-            $sum: {
-              $cond: [ { $eq: [ "$_id.status", "completed" ] }, "$count", 0 ]
-            }
-          },
-          abandoned: {
-            $sum: {
-              $cond: [ { $eq: [ "$_id.status", "abandoned" ] }, "$count", 0 ]
-            }
-          },
-          pending: {
-            $sum: {
-              $cond: [ { $eq: [ "$_id.status", "pending" ] }, "$count", 0 ]
+          counts: {
+            $push: {
+              k: "$_id.status",
+              v: "$count"
             }
           }
         }
       },
-      // Final projection for cleaner output
+      {
+        // convert the counts array of {k,v} to an object then merge with default keys
+        $addFields: {
+          countsObj: { $arrayToObject: "$counts" }
+        }
+      },
+      {
+        $addFields: {
+          result: {
+            $mergeObjects: [
+              { completed: 0, abandoned: 0, uncompleted: 0, resumed: 0 },
+              "$countsObj"
+            ]
+          }
+        }
+      },
       {
         $project: {
           _id: 0,
           region: "$_id",
-          completed: 1,
-          abandoned: 1,
-          pending: 1
+          completed: "$result.completed",
+          abandoned: "$result.abandoned",
+          uncompleted: "$result.uncompleted",
+          resumed: "$result.resumed"
         }
       }
     ]);
