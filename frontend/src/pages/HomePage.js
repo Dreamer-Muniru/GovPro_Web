@@ -159,7 +159,7 @@ const HomePage = () => {
                   position={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
                   icon={pinpointIcon}
                 >
-                  <Popup>
+                  <Popup autoPan={false} offset={[0, -10]}>
                     <h4 className="popup-title">{project.title}</h4>
                     {project.imageUrl && (
                       <img 
