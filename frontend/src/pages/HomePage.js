@@ -123,30 +123,38 @@ const HomePage = () => {
     (filters.type ? project.type === filters.type : true)
   );
 
-  const totalProjects = projects.length;
+  // const totalProjects = projects.length;
 
   return (
+    <>
     <div className="home-page">
       <div className="ghana-header">
         <h1 className="page-title">Ghana Project Tracker</h1>
+      </div>
         {deferredPrompt && (
           <button onClick={handleInstallClick} className="install-btn">
             <span className="install-icon">📲</span>
             <span className="install-text">Install App</span>
           </button>
         )}
-      </div>
 
       <div className="hero-section">
-        <div className="stats-banner">
+        {/* <div className="stats-banner">
           <div className="stat-item">
             <div className="stat-value">{totalProjects}</div>
             <div className="stat-label">Total Projects</div>
           </div>    
-        </div>
+        </div> */}
 
         <div className="map-container">
-          <MapContainer center={[7.9465, -1.0232]} zoom={5} style={{ height: '100%', width: '100%' }}>
+          <MapContainer 
+            bounds={[[4.5, -3.5], [11.2, 1.3]]}
+            minZoom={6}
+            maxBounds={[[4.5, -3.5], [11.2, 1.3]]}
+            maxBoundsViscosity={1.0}
+            scrollWheelZoom={true}
+            style={{ height: '800px', width: '100%' }}
+          >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -271,8 +279,9 @@ const HomePage = () => {
         />
       )}
       
-      <Footer/>
     </div>
+      <Footer/>
+    </>
   );
 };
 

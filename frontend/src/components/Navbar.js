@@ -34,7 +34,7 @@ const Navbar = () => {
       <div className="navbar-content">
         <Link to="/" className="nav-brand" onClick={() => setMobileMenuOpen(false)}>
           <img src="/images/ghana-project-logo.png" alt="Ghana Project Tracker" />
-          Ghana Project Tracker
+          Abandoned Ghana
         </Link>
 
         <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
