@@ -132,6 +132,56 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
   }
 });
 
+// GET /api/projects/stats – aggregated project counts per region & status
+router.get('/stats', async (req, res) => {
+  try {
+    const stats = await Project.aggregate([
+      // First, count projects per region & status
+      {
+        $group: {
+          _id: { region: "$region", status: "$status" },
+          count: { $sum: 1 }
+        }
+      },
+      // Next, reshape so each document represents a single region
+      {
+        $group: {
+          _id: "$_id.region",
+          completed: {
+            $sum: {
+              $cond: [ { $eq: [ "$_id.status", "completed" ] }, "$count", 0 ]
+            }
+          },
+          abandoned: {
+            $sum: {
+              $cond: [ { $eq: [ "$_id.status", "abandoned" ] }, "$count", 0 ]
+            }
+          },
+          pending: {
+            $sum: {
+              $cond: [ { $eq: [ "$_id.status", "pending" ] }, "$count", 0 ]
+            }
+          }
+        }
+      },
+      // Final projection for cleaner output
+      {
+        $project: {
+          _id: 0,
+          region: "$_id",
+          completed: 1,
+          abandoned: 1,
+          pending: 1
+        }
+      }
+    ]);
+
+    res.json(stats);
+  } catch (err) {
+    console.error('Error generating region stats', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
 
 
 module.exports = router;
