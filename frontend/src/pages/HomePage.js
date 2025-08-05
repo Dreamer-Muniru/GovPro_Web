@@ -126,6 +126,7 @@ const HomePage = () => {
   const totalProjects = projects.length;
 
   return (
+    <>
     <div className="home-page">
       <div className="ghana-header">
         <h1 className="page-title">Ghana Project Tracker</h1>
@@ -137,16 +138,22 @@ const HomePage = () => {
         )}
       </div>
 
-      <div className="hero-section">
-        <div className="stats-banner">
-          <div className="stat-item">
-            <div className="stat-value">{totalProjects}</div>
-            <div className="stat-label">Total Projects</div>
-          </div>    
-        </div>
+      <div className="stats-banner">
+        <div className="stat-item">
+          <div className="stat-value">{totalProjects}</div>
+          <div className="stat-label">Total Projects</div>
+        </div>    
+      </div>
 
+      <div className="hero-section">
         <div className="map-container">
-          <MapContainer center={[7.9465, -1.0232]} zoom={5} style={{ height: '100%', width: '100%' }}>
+          <MapContainer 
+            center={[7.9465, -1.0232]} 
+            zoom={6} 
+            maxBounds={[[4.5, -3.2], [11.2, 1.3]]}
+            maxBoundsViscosity={0.9}
+            style={{ height: '100%', width: '100%' }}
+          >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -271,8 +278,9 @@ const HomePage = () => {
         />
       )}
       
-      <Footer/>
     </div>
+    <Footer/>
+    </>
   );
 };
 
