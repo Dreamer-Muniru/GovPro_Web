@@ -39,7 +39,9 @@
 }
 
 .nav-brand img {
-  height: 40px;
+  height: 70px;
+  width: 120px;
+  border-radius: 10px;
 }
 
 /* Navigation Links */
