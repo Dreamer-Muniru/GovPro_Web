@@ -254,6 +254,9 @@
   .home-page {
     padding: 0 1rem 2rem;
   }
+  .map-container{
+    height: 400px !important;
+  }
   
   .page-title {
     font-size: 2rem;
