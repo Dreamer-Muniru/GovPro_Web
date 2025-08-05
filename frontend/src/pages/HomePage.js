@@ -148,11 +148,12 @@ const HomePage = () => {
       <div className="hero-section">
         <div className="map-container">
           <MapContainer 
-            center={[7.9465, -1.0232]} 
-            zoom={6} 
-            maxBounds={[[4.5, -3.2], [11.2, 1.3]]}
-            maxBoundsViscosity={0.9}
-            style={{ height: '100%', width: '100%' }}
+            bounds={[[4.5, -3.5], [11.2, 1.3]]}
+            minZoom={6}
+            maxBounds={[[4.5, -3.5], [11.2, 1.3]]}
+            maxBoundsViscosity={1.0}
+            scrollWheelZoom={true}
+            style={{ height: '800px', width: '100%' }}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
