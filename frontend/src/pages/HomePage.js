@@ -138,13 +138,6 @@ const HomePage = () => {
         )}
       </div>
 
-      <div className="stats-banner">
-        <div className="stat-item">
-          <div className="stat-value">{totalProjects}</div>
-          <div className="stat-label">Total Projects</div>
-        </div>    
-      </div>
-
       <div className="hero-section">
         <div className="map-container">
           <MapContainer 
@@ -153,7 +146,7 @@ const HomePage = () => {
             maxBounds={[[4.5, -3.5], [11.2, 1.3]]}
             maxBoundsViscosity={1.0}
             scrollWheelZoom={true}
-            style={{ height: '800px', width: '100%' }}
+            style={{ height: '850px', width: '100%' }}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
