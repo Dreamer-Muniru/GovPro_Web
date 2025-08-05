@@ -153,7 +153,7 @@ const HomePage = () => {
             maxBounds={[[4.5, -3.5], [11.2, 1.3]]}
             maxBoundsViscosity={1.0}
             scrollWheelZoom={true}
-            style={{ height: '800px', width: '100%' }}
+            style={{ height: '500px', width: '100%' }}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -166,7 +166,7 @@ const HomePage = () => {
                   position={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
                   icon={pinpointIcon}
                 >
-                  <Popup>
+                  <Popup autoPan={false}>
                     <h4 className="popup-title">{project.title}</h4>
                     {project.imageUrl && (
                       <img 
