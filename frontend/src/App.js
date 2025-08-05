@@ -12,6 +12,7 @@ import { AuthContext } from './context/AuthContext';
 import { useContext } from 'react';
 import AdminLogin from './pages/AdminLogin'
 import { ToastContainer } from 'react-toastify';
+import ProjectInsights from './pages/ProjectInsights';
 
 function App() {
   const ProtectedRoute = ({ children }) => {
@@ -28,6 +29,7 @@ function App() {
         <Route path="/add-project" element={<AddProjectForm />} />
         <Route path="/project/:id" element={<ProjectDetail />} />
         <Route path="/edit/:id" element={<EditProject />} />
+        <Route path="/project-insights" element={<ProjectInsights />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         {/* Admin routes */}

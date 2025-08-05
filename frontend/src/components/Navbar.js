@@ -33,7 +33,7 @@ const Navbar = () => {
       
       <div className="navbar-content">
         <Link to="/" className="nav-brand" onClick={() => setMobileMenuOpen(false)}>
-          <img src="/images/ghana-project-logo.png" alt="Ghana Project Tracker" />
+          <img src="/images/ghana-project-logo.png" alt="Abandoned Ghana" />
         </Link>
 
         <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
@@ -51,8 +51,10 @@ const Navbar = () => {
           {/* <Link to="/login" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
             Login
           </Link> */}
+          <Link to="/project-insights" className='nav-link' onClick={() => setMobileMenuOpen(false)}>Reports</Link>
 
-          <button 
+
+          <button
             onClick={handleAddProjectClick}
             className="nav-button add-project-btn"
           >

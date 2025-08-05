@@ -293,7 +293,7 @@ body, html, .home-page {
 
 
 /* Install button styling section */
-.install-btn {
+/* .install-btn {
   background: #0a66c2;
   color: white;
   border: none;
@@ -301,7 +301,7 @@ body, html, .home-page {
   border-radius: 8px;
   font-size: 16px;
   cursor: pointer;
-}
+} */
 .install-btn:hover {
   background: #084a8c;
   transform: translateY(-2px);

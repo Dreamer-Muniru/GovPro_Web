@@ -13,20 +13,20 @@ router.post('/', createProject);
 // router.get('/', getProjects);
 
 // GET /api/projects/:id
-router.get('/:id', async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ error: 'Invalid project ID format' });
-  }
+// router.get('/:id', async (req, res) => {
+//   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+//     return res.status(400).json({ error: 'Invalid project ID format' });
+//   }
 
-  try {
-    const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
-    res.json(project);
-  } catch (err) {
-    console.error('Error fetching project:', err.message);
-    res.status(500).json({ error: 'Failed to fetch project' });
-  }
-});
+//   try {
+//     const project = await Project.findById(req.params.id);
+//     if (!project) return res.status(404).json({ error: 'Project not found' });
+//     res.json(project);
+//   } catch (err) {
+//     console.error('Error fetching project:', err.message);
+//     res.status(500).json({ error: 'Failed to fetch project' });
+//   }
+// });
 
 // GET /api/projects?approved=false
 router.get('/', async (req, res) => {
@@ -65,6 +65,90 @@ router.put('/:id', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: 'Failed to update project' });
   }
 });
+// GET /api/regions/stats
+// GET /api/projects/stats – aggregated project counts per region & status
+// GET /api/projects/stats – aggregated project counts per region & status
+router.get('/stats', async (req, res) => {
+  try {
+    const stats = await Project.aggregate([
+      {
+        $project: {
+          // force region & status to consistent casing for comparison
+          region: { $ifNull: [ "$region", "Unknown" ] },
+          statusLower: { $toLower: "$status" }
+        }
+      },
+      {
+        $group: {
+          _id: { region: "$region", status: "$statusLower" },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: "$_id.region",
+          counts: {
+            $push: {
+              k: "$_id.status",
+              v: "$count"
+            }
+          }
+        }
+      },
+      {
+        // convert the counts array of {k,v} to an object then merge with default keys
+        $addFields: {
+          countsObj: { $arrayToObject: "$counts" }
+        }
+      },
+      {
+        $addFields: {
+          result: {
+            $mergeObjects: [
+              { completed: 0, abandoned: 0, uncompleted: 0, resumed: 0 },
+              "$countsObj"
+            ]
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          region: "$_id",
+          completed: "$result.completed",
+          abandoned: "$result.abandoned",
+          uncompleted: "$result.uncompleted",
+          resumed: "$result.resumed"
+        }
+      }
+    ]);
+
+    res.json(stats);
+  } catch (err) {
+    console.error('Error generating region stats', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Restore GET /api/projects/:id (must come after /stats)
+router.get('/:id', async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid project ID format' });
+  }
+
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    res.json(project);
+  } catch (err) {
+    console.error('Error fetching project:', err.message);
+    res.status(500).json({ error: 'Failed to fetch project' });
+  }
+});
+
+
+module.exports = router;
+
 
 // DELETE /api/projects/:id
 router.delete('/:id', verifyAdminToken, async (req, res) => {
