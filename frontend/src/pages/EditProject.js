@@ -51,13 +51,13 @@ const EditProject = () => {
           type: data.type || '',
           region: data.region || '',
           district: data.district || '',
-          location_address: data.location_address || '',
-          location_city: data.location_city || '',
-          gps_latitude: data.gps.latitude || '',
-          gps_longitude: data.gps.longitude || '',
+           location_address: data.location?.address || '',
+          location_city: data.location?.city || '',
+          gps_latitude: data.gps?.latitude || '',
+          gps_longitude: data.gps?.longitude || '',
           contractor: data.contractor || '',
           status: data.status || '',
-          startDate: data.startDate ? data.startDate.slice(0, 10) : '',
+          startDate: (data.startDate || data.projectStartDate) ? (data.startDate || data.projectStartDate).slice(0, 10) : '',
           submittedBy: data.submittedBy || '',
         });
 
@@ -109,6 +109,7 @@ const EditProject = () => {
     Object.entries(formData).forEach(([key, value]) => {
       updatedData.append(key, value);
     });
+     updatedData.append('location_region', formData.region);
     if (image) updatedData.append('image', image);
 
     try {
