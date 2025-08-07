@@ -335,7 +335,7 @@ const AddProjectForm = () => {
               onChange={handleChange}
               className="form-input"
               placeholder="Your name"
-              // required
+              required
             />
           </div>
 
