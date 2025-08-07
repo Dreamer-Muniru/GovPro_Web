@@ -99,9 +99,7 @@ const AddProjectForm = () => {
     if (image) formDataToSend.append('image', image);
 
     try {
-      await axios.post('https://govpro-web-backend-gely.onrender.com/api/projects', formDataToSend, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await axios.post('https://govpro-web-backend-gely.onrender.com/api/projects', formDataToSend);
       navigate('/');
     } catch (err) {
       console.error('Submission error:', err);
