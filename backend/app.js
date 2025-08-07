@@ -9,7 +9,7 @@ const stream = require('stream');
 const regionsRouter = require('./routes/regions')
 const projectRoutes = require('./routes/projectRoutes');
 const connectDB = require('./config/db'); // fixed path
-// const Project = require('./models/projects');
+const Project = require('./models/projects');
 
 
 const app = express();
@@ -23,21 +23,21 @@ mongoose.connection.once('open', () => {
   console.log('GridFS initialized');
 });
 
-const allowedOrigins = [
-  'https://govprotracker.vercel.app',
-  'http://localhost:3000', // for local dev
-  'https://govprotracker-95yz303n3-dreamermunirus-projects.vercel.app', // preview deployments
+const allowedOriginPatterns = [
+  /^https?:\/\/localhost(?::\d+)?$/,
+  /^https?:\/\/127\.0\.0\.1(?::\d+)?$/,
+  /^https?:\/\/([a-z0-9-]+\.)*vercel\.app$/,
+  /^https?:\/\/([a-z0-9-]+\.)*netlify\.app$/,
+  /^https?:\/\/govprotracker\.vercel\.app$/,
 ];
 
-// CORS must come before any route handling
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      if (!origin) return callback(null, true);
+      const isAllowed = allowedOriginPatterns.some((re) => re.test(origin));
+      if (isAllowed) return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
   })
@@ -98,7 +98,7 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
       },
       contractor,
       status,
-      startDate,
+      projectStartDate: startDate,
       submittedBy,
     });
 

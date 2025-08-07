@@ -94,12 +94,12 @@ const AddProjectForm = () => {
     Object.entries(formData).forEach(([key, value]) => {
       formDataToSend.append(key, value);
     });
+    // Ensure backend nested location.region gets populated
+    formDataToSend.append('location_region', formData.region);
     if (image) formDataToSend.append('image', image);
 
     try {
-      await axios.post('https://govpro-web-backend-gely.onrender.com/api/projects', formDataToSend, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await axios.post('https://govpro-web-backend-gely.onrender.com/api/projects', formDataToSend);
       navigate('/');
     } catch (err) {
       console.error('Submission error:', err);
