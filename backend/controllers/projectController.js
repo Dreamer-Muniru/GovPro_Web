@@ -7,7 +7,7 @@ exports.createProject = async (req, res) => {
     res.status(201).json({ success: true, project });
   } catch (error) {
     console.error('Error creating project:', error);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

@@ -9,7 +9,7 @@ const stream = require('stream');
 const regionsRouter = require('./routes/regions')
 const projectRoutes = require('./routes/projectRoutes');
 const connectDB = require('./config/db'); // fixed path
-// const Project = require('./models/projects');
+const Project = require('./models/projects');
 
 
 const app = express();
@@ -98,7 +98,7 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
       },
       contractor,
       status,
-      startDate,
+      projectStartDate: startDate,
       submittedBy,
     });
 

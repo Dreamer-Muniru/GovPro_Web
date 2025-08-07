@@ -94,6 +94,8 @@ const AddProjectForm = () => {
     Object.entries(formData).forEach(([key, value]) => {
       formDataToSend.append(key, value);
     });
+    // Ensure backend nested location.region gets populated
+    formDataToSend.append('location_region', formData.region);
     if (image) formDataToSend.append('image', image);
 
     try {
