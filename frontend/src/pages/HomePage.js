@@ -166,27 +166,27 @@ const HomePage = () => {
                   position={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
                   icon={pinpointIcon}
                 >
-                  <Popup autoPan={false}>
+                 <Popup
+                    autoPan={true}
+                    autoPanPadding={[40, 40]}
+                    closeButton={true}
+                    className="project-popup"
+                    maxWidth={240}
+                    offset={[0, -10]}
+                  >
                     <h4 className="popup-title">{project.title}</h4>
                     {project.imageUrl && (
-                      <img 
-                        src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
-                        alt={project.title} 
+                      <img
+                        src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`}
+                        alt={project.title}
                         className="popup-image"
-                        style={{ 
-                          width: '100px', 
-                          height: '80px', 
-                          display: 'block', 
-                          marginBottom: '5px',
-                          borderRadius: '4px'
-                        }} 
                       />
                     )}
                     <p className="popup-detail"><strong>Type:</strong> {project.type}</p>
                     <p className="popup-detail"><strong>Status:</strong> {project.status}</p>
                     <p className="popup-detail"><strong>Location:</strong> {project.region}, {project.district}</p>
-                    <button 
-                      onClick={() => navigate(`/project/${project._id}`)} 
+                    <button
+                      onClick={() => navigate(`/project/${project._id}`)}
                       className="view-details-btn"
                     >
                       View Details

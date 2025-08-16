@@ -503,6 +503,7 @@ body, html, .home-page {
   border-top: 1px solid #ddd;
 }
 
+
 /* Mobile-specific styles */
 @media (max-width: 768px) {
   .comment-modal {
