@@ -28,6 +28,7 @@ const allowedOriginPatterns = [
   /^https?:\/\/127\.0\.0\.1(?::\d+)?$/,
   /^https?:\/\/([a-z0-9-]+\.)*vercel\.app$/,
   /^https?:\/\/([a-z0-9-]+\.)*netlify\.app$/,
+  /^https?:\/\/(www\.)?abandonedghana\.org$/,
   /^https?:\/\/govprotracker\.vercel\.app$/,
 ];
 // CORS must come before any route handling
