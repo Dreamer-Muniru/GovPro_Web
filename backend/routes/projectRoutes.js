@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
   const { approved } = req.query;
   try {
     const query = approved ? { approved: approved === 'true' } : {};
-    const projects = await Project.find(query);
+    const projects = await Project.find(query).sort({ createdAt: -1 }) ;
     res.json(projects);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch projects' });

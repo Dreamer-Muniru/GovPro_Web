@@ -21,6 +21,9 @@ const HomePage = () => {
   const [uniqueValues, setUniqueValues] = useState({ regions: [], districts: [], types: [] });
   const [loading, setLoading] = useState(true);
   const [modalProject, setModalProject] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const projectsPerPage = 9;
+
   // const { token } = useContext(AuthContext);
 
   // Increment comment count (fake for now)
@@ -51,6 +54,12 @@ const HomePage = () => {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // Pagination
+  //   useEffect(() => {
+  //   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // }, [currentPage]);
+
+
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
@@ -73,11 +82,15 @@ const HomePage = () => {
       setProjects(projectsData);
 
       // Add commentCount property for each project
-      const projectsWithCount = projectsData.map(p => ({
+     const projectsWithCount = [...projectsData]
+      .map(p => ({
         ...p,
         commentCount: p.comments ? p.comments.length : 0,
-      }));
-      setProjects(projectsWithCount);
+      }))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // 🔥 reapply sort
+
+    setProjects(projectsWithCount);
+
 
       setUniqueValues({
         regions: [...new Set(projectsData.map(p => p.region))].filter(Boolean),
@@ -124,6 +137,12 @@ const HomePage = () => {
   );
 
   // const totalProjects = projects.length;
+
+  // Pagination
+  const indexOfLastProject = currentPage * projectsPerPage;
+  const indexOfFirstProject = indexOfLastProject - projectsPerPage;
+  const currentProjects = filteredProjects.slice(indexOfFirstProject, indexOfLastProject);
+
 
   return (
     <>
@@ -229,7 +248,7 @@ const HomePage = () => {
         <div className="empty-state">No projects match your filters</div>
       ) : (
         <div className="projects-grid">
-          {filteredProjects.map(project => (
+          {currentProjects.map(project => (
             <div key={project._id} className="project-card">
               {project.imageUrl && (
                 <img 
@@ -268,6 +287,8 @@ const HomePage = () => {
               </div>
             </div>
           ))}
+         
+
         </div>
       )}
       
@@ -280,6 +301,17 @@ const HomePage = () => {
       )}
       
     </div>
+     <div className="pagination">
+            {Array.from({ length: Math.ceil(filteredProjects.length / projectsPerPage) }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={currentPage === i + 1 ? 'active-page' : ''}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
       <Footer/>
     </>
   );

@@ -602,5 +602,23 @@ body, html, .home-page {
 } */
 
 
+/* Pagination styling */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
 
+.pagination button {
+  margin: 0 5px;
+  padding: 8px 12px;
+  border: none;
+  background-color: #eee;
+  cursor: pointer;
+}
+
+.pagination button.active-page {
+  background-color: #333;
+  color: #fff;
+}
 
