@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import ForumFeed from '../components/ForumFeed';
 // import '../css/CreateForum.css';
@@ -39,13 +40,13 @@ const CreateForum = () => {
     formData.append('description', form.description);
     formData.append('region', user.region);
     formData.append('district', user.district);
-    formData.append('createdBy', user.id); // assuming user object has id
+    formData.append('createdBy', user?._id || user?.id);
 
     if (form.image) {
       formData.append('image', form.image);
     }
 
-   await axios.post('https://govpro-web-backend-gely.onrender.com/api/forums', formData, {
+   await axios.post(apiUrl('/api/forums'), formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 

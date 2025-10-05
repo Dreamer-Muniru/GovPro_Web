@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../utils/api';
 import { useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { API_BASE, apiUrl } from '../utils/api';
 import '../css/ForumDetail.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 const ForumDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const [forum, setForum] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState({ content: '' });
@@ -20,6 +22,9 @@ const ForumDetail = () => {
   const [replyContents, setReplyContents] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', description: '', image: null });
 
 
   const getReactionIcon = (type) => {
@@ -36,9 +41,10 @@ const ForumDetail = () => {
   useEffect(() => {
     const fetchForumAndComments = async () => {
       try {
-        const forumRes = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/forums/${id}`);
-        const commentRes = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/comments/${id}`);
+        const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
+        const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
         setForum(forumRes.data);
+        setEditForm({ title: forumRes.data.title || '', description: forumRes.data.description || '', image: null });
         setComments(commentRes.data);
       } catch (err) {
         console.error('Error loading forum:', err.message);
@@ -68,12 +74,12 @@ const ForumDetail = () => {
   // Reaction or Like handle
  const handleReact = async (type) => {
   try {
-    await axios.post(`https://govpro-web-backend-gely.onrender.com/api/forums/${forum._id}/react`, {
+    await axios.post(apiUrl(`/api/forums/${forum._id}/react`), {
       type,
       userId: user?._id
     });
 
-    const res = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/forums/${forum._id}`);
+    const res = await axios.get(apiUrl(`/api/forums/${forum._id}`));
     setForum(res.data);
     setShowReactions(false); // ✅ Close picker after selection
   } catch (err) {
@@ -105,7 +111,7 @@ const ForumDetail = () => {
     setSubmitting(true);
     try {
       console.log('Commenting as:', user?._id);
-      await axios.post('https://govpro-web-backend-gely.onrender.com/api/comments/reply', {
+      await axios.post(apiUrl('/api/comments/reply'), {
         forumId: id,
         parentId,
         content,
@@ -116,7 +122,7 @@ const ForumDetail = () => {
       setReplyContents(prev => ({ ...prev, [parentId]: '' }));
       setShowReplyInputs(prev => ({ ...prev, [parentId]: false }));
       
-      const updatedComments = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/comments/${id}`);
+      const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
       setComments(updatedComments.data);
     } catch (err) {
       console.error('Failed to post reply:', err.message);
@@ -137,12 +143,12 @@ const ForumDetail = () => {
       formData.append('createdBy', user?._id
 );
 
-      await axios.post('https://govpro-web-backend-gely.onrender.com/api/comments', formData, {
+      await axios.post(apiUrl('/api/comments'), formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setNewComment({ content: '' });
-      const updatedComments = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/comments/${id}`);
+      const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
       setComments(updatedComments.data);
     } catch (err) {
       console.error('Failed to post comment:', err.message);
@@ -167,6 +173,71 @@ const ForumDetail = () => {
     };
     countReplies(comments);
     return count;
+  };
+
+  const isOwner = !!(user && forum && (user._id === forum.createdBy?._id));
+
+  const handleToggleMenu = () => setShowMenu((s) => !s);
+  const handleOpenEdit = () => { setShowMenu(false); setShowEditModal(true); };
+  const handleCloseEdit = () => setShowEditModal(false);
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this forum? This cannot be undone.')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(apiUrl(`/api/forums/${forum._id}`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      navigate('/forum-feed');
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.error || err.message;
+      console.error('Delete failed:', msg);
+      if (status === 401 && /invalid token/i.test(msg)) {
+        alert('Session expired or invalid. Please log in again.');
+        logout();
+        navigate('/login');
+      } else {
+        alert(msg || 'Failed to delete forum');
+      }
+    }
+  };
+
+  const handleEditInput = (e) => {
+    const { name, value, files } = e.target;
+    if (name === 'image') {
+      setEditForm((p) => ({ ...p, image: files?.[0] || null }));
+    } else {
+      setEditForm((p) => ({ ...p, [name]: value }));
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('title', editForm.title);
+      formData.append('description', editForm.description);
+      if (editForm.image) formData.append('image', editForm.image);
+
+      const res = await axios.put(apiUrl(`/api/forums/${forum._id}`), formData, {
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
+      });
+      setForum(res.data);
+      setShowEditModal(false);
+    } catch (err) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.error || err.message;
+      console.error('Update failed:', msg);
+      if (status === 401 && /invalid token/i.test(msg)) {
+        alert('Session expired or invalid. Please log in again.');
+        logout();
+        navigate('/login');
+      } else {
+        alert(msg || 'Failed to update forum');
+      }
+    }
   };
 
   const renderCommentNode = (comment, isReply = false) => {
@@ -200,7 +271,7 @@ const ForumDetail = () => {
 
         {comment.imageUrl && (
           <img
-            src={`https://govpro-web-backend-gely.onrender.com${comment.imageUrl}`}
+            src={apiUrl(comment.imageUrl)}
             alt="Comment"
             className="comment-image"
           />
@@ -325,6 +396,17 @@ const ForumDetail = () => {
               </span>
             </div>
           </div>
+          {isOwner && (
+            <div className="post-actions-menu">
+              <button className="more-btn" onClick={handleToggleMenu} aria-label="More options">⋯</button>
+              {showMenu && (
+                <div className="menu-dropdown">
+                  <button onClick={handleOpenEdit}>Edit</button>
+                  <button onClick={handleDelete} className="danger">Delete</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Post Content */}
@@ -333,7 +415,7 @@ const ForumDetail = () => {
           <p className="post-description">{forum.description}</p>
           {forum.imageUrl && (
             <img
-              src={`https://govpro-web-backend-gely.onrender.com${forum.imageUrl}`}
+              src={apiUrl(forum.imageUrl)}
               alt="Forum"
               className="post-image"
             />
@@ -433,6 +515,46 @@ const ForumDetail = () => {
                       <polygon points="22,2 15,22 11,13 2,9"></polygon>
                     </svg>
                   </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="comments-modal-overlay" onClick={handleCloseEdit}>
+          <div className="comments-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Edit Forum</h2>
+              <button className="close-btn" onClick={handleCloseEdit}>×</button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="new-comment-form">
+              <div className="new-comment-container">
+                <div className="new-comment-wrapper" style={{ width: '100%' }}>
+                  <input
+                    type="text"
+                    name="title"
+                    value={editForm.title}
+                    onChange={handleEditInput}
+                    className="new-comment-input"
+                    placeholder="Title"
+                    required
+                  />
+                  <textarea
+                    name="description"
+                    value={editForm.description}
+                    onChange={handleEditInput}
+                    className="new-comment-input"
+                    placeholder="Description"
+                    required
+                  />
+                  <input type="file" name="image" accept="image/*" onChange={handleEditInput} />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button type="button" className="btn-secondary" onClick={handleCloseEdit}>Cancel</button>
+                    <button type="submit" className="send-comment-btn">Save</button>
+                  </div>
                 </div>
               </div>
             </form>
