@@ -11,8 +11,8 @@ const authenticateUser = async(req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-     const decoded = await jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // contains userId, username, etc.
+    const decoded = await jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // contains _id, username, etc.
     console.log('Decoded token:', decoded);
     console.log('Authenticated user:', req.user);
     next();

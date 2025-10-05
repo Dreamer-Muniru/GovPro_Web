@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 const ForumDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const [forum, setForum] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState({ content: '' });
@@ -190,8 +190,16 @@ const ForumDetail = () => {
       });
       navigate('/forum-feed');
     } catch (err) {
-      console.error('Delete failed:', err?.response?.data?.error || err.message);
-      alert(err?.response?.data?.error || 'Failed to delete forum');
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.error || err.message;
+      console.error('Delete failed:', msg);
+      if (status === 401 && /invalid token/i.test(msg)) {
+        alert('Session expired or invalid. Please log in again.');
+        logout();
+        navigate('/login');
+      } else {
+        alert(msg || 'Failed to delete forum');
+      }
     }
   };
 
@@ -219,8 +227,16 @@ const ForumDetail = () => {
       setForum(res.data);
       setShowEditModal(false);
     } catch (err) {
-      console.error('Update failed:', err?.response?.data?.error || err.message);
-      alert(err?.response?.data?.error || 'Failed to update forum');
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.error || err.message;
+      console.error('Update failed:', msg);
+      if (status === 401 && /invalid token/i.test(msg)) {
+        alert('Session expired or invalid. Please log in again.');
+        logout();
+        navigate('/login');
+      } else {
+        alert(msg || 'Failed to update forum');
+      }
     }
   };
 
