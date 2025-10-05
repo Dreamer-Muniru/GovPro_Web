@@ -18,39 +18,40 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
 
- useEffect(() => {
-  const fetchProject = async () => {
-    try {
-      // fetch ONE project by its id
-      const res = await axios.get(
-        `https://govpro-web-backend-gely.onrender.com/api/projects/${id}`
-      );
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const res = await axios.get(
+          `https://govpro-web-backend-gely.onrender.com/api/projects/${id}`
+        );
 
-      if (res.data) {
-        setProject(res.data);        // store the project
-      } else {
-        console.error('Project not found');
+        if (res.data) {
+          setProject(res.data);
+        } else {
+          console.error('Project not found');
+          navigate('/not-found');
+        }
+      } catch (err) {
+        console.error('Error fetching project details:', err);
         navigate('/not-found');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error fetching project details:', err);
-      navigate('/not-found');
-    } finally {
-      setLoading(false);
+    };
+
+    if (id) {
+      fetchProject();
     }
-  };
-
-  if (id) {
-    fetchProject();
-  }
-}, [id, navigate]);
-
+  }, [id, navigate]);
 
   if (loading) {
     return (
       <div className="project-detail-container">
-        <div className="loading-spinner"></div>
-        <p>Loading project details...</p>
+        <div className="project-detail-content">
+          <div className="loading-spinner"></div>
+          <p>Loading project details...</p>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -58,148 +59,158 @@ const ProjectDetail = () => {
   if (!project) {
     return (
       <div className="project-detail-container">
-        <p>Project not found</p>
-        <button className="back-button" onClick={() => navigate('/')}>← Back to Homepage</button>
+        <div className="project-detail-content">
+          <p>Project not found</p>
+          <button className="back-button" onClick={() => navigate('/')}>← Back to Homepage</button>
+        </div>
+        <Footer />
       </div>
     );
   }
 
   return (
+    <>
     <div className="project-detail-container">
-      <button className="back-button" onClick={() => navigate('/')}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Back to Homepage
-      </button>
+      {/* Main content wrapper */}
+      <div className="project-detail-content">
+        <button className="back-button" onClick={() => navigate('/')}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Homepage
+        </button>
 
-      <div className="project-header">
-        <h1 className="project-title">{project.title}</h1>
-        {project.imageUrl && (
-          <img 
-            src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
-            alt={project.title} 
-            className="project-image" 
-          />
-        )}
-      </div>
-
-      <div className="project-details">
-        <div className="detail-card">
-          <h3>Basic Information</h3>
-          <div className="detail-item">
-            <span className="detail-label">Type:</span>
-            <span className="detail-value">{project.type}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Status:</span>
-            <span className="detail-value">{project.status}</span>
-          </div>
-          {project.contractor && (
-            <div className="detail-item">
-              <span className="detail-label">Contractor:</span>
-              <span className="detail-value">{project.contractor}</span>
-            </div>
-          )}
-          {project.startDate && (
-            <div className="detail-item">
-              <span className="detail-label">Start Date:</span>
-              <span className="detail-value">{new Date(project.startDate).toLocaleDateString()}</span>
-            </div>
-          )}
-          {project.submittedBy && (
-            <div className="detail-item">
-              <span className="detail-label">Submitted By:</span>
-              <span className="detail-value">{project.submittedBy}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="detail-card">
-          <h3>Location Details</h3>
-          <div className="detail-item">
-            <span className="detail-label">Region:</span>
-            <span className="detail-value">{project.region}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">District:</span>
-            <span className="detail-value">{project.district}</span>
-          </div>
-          {project.city && (
-            <div className="detail-item">
-              <span className="detail-label">City/Town:</span>
-              <span className="detail-value">{project.city}</span>
-            </div>
-          )}
-          {project.address && (
-            <div className="detail-item">
-              <span className="detail-label">Address:</span>
-              <span className="detail-value">{project.address}</span>
-            </div>
-          )}
-          <div className="detail-item">
-            <span className="detail-label">GPS Coordinates:</span>
-            <span className="detail-value">
-              {parseFloat(project.gps.latitude).toFixed(6)}, {parseFloat(project.gps.longitude).toFixed(6)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="description-section">
-        <h3>Project Description</h3>
-        <p>{project.description}</p>
-      </div>
-
-      <div className="map-section">
-        <h3>Project Location</h3>
-        <div className="map-container">
-          <MapContainer 
-            center={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
-            zoom={14} 
-            style={{ height: '100%', width: '100%' }}
-          >
-            <TileLayer 
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        <div className="project-header">
+          <h1 className="project-title">{project.title}</h1>
+          {project.imageUrl && (
+            <img 
+              src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
+              alt={project.title} 
+              className="project-image" 
             />
-            <Marker 
-              position={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
-              icon={pinpointIcon}
+          )}
+        </div>
+
+        <div className="project-details">
+          <div className="detail-card">
+            <h3>Basic Information</h3>
+            <div className="detail-item">
+              <span className="detail-label">Type:</span>
+              <span className="detail-value">{project.type}</span>
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">Status:</span>
+              <span className="detail-value">{project.status}</span>
+            </div>
+            {project.contractor && (
+              <div className="detail-item">
+                <span className="detail-label">Contractor:</span>
+                <span className="detail-value">{project.contractor}</span>
+              </div>
+            )}
+            {project.startDate && (
+              <div className="detail-item">
+                <span className="detail-label">Start Date:</span>
+                <span className="detail-value">{new Date(project.startDate).toLocaleDateString()}</span>
+              </div>
+            )}
+            {project.submittedBy && (
+              <div className="detail-item">
+                <span className="detail-label">Submitted By:</span>
+                <span className="detail-value">{project.submittedBy}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="detail-card">
+            <h3>Location Details</h3>
+            <div className="detail-item">
+              <span className="detail-label">Region:</span>
+              <span className="detail-value">{project.region}</span>
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">District:</span>
+              <span className="detail-value">{project.district}</span>
+            </div>
+            {project.city && (
+              <div className="detail-item">
+                <span className="detail-label">City/Town:</span>
+                <span className="detail-value">{project.city}</span>
+              </div>
+            )}
+            {project.address && (
+              <div className="detail-item">
+                <span className="detail-label">Address:</span>
+                <span className="detail-value">{project.address}</span>
+              </div>
+            )}
+            <div className="detail-item">
+              <span className="detail-label">GPS Coordinates:</span>
+              <span className="detail-value">
+                {parseFloat(project.gps.latitude).toFixed(6)}, {parseFloat(project.gps.longitude).toFixed(6)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="description-section">
+          <h3>Project Description</h3>
+          <p>{project.description}</p>
+        </div>
+
+        <div className="map-section">
+          <h3>Project Location</h3>
+          <div className="map-container">
+            <MapContainer 
+              center={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
+              zoom={14} 
+              style={{ height: '100%', width: '100%' }}
             >
-              <Popup>
-                <h4>{project.title}</h4>
-                {project.imageUrl && (
-                  <img 
-                    src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
-                    alt={project.title} 
-                    style={{ 
-                      width: '100px', 
-                      height: '80px', 
-                      display: 'block', 
-                      marginBottom: '5px',
-                      borderRadius: '4px'
-                    }} 
-                  />
-                )}
-                <p><strong>Type :</strong> {project.type}</p>
-                <p><strong>Status:</strong> {project.status}</p>
-                <p><strong>Region:</strong> {project.region}, {project.district}</p>
-                <a 
-                  href={`https://www.google.com/maps?q=${project.gps.latitude},${project.gps.longitude}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="gmaps-link"
-                >
-                  Open in Google Maps
-                </a>
-              </Popup>
-            </Marker>
-          </MapContainer>
+              <TileLayer 
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+              <Marker 
+                position={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
+                icon={pinpointIcon}
+              >
+                <Popup>
+                  <h4>{project.title}</h4>
+                  {project.imageUrl && (
+                    <img 
+                      src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
+                      alt={project.title} 
+                      style={{ 
+                        width: '100px', 
+                        height: '80px', 
+                        display: 'block', 
+                        marginBottom: '5px',
+                        borderRadius: '4px'
+                      }} 
+                    />
+                  )}
+                  <p><strong>Type :</strong> {project.type}</p>
+                  <p><strong>Status:</strong> {project.status}</p>
+                  <p><strong>Region:</strong> {project.region}, {project.district}</p>
+                  <a 
+                    href={`https://www.google.com/maps?q=${project.gps.latitude},${project.gps.longitude}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="gmaps-link"
+                  >
+                    Open in Google Maps
+                  </a>
+                </Popup>
+              </Marker>
+            </MapContainer>
+          </div>
         </div>
       </div>
-      <Footer />
+      
+      {/* Footer placed outside the content wrapper to span full width */}
     </div>
+      <Footer />
+      </>
   );
 };
 

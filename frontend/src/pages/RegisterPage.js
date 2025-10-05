@@ -1,7 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import ghanaRegions from '../data/ghanaRegions';
 import '../css/RegisterPage.css';
 
 const RegisterPage = () => {
@@ -11,60 +12,68 @@ const RegisterPage = () => {
     username: '',
     password: '',
     confirmPassword: '',
+    region: '',
+    district: '',
   });
 
-  const { login } = useContext(AuthContext);
+  const { login } = React.useContext(AuthContext);
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'region' && { district: '' }) // Reset constituency when region changes
+    }));
   };
-  
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
+    e.preventDefault();
+    setError('');
 
-  // Basic client-side password match check
-  if (form.password !== form.confirmPassword) {
-    setError('Passwords do not match');
-    return;
-  }
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
 
-  setLoading(true);
-  try {
-    const res = await axios.post('https://govpro-web-backend-gely.onrender.com/api/auth/register', form);
-    const token = res.data.token;
-    login(token);
-    navigate('/add-project');
-  } catch (err) {
-    const backendMsg = err.response?.data?.error || 'Registration failed. Please try again.';
-    setError(backendMsg);
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    try {
+      const res = await axios.post('https://govpro-web-backend-gely.onrender.com/api/auth/register', form);
+      const token = res.data.token;
+      login(token);
+      navigate('/add-project');
+    } catch (err) {
+      const backendMsg = err.response?.data?.error || 'Registration failed. Please try again.';
+      setError(backendMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const availableDistricts = form.region
+    ? ghanaRegions.find(r => r.name === form.region)?.districts || []
+    : [];
 
   return (
     <div className="register-container">
       <div className="register-header">
-        
         <h1 className="register-title">Create Account</h1>
         <p className="register-subtitle">Join Ghana Project Tracker</p>
       </div>
 
       {error && <div className="error-message">{error}</div>}
-      
+
       <form onSubmit={handleSubmit} className="register-form">
+        {/* Full Name */}
         <div className="form-group">
           <label htmlFor="fullName" className="form-label">Full Name</label>
           <input
             id="fullName"
             name="fullName"
             type="text"
-            placeholder="Enter your full name"
             value={form.fullName}
             onChange={handleChange}
             className="form-input"
@@ -72,13 +81,13 @@ const RegisterPage = () => {
           />
         </div>
 
+        {/* Phone */}
         <div className="form-group">
           <label htmlFor="phone" className="form-label">Phone Number</label>
           <input
             id="phone"
             name="phone"
             type="tel"
-            placeholder="233XXXXXXXXX"
             value={form.phone}
             onChange={handleChange}
             className="form-input"
@@ -86,27 +95,27 @@ const RegisterPage = () => {
           />
         </div>
 
+        {/* Username */}
         <div className="form-group">
           <label htmlFor="username" className="form-label">Username</label>
           <input
             id="username"
             name="username"
             type="text"
-            placeholder="Type a username"
             value={form.username}
             onChange={handleChange}
             className="form-input"
             required
           />
         </div>
-        {/* Password section */}
+
+        {/* Password */}
         <div className="form-group">
           <label htmlFor="password" className="form-label">Password</label>
           <input
             id="password"
             name="password"
             type="password"
-            placeholder="Create a password"
             value={form.password}
             onChange={handleChange}
             className="form-input"
@@ -115,13 +124,13 @@ const RegisterPage = () => {
           />
         </div>
 
+        {/* Confirm Password */}
         <div className="form-group">
           <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
           <input
             id="confirmPassword"
             name="confirmPassword"
             type="password"
-            placeholder="Re-enter password"
             value={form.confirmPassword}
             onChange={handleChange}
             className="form-input"
@@ -130,17 +139,46 @@ const RegisterPage = () => {
           />
         </div>
 
+        {/* Region */}
+        <div className="form-group">
+          <label htmlFor="region" className="form-label">Select Region</label>
+          <select
+            id="region"
+            name="region"
+            value={form.region}
+            onChange={handleChange}
+            className="form-input"
+            required
+          >
+            <option value="">-- Choose Region --</option>
+            {ghanaRegions.map((r) => (
+              <option key={r.name} value={r.name}>{r.name}</option>
+            ))}
+          </select>
+        </div>
 
+        {/* Constituency */}
+        <div className="form-group">
+          <label htmlFor="district" className="form-label">Select Constituency</label>
+          <select
+            id="district"
+            name="district"
+            value={form.district}
+            onChange={handleChange}
+            className="form-input"
+            required
+            disabled={!form.region}
+          >
+            <option value="">-- Choose Constituency --</option>
+            {availableDistricts.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Submit Button */}
         <button type="submit" className="submit-btn" disabled={loading}>
-          {loading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Creating Account...
-            </>
-          ) : 'Register Now'}
+          {loading ? 'Creating Account...' : 'Register Now'}
         </button>
       </form>
 

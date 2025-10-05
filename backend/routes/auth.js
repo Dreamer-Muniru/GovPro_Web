@@ -16,14 +16,14 @@ router.get('/projects', async (req, res) => {
 // POST /api/auth/register  (regular users)
 router.post('/register', async (req, res) => {
   console.log('✅ Register route hit');
-  const { username, password, fullName, phone } = req.body;
+  const { username, password, region, district, fullName, phone } = req.body;
 
-  if (!username || !password || !fullName || !phone) {
+  if (!username || !password || !fullName || !phone || !region || !district) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
   try {
-    const user = new User({ username, password, fullName, phone, isAdmin: false });
+    const user = new User({ username, password, fullName, phone, region, district, isAdmin: false });
     await user.save();
 
     // Make sure we have a signing secret
@@ -55,6 +55,12 @@ router.post('/register', async (req, res) => {
 
     if (error.errors?.fullName?.message) {
       return res.status(400).json({ error: error.errors.fullName.message });
+    }
+    if (error.errors?.region?.message) {
+      return res.status(400).json({ error: error.errors.region.message });
+    }
+    if (error.errors?.district?.message) {
+      return res.status(400).json({ error: error.errors.district.message });
     }
 
     res.status(500).json({ error: 'Registration failed. Please try again.' });
@@ -92,7 +98,7 @@ router.post('/login', async (req, res) => {
   let finalUser = user;
   if (!user.username) {
     const fallbackUsername =
-      user.fullName ||
+      user.fullName || 
       user.email?.split('@')[0] ||
       `user_${user._id.toString().slice(-4)}`;
     await User.findByIdAndUpdate(user._id, { username: fallbackUsername });
@@ -105,10 +111,20 @@ router.post('/login', async (req, res) => {
   // ── Sign and return the JWT
   try {
     const token = await jwt.sign(
-      { id: finalUser._id, username: finalUser.username },
+      {
+        _id: finalUser._id, // ✅ Use _id to match MongoDB and frontend expectations
+        username: finalUser.username,
+        phone: finalUser.phone,
+        fullName: finalUser.fullName,
+        isAdmin: finalUser.isAdmin,
+        district: finalUser.district,
+        region: finalUser.region
+      },
       jwtSecret,
       { expiresIn: '24h' }
     );
+
+
 
     console.log('🎟️ Generated token:', token);
     res.status(200).json({ token });
@@ -117,5 +133,34 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate token' });
   }
 });
+
+//User update route
+router.put('/:id', async (req, res) => {
+  try {
+    const updates = { ...req.body };
+
+    // 🔐 If password is being updated, hash it
+    if (updates.password) {
+      const salt = await bcrypt.genSalt(10);
+      updates.password = await bcrypt.hash(updates.password, salt);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!updatedUser) return res.status(404).json({ error: 'User not found' });
+    res.status(200).json(updatedUser);
+  } catch (err) {
+    console.error('❌ Error updating user:', err);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+
+
+
 
 module.exports = router;

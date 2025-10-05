@@ -26,6 +26,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Password is required']
   },
+   region: {
+    type: String,
+    required: [true, 'Region is required']
+  },
+  district: {
+    type: String,
+    required: [true, 'District is required']
+  },
   isAdmin: {
     type: Boolean,
     default: false 

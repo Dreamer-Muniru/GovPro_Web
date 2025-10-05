@@ -8,6 +8,7 @@ const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  
   const handleAddProjectClick = () => {
     if (user) {
       navigate('/add-project');
@@ -16,12 +17,28 @@ const Navbar = () => {
     }
     setMobileMenuOpen(false);
   };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/'); // Redirect to homepage after logout
+  
+  const handleCreateForumClick = () => {
+    if (user) {
+      navigate('/forum-feed');
+    } else {
+      navigate('/login');
+    }
     setMobileMenuOpen(false);
   };
+
+
+const handleLogout = () => {
+  logout(); // clears user context
+
+  setTimeout(() => {
+    navigate('/'); // safely redirect after context update
+  }, 0);
+
+  setMobileMenuOpen(false);
+};
+
+
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -52,6 +69,10 @@ const Navbar = () => {
             Login
           </Link> */}
           <Link to="/project-insights" className='nav-link' onClick={() => setMobileMenuOpen(false)}>Reports</Link>
+         <button onClick={handleCreateForumClick} className="nav-link nav-button-link">
+          Create Forum
+        </button>
+
 
 
           <button
@@ -60,24 +81,14 @@ const Navbar = () => {
           >
             Add Project
           </button>
-
+      
           {user && (
-            <>
-              <span className="user-greeting">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                {user.username}
-              </span>
-              <button 
-                onClick={handleLogout}
-                className="nav-button logout-btn"
-              >
-                Logout
-              </button>
-            </>
+            <Link to="/profile" className="nav-link">
+              Profile
+            </Link>
           )}
+
+          
         </div>
       </div>
     </nav>

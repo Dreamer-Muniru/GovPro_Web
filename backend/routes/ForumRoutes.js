@@ -1,0 +1,124 @@
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const mongoose = require('mongoose');
+const Forum = require('../models/forums');
+
+//Use disk storage to save files locally
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Make sure this folder exists
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({ storage });
+
+//Get all forum posts, with optional filtering by region and district
+router.get('/', async (req, res) => {
+  try {
+    const { region, district } = req.query;
+    const forums = await Forum.find({ region, district })
+      .sort({ createdAt: -1 })
+      .populate('createdBy', 'username fullName');
+
+    res.json(forums);
+  } catch (err) {
+    console.error('Error fetching forums:', err.message);
+    res.status(500).json({ error: 'Failed to fetch forums' });
+  }
+});
+
+// React to a forum post (like, love, angry, etc.)
+router.post('/:id/react', async (req, res) => {
+  try {
+    const { type, userId } = req.body;
+    const forum = await Forum.findById(req.params.id);
+    if (!forum) return res.status(404).json({ error: 'Forum not found' });
+
+    // Remove any existing reaction by this user
+    forum.reactions = forum.reactions.filter(
+      (r) => r.user.toString() !== userId
+    );
+
+    // Add new reaction
+    forum.reactions.push({ type, user: userId });
+
+    await forum.save();
+    res.status(200).json(forum.reactions);
+  } catch (err) {
+    console.error('Error reacting to forum:', err.message);
+    res.status(500).json({ error: 'Failed to react' });
+  }
+});
+
+// Reacting to comments 
+router.post('/:forumId/comments/:commentId/react', async (req, res) => {
+  try {
+    const { type, userId } = req.body;
+    const forum = await Forum.findById(req.params.forumId);
+    if (!forum) return res.status(404).json({ error: 'Forum not found' });
+
+    const comment = forum.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+
+    // Remove existing reaction by user
+    comment.reactions = comment.reactions.filter(r => r.user.toString() !== userId);
+
+    // Add new reaction
+    comment.reactions.push({ type, user: userId });
+
+    await forum.save();
+    res.status(200).json(comment.reactions);
+  } catch (err) {
+    console.error('Error reacting to comment:', err.message);
+    res.status(500).json({ error: 'Failed to react to comment' });
+  }
+});
+
+
+
+//Get a specific forum post by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const forum = await Forum.findById(req.params.id).populate('createdBy', 'username fullName');
+    if (!forum) return res.status(404).json({ error: 'Forum not found' });
+    res.json(forum);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch forum' });
+  }
+});
+
+//Create a forum post with optional image
+router.post('/', upload.single('image'), async (req, res) => {
+  try {
+    const { title, description, region, district, createdBy } = req.body;
+
+    const newForum = new Forum({
+      title,
+      description,
+      region,
+      district,
+      createdBy,
+      createdAt: new Date()
+    });
+
+    if (req.file) {
+      newForum.imageUrl = `/uploads/${req.file.filename}`; //Save image path
+    }
+
+    await newForum.save();
+    await newForum.populate('createdBy', 'username fullName');
+
+    res.status(201).json(newForum);
+  } catch (err) {
+    console.error('Error creating forum:', err.message);
+    res.status(500).json({ error: 'Failed to create forum' });
+  }
+});
+
+module.exports = router;

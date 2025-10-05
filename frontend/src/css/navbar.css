@@ -51,6 +51,16 @@
   gap: 1.5rem;
 }
 
+.nav-button-link {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+
 .nav-link {
   color: #4a5568;
   text-decoration: none;

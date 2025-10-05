@@ -6,11 +6,13 @@ const multer = require('multer');
 const { GridFSBucket } = require('mongodb');
 const mongoose = require('mongoose');
 const stream = require('stream');
-const regionsRouter = require('./routes/regions')
+// const regionsRouter = require('./routes/regions')
 const projectRoutes = require('./routes/projectRoutes');
 const connectDB = require('./config/db'); // fixed path
 const Project = require('./models/projects');
-
+const forumRoutes = require('./routes/ForumRoutes');
+const commentRoutes = require('./routes/commentRoutes'); 
+// const Forums = require('./models/Forums')
 
 const app = express();
 
@@ -56,6 +58,9 @@ const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 const authAdminRoutes = require('./routes/authAdmin');
 app.use('/api/admin-auth', authAdminRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/forums', forumRoutes);
+
 
 
 // Multer setup (store images in memory)
