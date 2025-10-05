@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import '../css/ForumDetail.css';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl } from '../utils/api';
 
 
 const ForumDetail = () => {
@@ -36,8 +37,8 @@ const ForumDetail = () => {
   useEffect(() => {
     const fetchForumAndComments = async () => {
       try {
-        const forumRes = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/forums/${id}`);
-        const commentRes = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/comments/${id}`);
+        const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
+        const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
         setForum(forumRes.data);
         setComments(commentRes.data);
       } catch (err) {
@@ -68,12 +69,12 @@ const ForumDetail = () => {
   // Reaction or Like handle
  const handleReact = async (type) => {
   try {
-    await axios.post(`https://govpro-web-backend-gely.onrender.com/api/forums/${forum._id}/react`, {
+     await axios.post(apiUrl(`/api/forums/${forum._id}/react`), {
       type,
       userId: user?._id
     });
 
-    const res = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/forums/${forum._id}`);
+    const res = await axios.get(apiUrl(`/api/forums/${forum._id}`));
     setForum(res.data);
     setShowReactions(false); // ✅ Close picker after selection
   } catch (err) {
@@ -105,7 +106,7 @@ const ForumDetail = () => {
     setSubmitting(true);
     try {
       console.log('Commenting as:', user?._id);
-      await axios.post('https://govpro-web-backend-gely.onrender.com/api/comments/reply', {
+      await axios.post(apiUrl('/api/comments/reply'), {
         forumId: id,
         parentId,
         content,
@@ -116,7 +117,7 @@ const ForumDetail = () => {
       setReplyContents(prev => ({ ...prev, [parentId]: '' }));
       setShowReplyInputs(prev => ({ ...prev, [parentId]: false }));
       
-      const updatedComments = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/comments/${id}`);
+      const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
       setComments(updatedComments.data);
     } catch (err) {
       console.error('Failed to post reply:', err.message);
@@ -137,12 +138,12 @@ const ForumDetail = () => {
       formData.append('createdBy', user?._id
 );
 
-      await axios.post('https://govpro-web-backend-gely.onrender.com/api/comments', formData, {
+        await axios.post(apiUrl('/api/comments'), formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setNewComment({ content: '' });
-      const updatedComments = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/comments/${id}`);
+      const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
       setComments(updatedComments.data);
     } catch (err) {
       console.error('Failed to post comment:', err.message);
@@ -200,7 +201,7 @@ const ForumDetail = () => {
 
         {comment.imageUrl && (
           <img
-            src={`https://govpro-web-backend-gely.onrender.com${comment.imageUrl}`}
+            src={apiUrl(comment.imageUrl)}
             alt="Comment"
             className="comment-image"
           />
@@ -333,7 +334,7 @@ const ForumDetail = () => {
           <p className="post-description">{forum.description}</p>
           {forum.imageUrl && (
             <img
-              src={`https://govpro-web-backend-gely.onrender.com${forum.imageUrl}`}
+              src={apiUrl(forum.imageUrl)}
               alt="Forum"
               className="post-image"
             />

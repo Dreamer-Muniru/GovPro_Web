@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import '../css/ForumFeed.css';
+import { apiUrl } from '../utils/api';
 
 const ForumFeed = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const ForumFeed = () => {
   useEffect(() => {
     const fetchForums = async () => {
       try {
-        const res = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/forums?region=${user.region}&district=${user.district}`);
+         const res = await axios.get(apiUrl(`/api/forums?region=${encodeURIComponent(user.region)}&district=${encodeURIComponent(user.district)}`));
         setForums(res.data);
       } catch (err) {
         console.error('Failed to fetch forums:', err.message);
@@ -66,20 +67,22 @@ const ForumFeed = () => {
     submitData.append('description', formData.description);
     submitData.append('region', user.region);
     submitData.append('district', user.district);
-    submitData.append('createdBy', user.id); // ✅ Include creator
+    submitData.append('createdBy', user?._id || user?.id); 
+    // submitData.append('createdBy', user.id); // ✅ Include creator
     if (formData.image) {
       submitData.append('image', formData.image);
     }
 
-    const res = await axios.post('https://govpro-web-backend-gely.onrender.com/api/forums', submitData, {
+    const res = await axios.post(apiUrl('/api/forums'), submitData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
     setForums(prev => [res.data, ...prev]);
     handleCloseModal();
   } catch (err) {
-    console.error('Failed to create forum:', err.message);
-    alert('Failed to create forum. Please try again.');
+      const msg = err?.response?.data?.error || err.message || 'Failed to create forum';
+      console.error('Failed to create forum:', msg);
+      alert(msg);
   } finally {
     setSubmitting(false);
   }
@@ -137,7 +140,7 @@ const ForumFeed = () => {
             >
               {forum.imageUrl && (
                 <img
-                  src={`https://govpro-web-backend-gely.onrender.com${forum.imageUrl}`}
+                   src={apiUrl(forum.imageUrl)}
                   alt={forum.title}
                   className="forum-image"
                 />

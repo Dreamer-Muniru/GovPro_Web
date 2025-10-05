@@ -5,7 +5,7 @@ import '../css/navbar.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   
@@ -28,15 +28,15 @@ const Navbar = () => {
   };
 
 
-const handleLogout = () => {
-  logout(); // clears user context
+// const handleLogout = () => {
+//   logout(); // clears user context
 
-  setTimeout(() => {
-    navigate('/'); // safely redirect after context update
-  }, 0);
+//   setTimeout(() => {
+//     navigate('/'); // safely redirect after context update
+//   }, 0);
 
-  setMobileMenuOpen(false);
-};
+//   setMobileMenuOpen(false);
+// };
 
 
 
