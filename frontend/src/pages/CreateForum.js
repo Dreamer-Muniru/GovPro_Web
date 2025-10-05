@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import ForumFeed from '../components/ForumFeed';
 // import '../css/CreateForum.css';
@@ -45,7 +46,7 @@ const CreateForum = () => {
       formData.append('image', form.image);
     }
 
-   await axios.post('https://govpro-web-backend-gely.onrender.com/api/forums', formData, {
+   await axios.post(apiUrl('/api/forums'), formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 

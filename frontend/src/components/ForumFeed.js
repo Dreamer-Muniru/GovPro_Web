@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import '../css/ForumFeed.css';
@@ -20,7 +21,7 @@ const ForumFeed = () => {
   useEffect(() => {
     const fetchForums = async () => {
       try {
-        const res = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/forums?region=${user.region}&district=${user.district}`);
+        const res = await axios.get(apiUrl(`/api/forums?region=${encodeURIComponent(user.region)}&district=${encodeURIComponent(user.district)}`));
         setForums(res.data);
       } catch (err) {
         console.error('Failed to fetch forums:', err.message);
@@ -71,7 +72,7 @@ const ForumFeed = () => {
       submitData.append('image', formData.image);
     }
 
-    const res = await axios.post('https://govpro-web-backend-gely.onrender.com/api/forums', submitData, {
+    const res = await axios.post(apiUrl('/api/forums'), submitData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
@@ -138,7 +139,7 @@ const ForumFeed = () => {
             >
               {forum.imageUrl && (
                 <img
-                  src={`https://govpro-web-backend-gely.onrender.com${forum.imageUrl}`}
+                  src={apiUrl(forum.imageUrl)}
                   alt={forum.title}
                   className="forum-image"
                 />
