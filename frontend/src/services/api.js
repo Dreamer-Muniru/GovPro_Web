@@ -1,7 +1,8 @@
 // src/services/api.js
 import axios from 'axios';
+import { apiUrl } from '../utils/api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = apiUrl('/api');
 
 export const fetchProjects = () => axios.get(`${API_BASE_URL}/projects`);
 
