@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
 const Forum = require('../models/forums');
+const authenticateUser = require('../middleware/authenticateUser');
 
 //Use disk storage to save files locally
 const storage = multer.diskStorage({
@@ -129,6 +130,55 @@ router.post('/', upload.single('image'), async (req, res) => {
   } catch (err) {
     console.error('Error creating forum:', err.message);
     res.status(500).json({ error: 'Failed to create forum' });
+  }
+});
+
+// Update a forum (owner only)
+router.put('/:id', authenticateUser, upload.single('image'), async (req, res) => {
+  try {
+    const forum = await Forum.findById(req.params.id);
+    if (!forum) return res.status(404).json({ error: 'Forum not found' });
+
+    const requesterId = req.user._id || req.user.id;
+    if (forum.createdBy.toString() !== String(requesterId)) {
+      return res.status(403).json({ error: 'Not authorized to edit this forum' });
+    }
+
+    const { title, description, region, district } = req.body;
+    if (title !== undefined) forum.title = title;
+    if (description !== undefined) forum.description = description;
+    if (region !== undefined) forum.region = region;
+    if (district !== undefined) forum.district = district;
+
+    if (req.file) {
+      forum.imageUrl = `/uploads/${req.file.filename}`;
+    }
+
+    await forum.save();
+    await forum.populate('createdBy', 'username fullName');
+    res.json(forum);
+  } catch (err) {
+    console.error('Error updating forum:', err.message);
+    res.status(500).json({ error: 'Failed to update forum' });
+  }
+});
+
+// Delete a forum (owner only)
+router.delete('/:id', authenticateUser, async (req, res) => {
+  try {
+    const forum = await Forum.findById(req.params.id);
+    if (!forum) return res.status(404).json({ error: 'Forum not found' });
+
+    const requesterId = req.user._id || req.user.id;
+    if (forum.createdBy.toString() !== String(requesterId)) {
+      return res.status(403).json({ error: 'Not authorized to delete this forum' });
+    }
+
+    await forum.deleteOne();
+    res.json({ message: 'Forum deleted' });
+  } catch (err) {
+    console.error('Error deleting forum:', err.message);
+    res.status(500).json({ error: 'Failed to delete forum' });
   }
 });
 

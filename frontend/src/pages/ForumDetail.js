@@ -3,6 +3,7 @@ import axios from 'axios';
 import { apiUrl } from '../utils/api';
 import { useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { API_BASE, apiUrl } from '../utils/api';
 import '../css/ForumDetail.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,6 +22,9 @@ const ForumDetail = () => {
   const [replyContents, setReplyContents] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', description: '', image: null });
 
 
   const getReactionIcon = (type) => {
@@ -40,6 +44,7 @@ const ForumDetail = () => {
         const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
         const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
         setForum(forumRes.data);
+        setEditForm({ title: forumRes.data.title || '', description: forumRes.data.description || '', image: null });
         setComments(commentRes.data);
       } catch (err) {
         console.error('Error loading forum:', err.message);
@@ -168,6 +173,55 @@ const ForumDetail = () => {
     };
     countReplies(comments);
     return count;
+  };
+
+  const isOwner = !!(user && forum && (user._id === forum.createdBy?._id));
+
+  const handleToggleMenu = () => setShowMenu((s) => !s);
+  const handleOpenEdit = () => { setShowMenu(false); setShowEditModal(true); };
+  const handleCloseEdit = () => setShowEditModal(false);
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this forum? This cannot be undone.')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(apiUrl(`/api/forums/${forum._id}`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      navigate('/forum-feed');
+    } catch (err) {
+      console.error('Delete failed:', err?.response?.data?.error || err.message);
+      alert(err?.response?.data?.error || 'Failed to delete forum');
+    }
+  };
+
+  const handleEditInput = (e) => {
+    const { name, value, files } = e.target;
+    if (name === 'image') {
+      setEditForm((p) => ({ ...p, image: files?.[0] || null }));
+    } else {
+      setEditForm((p) => ({ ...p, [name]: value }));
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('title', editForm.title);
+      formData.append('description', editForm.description);
+      if (editForm.image) formData.append('image', editForm.image);
+
+      const res = await axios.put(apiUrl(`/api/forums/${forum._id}`), formData, {
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
+      });
+      setForum(res.data);
+      setShowEditModal(false);
+    } catch (err) {
+      console.error('Update failed:', err?.response?.data?.error || err.message);
+      alert(err?.response?.data?.error || 'Failed to update forum');
+    }
   };
 
   const renderCommentNode = (comment, isReply = false) => {
@@ -326,6 +380,17 @@ const ForumDetail = () => {
               </span>
             </div>
           </div>
+          {isOwner && (
+            <div className="post-actions-menu">
+              <button className="more-btn" onClick={handleToggleMenu} aria-label="More options">⋯</button>
+              {showMenu && (
+                <div className="menu-dropdown">
+                  <button onClick={handleOpenEdit}>Edit</button>
+                  <button onClick={handleDelete} className="danger">Delete</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Post Content */}
@@ -434,6 +499,46 @@ const ForumDetail = () => {
                       <polygon points="22,2 15,22 11,13 2,9"></polygon>
                     </svg>
                   </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="comments-modal-overlay" onClick={handleCloseEdit}>
+          <div className="comments-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Edit Forum</h2>
+              <button className="close-btn" onClick={handleCloseEdit}>×</button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="new-comment-form">
+              <div className="new-comment-container">
+                <div className="new-comment-wrapper" style={{ width: '100%' }}>
+                  <input
+                    type="text"
+                    name="title"
+                    value={editForm.title}
+                    onChange={handleEditInput}
+                    className="new-comment-input"
+                    placeholder="Title"
+                    required
+                  />
+                  <textarea
+                    name="description"
+                    value={editForm.description}
+                    onChange={handleEditInput}
+                    className="new-comment-input"
+                    placeholder="Description"
+                    required
+                  />
+                  <input type="file" name="image" accept="image/*" onChange={handleEditInput} />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button type="button" className="btn-secondary" onClick={handleCloseEdit}>Cancel</button>
+                    <button type="submit" className="send-comment-btn">Save</button>
+                  </div>
                 </div>
               </div>
             </form>
