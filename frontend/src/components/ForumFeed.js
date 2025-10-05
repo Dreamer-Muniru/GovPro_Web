@@ -66,7 +66,7 @@ const ForumFeed = () => {
     submitData.append('description', formData.description);
     submitData.append('region', user.region);
     submitData.append('district', user.district);
-    submitData.append('createdBy', user.id); // ✅ Include creator
+    submitData.append('createdBy', user?._id || user?.id); // ✅ Include creator (supports both _id and id)
     if (formData.image) {
       submitData.append('image', formData.image);
     }
@@ -78,8 +78,9 @@ const ForumFeed = () => {
     setForums(prev => [res.data, ...prev]);
     handleCloseModal();
   } catch (err) {
-    console.error('Failed to create forum:', err.message);
-    alert('Failed to create forum. Please try again.');
+    const msg = err?.response?.data?.error || err.message || 'Failed to create forum';
+    console.error('Failed to create forum:', msg);
+    alert(msg);
   } finally {
     setSubmitting(false);
   }

@@ -39,7 +39,7 @@ const CreateForum = () => {
     formData.append('description', form.description);
     formData.append('region', user.region);
     formData.append('district', user.district);
-    formData.append('createdBy', user.id); // assuming user object has id
+    formData.append('createdBy', user?._id || user?.id);
 
     if (form.image) {
       formData.append('image', form.image);

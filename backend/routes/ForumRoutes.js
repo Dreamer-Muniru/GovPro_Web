@@ -22,7 +22,10 @@ const upload = multer({ storage });
 router.get('/', async (req, res) => {
   try {
     const { region, district } = req.query;
-    const forums = await Forum.find({ region, district })
+    const filter = {};
+    if (region) filter.region = region;
+    if (district) filter.district = district;
+    const forums = await Forum.find(filter)
       .sort({ createdAt: -1 })
       .populate('createdBy', 'username fullName');
 
@@ -97,6 +100,14 @@ router.get('/:id', async (req, res) => {
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { title, description, region, district, createdBy } = req.body;
+
+    if (!title || !region || !district || !createdBy) {
+      return res.status(400).json({ error: 'title, region, district and createdBy are required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(createdBy)) {
+      return res.status(400).json({ error: 'Invalid createdBy' });
+    }
 
     const newForum = new Forum({
       title,
