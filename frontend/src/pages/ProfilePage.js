@@ -1,7 +1,8 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { apiUrl } from '../utils/api';
 import '../css/profile.css';
 import ghanaRegions from '../data/ghanaRegions';
 
@@ -11,6 +12,7 @@ const ProfilePage = () => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [stats, setStats] = useState({ projectsCreated: 0, forumsStarted: 0, commentsMade: 0, reactionsGiven: 0 });
 
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
@@ -30,6 +32,25 @@ const ProfilePage = () => {
     setEditing(prev => !prev);
     setMessage('');
   };
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user?._id) return;
+      try {
+        const res = await axios.get(apiUrl(`/api/user-stats/${user._id}`));
+        const data = res?.data || {};
+        setStats({
+          projectsCreated: Number(data.projectsCreated) || 0,
+          forumsStarted: Number(data.forumsStarted) || 0,
+          commentsMade: Number(data.commentsMade) || 0,
+          reactionsGiven: Number(data.reactionsGiven) || 0,
+        });
+      } catch (err) {
+        console.error('Failed to fetch user stats:', err?.message || err);
+      }
+    };
+    fetchStats();
+  }, [user?._id]);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -71,6 +92,26 @@ const ProfilePage = () => {
           {message}
         </div>
       )}
+
+      {/* Stats Section */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <span className="stat-number">{stats.projectsCreated}</span>
+          <span className="stat-label">Projects Created</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-number">{stats.forumsStarted}</span>
+          <span className="stat-label">Forums Started</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-number">{stats.commentsMade}</span>
+          <span className="stat-label">Comments Made</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-number">{stats.reactionsGiven}</span>
+          <span className="stat-label">Reactions Given</span>
+        </div>
+      </div>
 
       <div className="profile-card">
         {!editing ? (

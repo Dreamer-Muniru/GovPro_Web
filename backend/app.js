@@ -12,6 +12,7 @@ const connectDB = require('./config/db'); // fixed path
 const Project = require('./models/projects');
 const forumRoutes = require('./routes/ForumRoutes');
 const commentRoutes = require('./routes/commentRoutes'); 
+const Forum = require('./models/forums');
 // const Forums = require('./models/Forums')
 
 const app = express();
@@ -155,6 +156,41 @@ app.get('/api/uploads/:id', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(404).json({ message: 'Image not found' });
+  }
+});
+
+// Simple user activity counts
+app.get('/api/user-stats/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const [projectsCount, forumsCount, commentsCountAgg, reactionsCountAgg] = await Promise.all([
+      Project.countDocuments({ submittedBy: { $in: [userId] } }),
+      Forum.countDocuments({ createdBy: userId }),
+      Forum.aggregate([
+        { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
+        { $match: { 'comments.createdBy': new mongoose.Types.ObjectId(userId) } },
+        { $count: 'count' }
+      ]),
+      Forum.aggregate([
+        { $unwind: { path: '$reactions', preserveNullAndEmptyArrays: false } },
+        { $match: { 'reactions.user': new mongoose.Types.ObjectId(userId) } },
+        { $count: 'count' }
+      ])
+    ]);
+
+    const commentsCount = commentsCountAgg?.[0]?.count || 0;
+    const reactionsCount = reactionsCountAgg?.[0]?.count || 0;
+
+    res.json({
+      projectsCreated: projectsCount || 0,
+      forumsStarted: forumsCount || 0,
+      commentsMade: commentsCount,
+      reactionsGiven: reactionsCount,
+    });
+  } catch (err) {
+    console.error('Error computing user stats:', err.message);
+    res.status(500).json({ error: 'Failed to compute user stats' });
   }
 });
 
