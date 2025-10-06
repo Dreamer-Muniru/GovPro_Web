@@ -13,6 +13,7 @@ const Project = require('./models/projects');
 const forumRoutes = require('./routes/ForumRoutes');
 const commentRoutes = require('./routes/commentRoutes'); 
 const Forum = require('./models/forums');
+const User = require('./models/user');
 // const Forums = require('./models/Forums')
 
 const app = express();
@@ -164,29 +165,60 @@ app.get('/api/user-stats/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const [projectsCount, forumsCount, commentsCountAgg, reactionsCountAgg] = await Promise.all([
-      Project.countDocuments({ submittedBy: { $in: [userId] } }),
-      Forum.countDocuments({ createdBy: userId }),
+    const user = await User.findById(userId).lean();
+    const userIdObj = new mongoose.Types.ObjectId(userId);
+
+    const [projectsCount, forumsCount,
+      commentsTopAgg, commentsRepliesAgg,
+      reactForumAgg, reactCommentAgg, reactReplyAgg] = await Promise.all([
+      // Projects created – best effort: match submittedBy by username/fullName or id string
+      Project.countDocuments({ submittedBy: { $in: [String(userId), user?.username, user?.fullName].filter(Boolean) } }),
+      // Forums started by user
+      Forum.countDocuments({ createdBy: userIdObj }),
+      // Comments made by user (top-level)
       Forum.aggregate([
         { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
-        { $match: { 'comments.createdBy': new mongoose.Types.ObjectId(userId) } },
+        { $match: { 'comments.createdBy': userIdObj } },
         { $count: 'count' }
       ]),
+      // Replies made by user (nested)
+      Forum.aggregate([
+        { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$comments.replies', preserveNullAndEmptyArrays: false } },
+        { $match: { 'comments.replies.createdBy': userIdObj } },
+        { $count: 'count' }
+      ]),
+      // Reactions on forum posts
       Forum.aggregate([
         { $unwind: { path: '$reactions', preserveNullAndEmptyArrays: false } },
-        { $match: { 'reactions.user': new mongoose.Types.ObjectId(userId) } },
+        { $match: { 'reactions.user': userIdObj } },
+        { $count: 'count' }
+      ]),
+      // Reactions on comments
+      Forum.aggregate([
+        { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$comments.reactions', preserveNullAndEmptyArrays: false } },
+        { $match: { 'comments.reactions.user': userIdObj } },
+        { $count: 'count' }
+      ]),
+      // Reactions on replies
+      Forum.aggregate([
+        { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$comments.replies', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$comments.replies.reactions', preserveNullAndEmptyArrays: false } },
+        { $match: { 'comments.replies.reactions.user': userIdObj } },
         { $count: 'count' }
       ])
     ]);
 
-    const commentsCount = commentsCountAgg?.[0]?.count || 0;
-    const reactionsCount = reactionsCountAgg?.[0]?.count || 0;
+    const commentsMade = (commentsTopAgg?.[0]?.count || 0) + (commentsRepliesAgg?.[0]?.count || 0);
+    const reactionsGiven = (reactForumAgg?.[0]?.count || 0) + (reactCommentAgg?.[0]?.count || 0) + (reactReplyAgg?.[0]?.count || 0);
 
     res.json({
       projectsCreated: projectsCount || 0,
       forumsStarted: forumsCount || 0,
-      commentsMade: commentsCount,
-      reactionsGiven: reactionsCount,
+      commentsMade,
+      reactionsGiven,
     });
   } catch (err) {
     console.error('Error computing user stats:', err.message);
