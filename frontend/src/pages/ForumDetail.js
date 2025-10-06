@@ -43,9 +43,11 @@ const ForumDetail = () => {
       try {
         const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
         const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
-        setForum(forumRes.data);
-        setEditForm({ title: forumRes.data.title || '', description: forumRes.data.description || '', image: null });
-        setComments(commentRes.data);
+        const forumData = forumRes.data && typeof forumRes.data === 'object' ? forumRes.data : null;
+        const commentsData = Array.isArray(commentRes.data) ? commentRes.data : (Array.isArray(commentRes.data?.comments) ? commentRes.data.comments : []);
+        setForum(forumData);
+        setEditForm({ title: forumData?.title || '', description: forumData?.description || '', image: null });
+        setComments(commentsData);
       } catch (err) {
         console.error('Error loading forum:', err.message);
       } finally {

@@ -22,7 +22,9 @@ const ForumFeed = () => {
     const fetchForums = async () => {
       try {
         const res = await axios.get(apiUrl(`/api/forums?region=${encodeURIComponent(user.region)}&district=${encodeURIComponent(user.district)}`));
-        setForums(res.data);
+        const data = res.data;
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.forums) ? data.forums : []);
+        setForums(list);
       } catch (err) {
         console.error('Failed to fetch forums:', err.message);
       } finally {
@@ -75,8 +77,8 @@ const ForumFeed = () => {
     const res = await axios.post(apiUrl('/api/forums'), submitData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-
-    setForums(prev => [res.data, ...prev]);
+    const created = res.data && typeof res.data === 'object' ? res.data : null;
+    setForums(prev => created ? [created, ...(Array.isArray(prev) ? prev : [])] : (Array.isArray(prev) ? prev : []));
     handleCloseModal();
   } catch (err) {
     const msg = err?.response?.data?.error || err.message || 'Failed to create forum';
