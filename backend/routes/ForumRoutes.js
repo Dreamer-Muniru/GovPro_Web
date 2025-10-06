@@ -1,30 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const mongoose = require('mongoose');
 const Forum = require('../models/forums');
 const authenticateUser = require('../middleware/authenticateUser');
+const upload = require('../middleware/upload'); // memory storage for GridFS
+const stream = require('stream');
+const { GridFSBucket } = require('mongodb');
 
-// Resolve uploads directory relative to backend root and ensure it exists
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Use disk storage to save files locally
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + '-' + file.originalname;
-    cb(null, uniqueName);
-  }
+let gridBucket;
+mongoose.connection.once('open', () => {
+  gridBucket = new GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' });
 });
-
-const upload = multer({ storage });
 
 //Get all forum posts, with optional filtering by region and district
 router.get('/', async (req, res) => {
@@ -126,15 +113,31 @@ router.post('/', upload.single('image'), async (req, res) => {
       createdAt: new Date()
     });
 
-    if (req.file) {
-      // Publicly accessible path served by backend app.js static mount
-      newForum.imageUrl = `/uploads/${req.file.filename}`;
+    const saveAndRespond = async () => {
+      await newForum.save();
+      await newForum.populate('createdBy', 'username fullName');
+      res.status(201).json(newForum);
+    };
+
+    if (req.file && gridBucket) {
+      const readable = new stream.PassThrough();
+      readable.end(req.file.buffer);
+      const uploadStream = gridBucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype,
+      });
+
+      readable.pipe(uploadStream)
+        .on('error', (err) => {
+          console.error('Forum image upload error:', err.message);
+          res.status(500).json({ error: 'Image upload failed' });
+        })
+        .on('finish', async () => {
+          newForum.imageUrl = `/api/uploads/${uploadStream.id}`;
+          await saveAndRespond();
+        });
+    } else {
+      await saveAndRespond();
     }
-
-    await newForum.save();
-    await newForum.populate('createdBy', 'username fullName');
-
-    res.status(201).json(newForum);
   } catch (err) {
     console.error('Error creating forum:', err.message);
     res.status(500).json({ error: 'Failed to create forum' });
@@ -158,13 +161,31 @@ router.put('/:id', authenticateUser, upload.single('image'), async (req, res) =>
     if (region !== undefined) forum.region = region;
     if (district !== undefined) forum.district = district;
 
-    if (req.file) {
-      forum.imageUrl = `/uploads/${req.file.filename}`;
-    }
+    const saveAndRespond = async () => {
+      await forum.save();
+      await forum.populate('createdBy', 'username fullName');
+      res.json(forum);
+    };
 
-    await forum.save();
-    await forum.populate('createdBy', 'username fullName');
-    res.json(forum);
+    if (req.file && gridBucket) {
+      const readable = new stream.PassThrough();
+      readable.end(req.file.buffer);
+      const uploadStream = gridBucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype,
+      });
+
+      readable.pipe(uploadStream)
+        .on('error', (err) => {
+          console.error('Forum image upload error:', err.message);
+          res.status(500).json({ error: 'Image upload failed' });
+        })
+        .on('finish', async () => {
+          forum.imageUrl = `/api/uploads/${uploadStream.id}`;
+          await saveAndRespond();
+        });
+    } else {
+      await saveAndRespond();
+    }
   } catch (err) {
     console.error('Error updating forum:', err.message);
     res.status(500).json({ error: 'Failed to update forum' });
