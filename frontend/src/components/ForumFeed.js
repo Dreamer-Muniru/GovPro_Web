@@ -101,6 +101,8 @@ const ForumFeed = () => {
     );
   }
 
+  const forumList = Array.isArray(forums) ? forums : [];
+
   return (
     <div className="forum-feed">
       {/* Header with Create Button */}
@@ -120,7 +122,7 @@ const ForumFeed = () => {
       </div>
 
       {/* Forums Grid */}
-      {forums.length === 0 ? (
+      {forumList.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">💬</div>
           <h3 className="empty-title">No Forums Yet</h3>
@@ -133,7 +135,7 @@ const ForumFeed = () => {
         </div>
       ) : (
         <div className="forum-grid">
-          {forums.map((forum) => (
+          {forumList.map((forum) => (
             <div 
               key={forum._id} 
               className="forum-card"
