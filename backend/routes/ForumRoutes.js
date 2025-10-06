@@ -2,14 +2,21 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const mongoose = require('mongoose');
 const Forum = require('../models/forums');
 const authenticateUser = require('../middleware/authenticateUser');
 
-//Use disk storage to save files locally
+// Resolve uploads directory relative to backend root and ensure it exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Use disk storage to save files locally
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Make sure this folder exists
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + '-' + file.originalname;
@@ -120,7 +127,8 @@ router.post('/', upload.single('image'), async (req, res) => {
     });
 
     if (req.file) {
-      newForum.imageUrl = `/uploads/${req.file.filename}`; //Save image path
+      // Publicly accessible path served by backend app.js static mount
+      newForum.imageUrl = `/uploads/${req.file.filename}`;
     }
 
     await newForum.save();
