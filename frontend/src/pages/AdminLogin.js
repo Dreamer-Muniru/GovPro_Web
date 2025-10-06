@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import '../css/AdminLogin.css'; 
-import { apiUrl } from '../utils/api';
+// import { apiUrl } from '../utils/api';
 
 const AdminLogin = () => {
   const { user } = useContext(AuthContext);
@@ -28,7 +28,7 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await axios.post(apiUrl('/api/admin-auth/login'), form, { withCredentials: true });
+      const res = await axios.post(`http://localhost:5000/admin-auth/login`, form, { withCredentials: true });
       login(res.data.token);
       navigate('/admin');
     } catch (err) {

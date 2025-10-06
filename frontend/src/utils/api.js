@@ -2,7 +2,7 @@ const inferBaseFromWindow = () => {
   if (typeof window === 'undefined') return '';
   const { protocol, hostname, port } = window.location;
   // If running CRA dev server on :3000, point to backend :5000
-  if (port === '3000') {
+  if (port === '3001') {
     return `${protocol}//localhost:5000`;
   }
   return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
