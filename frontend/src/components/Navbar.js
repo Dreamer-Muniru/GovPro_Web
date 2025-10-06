@@ -70,7 +70,7 @@ const Navbar = () => {
           </Link> */}
           <Link to="/project-insights" className='nav-link' onClick={() => setMobileMenuOpen(false)}>Reports</Link>
          <button onClick={handleCreateForumClick} className="nav-link nav-button-link">
-          Create Forum
+          Issues Forums
         </button>
 
 
@@ -83,7 +83,7 @@ const Navbar = () => {
           </button>
       
           {user && (
-            <Link to="/profile" className="nav-link">
+            <Link to="/profile" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
               Profile
             </Link>
           )}

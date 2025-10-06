@@ -11,8 +11,8 @@ export default function AboutPage() {
         <div className="hero-content">
           <h1 className="hero-title">
             <span className="title-red">About</span>
-            <span className="title-yellow">Ghana</span>
-            <span className="title-green">Project Tracker</span>
+            <span className="title-yellow">Abandoned</span>
+            <span className="title-green">Ghana</span>
           </h1>
           <p className="hero-subtitle">Transparency • Accountability • Civic Engagement</p>
         </div>
@@ -28,10 +28,11 @@ export default function AboutPage() {
           </div>
           <div className="section-content">
             <p>
-              <strong>Ghana Project Tracker</strong> is a civic-oriented web platform dedicated to enhancing transparency,
-              accessibility, and accountability in development projects across Ghana. It empowers citizens,
-              community leaders, and stakeholders to view, engage with, and monitor ongoing and completed
-              public initiatives using dynamic geolocation mapping and project-based visuals.
+              <strong>Ghana Project Tracker</strong> is a civic technology platform dedicated to transparency, accessibility,
+               and accountability in public development across Ghana. We empower citizens, journalists, and community leaders 
+               to monitor and engage with government and community-led projects using dynamic geolocation mapping, 
+               visual storytelling, and now — interactive civic forums.
+
             </p>
             <p>
               Built with modern web technologies and driven by a user-centric approach, the platform fosters awareness,
@@ -48,19 +49,28 @@ export default function AboutPage() {
           </div>
           <div className="section-content">
             <p>
-              To streamline visibility and engagement around government and community-led projects by:
+              To bridge the gap between policy and the public by transforming raw infrastructure data into interactive insight and dialogue.
             </p>
             <ul className="mission-list">
-              <li><i className="fas fa-map-marker-alt mission-icon"></i> Providing accurate geospatial data and real-time GPS mapping</li>
-              <li><i className="fas fa-images mission-icon"></i> Making project images, status updates, and commentary easily accessible</li>
-              <li><i className="fas fa-filter mission-icon"></i> Enabling users to filter and explore projects by type, location, or progress</li>
-              <li><i className="fas fa-users mission-icon"></i> Encouraging civic participation and community awareness</li>
+              <li> 🗺️ Geospatial Mapping: Real-time GPS tracking of projects across all regions and districts</li>
+              <li> 📸 Visual Documentation: Photos, status updates, and project metadata at your fingertips  </li>
+              <li> 🔍 Smart Filtering: Explore by region, district, project type, or completion status  </li>
+              <li> 🗣️ Community Forums: Discuss local projects, share updates, and hold stakeholders accountable  </li>
+              <li> 📣 Civic Engagement: Submit new projects, comment on existing ones, and amplify community voices</li>
             </ul>
             <blockquote className="mission-quote">
-              "We aim to bridge the gap between policy and the public by transforming raw data into interactive insight."
+              <h3>Why Issues Forums Matter</h3>
+              Our newly launched Community Forums give every Ghanaian a voice in the development conversation. Whether you're tracking a 
+              stalled school project, celebrating a completed clinic, or raising concerns about transparency — issues forums let you speak,
+               connect, and act.
+            </blockquote>
+            <blockquote className="mission-quote">
+              "We don’t just visualize development. We democratize it."
             </blockquote>
           </div>
         </section>
+        
+       
 
         {/* Contact Section */}
         <section className="about-section contact-section">
@@ -78,7 +88,7 @@ export default function AboutPage() {
               <div className="contact-card">
                 <i className="fas fa-phone-alt contact-icon"></i>
                 <h3>Phone</h3>
-                <p><a href="tel:+233547963492">+233 547963492</a></p>
+                <p><a href="tel:+233240527043">+233 240527043</a></p>
               </div>
               <div className="contact-card">
                 <i className="fas fa-envelope contact-icon"></i>

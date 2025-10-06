@@ -8,23 +8,25 @@ import { apiUrl } from '../utils/api';
 const ForumFeed = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+
   const [forums, setForums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    image: null
-  });
+  const [formData, setFormData] = useState({title: '', description: '', image: null});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchForums = async () => {
       try {
-         const res = await axios.get(apiUrl(`/api/forums?region=${encodeURIComponent(user.region)}&district=${encodeURIComponent(user.district)}`));
-        setForums(res.data);
+        const region = encodeURIComponent(user.region);
+        const district = encodeURIComponent(user.district);
+        const res = await axios.get(apiUrl(`/api/forums?region=${region}&district=${district}`));
+        const data = res?.data;
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.forums) ? data.forums : []);
+        setForums(list);
       } catch (err) {
-        console.error('Failed to fetch forums:', err.message);
+        console.error('Failed to fetch forums:', err?.message || err);
+        setForums([]);
       } finally {
         setLoading(false);
       }
@@ -32,6 +34,8 @@ const ForumFeed = () => {
 
     if (user?.region && user?.district) {
       fetchForums();
+    } else {
+      setLoading(false);
     }
   }, [user?.region, user?.district]);
 
@@ -50,47 +54,45 @@ const ForumFeed = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
-    setFormData(prev => ({ ...prev, image: e.target.files[0] }));
+    setFormData((prev) => ({ ...prev, image: e.target.files[0] }));
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setSubmitting(true);
+    e.preventDefault();
+    setSubmitting(true);
 
-  try {
-    const submitData = new FormData();
-    submitData.append('title', formData.title);
-    submitData.append('description', formData.description);
-    submitData.append('region', user.region);
-    submitData.append('district', user.district);
-    submitData.append('createdBy', user?._id || user?.id); 
-    // submitData.append('createdBy', user.id); // ✅ Include creator
-    if (formData.image) {
-      submitData.append('image', formData.image);
-    }
+   try {
+      const submitData = new FormData();
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description);
+      submitData.append('region', user.region);
+      submitData.append('district', user.district);
+      submitData.append('createdBy', user?._id || user?.id);
+      if (formData.image) submitData.append('image', formData.image);
 
-    const res = await axios.post(apiUrl('/api/forums'), submitData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+      const res = await axios.post(apiUrl('/api/forums'), submitData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-    setForums(prev => [res.data, ...prev]);
-    handleCloseModal();
-  } catch (err) {
-      const msg = err?.response?.data?.error || err.message || 'Failed to create forum';
+    const created = res?.data && typeof res.data === 'object' ? res.data : null;
+      setForums((prev) => (created ? [created, ...(Array.isArray(prev) ? prev : [])] : (Array.isArray(prev) ? prev : [])));
+      handleCloseModal();
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to create forum';
       console.error('Failed to create forum:', msg);
       alert(msg);
-  } finally {
-    setSubmitting(false);
-  }
-};
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-
-  if (loading) {
-    return (
+ if (loading) {
+  
+  return (
       <div className="forum-feed">
         <div className="loading-container">
           <div className="loading-spinner"></div>
@@ -99,7 +101,7 @@ const ForumFeed = () => {
       </div>
     );
   }
-
+  const forumList = Array.isArray(forums) ? forums : [];
   return (
     <div className="forum-feed">
       {/* Header with Create Button */}
@@ -119,7 +121,7 @@ const ForumFeed = () => {
       </div>
 
       {/* Forums Grid */}
-      {forums.length === 0 ? (
+      {forumList.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">💬</div>
           <h3 className="empty-title">No Forums Yet</h3>
@@ -132,9 +134,9 @@ const ForumFeed = () => {
         </div>
       ) : (
         <div className="forum-grid">
-          {forums.map((forum) => (
-            <div 
-              key={forum._id} 
+            {forumList.map((forum) => (
+            <div
+              key={forum._id}
               className="forum-card"
               onClick={() => handleCardClick(forum._id)}
             >
@@ -156,9 +158,7 @@ const ForumFeed = () => {
                   <span className="forum-date">
                     Posted on {new Date(forum.createdAt).toLocaleString()}
                   </span>
-                  <span className="forum-badge">
-                    {forum.district}
-                  </span>
+                  <span className="forum-badge">{forum.district}</span>
                 </div>
               </div>
             </div>
@@ -215,8 +215,8 @@ const ForumFeed = () => {
                 />
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="submit-btn"
                 disabled={submitting}
               >

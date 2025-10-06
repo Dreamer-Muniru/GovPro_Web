@@ -12,7 +12,13 @@ const connectDB = require('./config/db'); // fixed path
 const Project = require('./models/projects');
 const forumRoutes = require('./routes/ForumRoutes');
 const commentRoutes = require('./routes/commentRoutes'); 
-// const Forums = require('./models/Forums')
+// const Forums = require('./models/Forums')onst mongoose = require('mongoose');
+// ==========================================
+// const Project = require('./models/projects');
+const Forum = require('./models/forums');
+const User = require('./models/user');
+
+// ========================================
 
 const app = express();
 
@@ -142,6 +148,91 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
   }
 });
 
+// ===============================================
+app.get('/api/user-stats/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId).lean();
+    const userIdObj = new mongoose.Types.ObjectId(userId);
+
+    const [
+      projectsCount,
+      forumsCount,
+      commentsTopAgg,
+      commentsRepliesAgg,
+      reactForumAgg,
+      reactCommentAgg,
+      reactReplyAgg
+    ] = await Promise.all([
+      // Projects created – matches submittedBy against id/username/fullName (best-effort)
+      Project.countDocuments({
+        submittedBy: { $in: [String(userId), user?.username, user?.fullName].filter(Boolean) }
+      }),
+
+      // Forums started by user
+      Forum.countDocuments({ createdBy: userIdObj }),
+
+      // Top-level comments made by user
+      Forum.aggregate([
+        { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
+        { $match: { 'comments.createdBy': userIdObj } },
+        { $count: 'count' }
+      ]),
+
+      // Replies made by user
+      Forum.aggregate([
+        { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$comments.replies', preserveNullAndEmptyArrays: false } },
+        { $match: { 'comments.replies.createdBy': userIdObj } },
+        { $count: 'count' }
+      ]),
+
+      // Reactions on forum posts by user
+      Forum.aggregate([
+        { $unwind: { path: '$reactions', preserveNullAndEmptyArrays: false } },
+        { $match: { 'reactions.user': userIdObj } },
+        { $count: 'count' }
+      ]),
+
+      // Reactions on comments by user
+      Forum.aggregate([
+        { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$comments.reactions', preserveNullAndEmptyArrays: false } },
+        { $match: { 'comments.reactions.user': userIdObj } },
+        { $count: 'count' }
+      ]),
+
+      // Reactions on replies by user
+      Forum.aggregate([
+        { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$comments.replies', preserveNullAndEmptyArrays: false } },
+        { $unwind: { path: '$comments.replies.reactions', preserveNullAndEmptyArrays: false } },
+        { $match: { 'comments.replies.reactions.user': userIdObj } },
+        { $count: 'count' }
+      ])
+    ]);
+
+    const commentsMade = (commentsTopAgg?.[0]?.count || 0) + (commentsRepliesAgg?.[0]?.count || 0);
+    const reactionsGiven =
+      (reactForumAgg?.[0]?.count || 0) +
+      (reactCommentAgg?.[0]?.count || 0) +
+      (reactReplyAgg?.[0]?.count || 0);
+
+    res.json({
+      projectsCreated: projectsCount || 0,
+      forumsStarted: forumsCount || 0,
+      commentsMade,
+      reactionsGiven
+    });
+  } catch (err) {
+    console.error('Error computing user stats:', err.message);
+    res.status(500).json({ error: 'Failed to compute user stats' });
+  }
+});
+
+
+// ===============================================
 
 // GET route for retrieving images from GridFS
 app.get('/api/uploads/:id', async (req, res) => {

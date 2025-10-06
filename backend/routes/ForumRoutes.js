@@ -1,22 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
+// const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
 const Forum = require('../models/forums');
+const fs = require('fs');
+const authenticateUser = require('../middleware/authenticateUser');
+const upload = require('../middleware/upload'); // memory storage for GridFS
+const stream = require('stream');
+const { GridFSBucket } = require('mongodb');
 
-//Use disk storage to save files locally
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Make sure this folder exists
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + '-' + file.originalname;
-    cb(null, uniqueName);
-  }
+// Resolve uploads directory relative to backend root and ensure it exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+let gridBucket;
+mongoose.connection.once('open', () => {
+  gridBucket = new GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' });
 });
 
-const upload = multer({ storage });
 
 //Get all forum posts, with optional filtering by region and district
 router.get('/', async (req, res) => {
@@ -117,14 +121,31 @@ router.post('/', upload.single('image'), async (req, res) => {
       createdAt: new Date()
     });
 
-    if (req.file) {
-      newForum.imageUrl = `/uploads/${req.file.filename}`; //Save image path
+      const saveAndRespond = async () => {
+      await newForum.save();
+      await newForum.populate('createdBy', 'username fullName');
+      res.status(201).json(newForum);
+    };
+
+    if (req.file && gridBucket) {
+      const readable = new stream.PassThrough();
+      readable.end(req.file.buffer);
+      const uploadStream = gridBucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype,
+      });
+
+      readable.pipe(uploadStream)
+        .on('error', (err) => {
+          console.error('Forum image upload error:', err.message);
+          res.status(500).json({ error: 'Image upload failed' });
+        })
+        .on('finish', async () => {
+          newForum.imageUrl = `/api/uploads/${uploadStream.id}`;
+          await saveAndRespond();
+        });
+    } else {
+      await saveAndRespond();
     }
-
-    await newForum.save();
-    await newForum.populate('createdBy', 'username fullName');
-
-    res.status(201).json(newForum);
   } catch (err) {
     console.error('Error creating forum:', err.message);
     res.status(500).json({ error: 'Failed to create forum' });
