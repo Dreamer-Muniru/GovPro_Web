@@ -8,9 +8,16 @@ const inferBaseFromWindow = () => {
   return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
 };
 
-const envBase = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) || '';
+const envBase = (typeof process !== 'undefined' && process.env && (process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_URL)) || '';
 
 let resolvedBase = envBase || inferBaseFromWindow();
+// Production fallback: if no env and running on vercel/netlify, default to onrender backend
+if (!envBase && typeof window !== 'undefined') {
+  const host = window.location.host;
+  if (/vercel\.app$/.test(host) || /netlify\.app$/.test(host)) {
+    resolvedBase = 'https://govpro-web-backend-gely.onrender.com';
+  }
+}
 // Safety: if someone set REACT_APP_API_URL to the frontend origin on :3000, override to backend :5000
 if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0):3000$/.test(resolvedBase)) {
   resolvedBase = resolvedBase.replace(/:\d+$/, ':5000').replace('0.0.0.0', 'localhost');
