@@ -7,3 +7,45 @@
 footer {
   margin-top: auto;
 }
+
+/* Project Detail Wrapper - Full width container */
+.project-detail-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Project Detail Container - Centered content */
+.project-detail-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  flex: 1;
+  width: 100%;
+}
+
+/* Project Detail Content - The actual content area */
+.project-detail-content {
+  max-width: 100%;
+}
+
+/* Ensure Footer spans full width */
+footer {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* If your Footer component has its own container class, add this: */
+.footer-container {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .project-detail-container {
+    padding: 1rem;
+  }
+}

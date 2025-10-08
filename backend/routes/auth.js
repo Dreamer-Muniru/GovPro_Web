@@ -15,7 +15,7 @@ router.get('/projects', async (req, res) => {
 // ─────────────────────────────────────────────
 // POST /api/auth/register  (regular users)
 router.post('/register', async (req, res) => {
-  console.log('✅ Register route hit');
+  // console.log('✅ Register route hit');
   const { username, password, region, district, fullName, phone } = req.body;
 
   if (!username || !password || !fullName || !phone || !region || !district) {
@@ -88,7 +88,7 @@ router.post('/login', async (req, res) => {
 
   // 🔐 Compare password
   const isMatch = await bcrypt.compare(password, user.password);
-  console.log('Password match result:', isMatch);
+  // console.log('Password match result:', isMatch);
 
   if (!isMatch) {
     return res.status(401).json({ error: 'Invalid credentials' });
@@ -105,7 +105,7 @@ router.post('/login', async (req, res) => {
     // console.log('🔧 Patched legacy user with username:', fallbackUsername);
 
     finalUser = await User.findById(user._id); // reload
-    console.log('🧬 Reloaded user for confirmation:', finalUser.username);
+    // console.log('🧬 Reloaded user for confirmation:', finalUser.username);
   }
 
   // ── Sign and return the JWT
@@ -126,7 +126,7 @@ router.post('/login', async (req, res) => {
 
 
 
-    console.log('🎟️ Generated token:', token);
+    // console.log('🎟️ Generated token:', token);
     res.status(200).json({ token });
   } catch (err) {
     console.error('❌ Failed to sign JWT:', err);

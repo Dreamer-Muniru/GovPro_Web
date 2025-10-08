@@ -22,6 +22,7 @@ mongoose.connection.once('open', () => {
 });
 
 
+
 //Get all forum posts, with optional filtering by region and district
 router.get('/', async (req, res) => {
   try {
@@ -149,6 +150,76 @@ router.post('/', upload.single('image'), async (req, res) => {
   } catch (err) {
     console.error('Error creating forum:', err.message);
     res.status(500).json({ error: 'Failed to create forum' });
+  }
+});
+
+
+// ================ADMIN LEVEL================================
+router.put('/:id', authenticateUser, upload.single('image'), async (req, res) => {
+  try {
+    const forum = await Forum.findById(req.params.id);
+    if (!forum) return res.status(404).json({ error: 'Forum not found' });
+
+    const requesterId = req.user._id || req.user.id;
+    const isAdmin = !!req.user?.isAdmin;
+    if (!isAdmin && forum.createdBy.toString() !== String(requesterId)) {
+      return res.status(403).json({ error: 'Not authorized to edit this forum' });
+    }
+
+    const { title, description, region, district } = req.body;
+    if (title !== undefined) forum.title = title;
+    if (description !== undefined) forum.description = description;
+    if (region !== undefined) forum.region = region;
+    if (district !== undefined) forum.district = district;
+
+    const saveAndRespond = async () => {
+      await forum.save();
+      await forum.populate('createdBy', 'username fullName');
+      res.json(forum);
+    };
+
+    if (req.file && gridBucket) {
+      const readable = new stream.PassThrough();
+      readable.end(req.file.buffer);
+      const uploadStream = gridBucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype,
+      });
+
+      readable.pipe(uploadStream)
+        .on('error', (err) => {
+          console.error('Forum image upload error:', err.message);
+          res.status(500).json({ error: 'Image upload failed' });
+        })
+        .on('finish', async () => {
+          forum.imageUrl = `/api/uploads/${uploadStream.id}`;
+          await saveAndRespond();
+        });
+    } else {
+      await saveAndRespond();
+    }
+  } catch (err) {
+    console.error('Error updating forum:', err.message);
+    res.status(500).json({ error: 'Failed to update forum' });
+  }
+});
+
+// Delete a forum (owner or admin)
+router.delete('/:id', authenticateUser, async (req, res) => {
+  try {
+    const forum = await Forum.findById(req.params.id);
+    if (!forum) return res.status(404).json({ error: 'Forum not found' });
+
+    const requesterId = req.user._id || req.user.id;
+    const isAdmin = !!req.user?.isAdmin;
+    if (!isAdmin && forum.createdBy.toString() !== String(requesterId)) {
+      return res.status(403).json({ error: 'Not authorized to delete this forum' });
+    }
+
+    await forum.deleteOne();
+    res.json({ message: 'Forum deleted' });
+  } catch (err) {
+    console.error('Error deleting forum:', err.message);
+    res.status(500).json({ error: 'Failed to delete forum' });
   }
 });
 

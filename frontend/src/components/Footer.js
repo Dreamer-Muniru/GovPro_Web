@@ -39,7 +39,7 @@ const Footer = () => {
           <h3 className="footer-heading">Contact Us</h3>
           <p className="footer-text">
             <i className="fas fa-phone-alt footer-icon"></i> 
-            <a href="tel:+233547963492">+233 547963492</a>
+            <a href="tel:+233240527043">+233 240527043</a>
           </p>
           <p className="footer-text">
             <i className="fas fa-envelope footer-icon"></i> 

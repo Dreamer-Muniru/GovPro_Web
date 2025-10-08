@@ -149,6 +149,13 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
 });
 
 // ===============================================
+
+app.get('/api/users/count', async (req, res) => {
+  try { res.json({ count: await User.countDocuments() }); }
+  catch (e) { res.status(500).json({ error: 'Failed to count users' }); }
+});
+
+
 app.get('/api/user-stats/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
