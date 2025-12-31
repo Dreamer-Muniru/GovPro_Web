@@ -60,7 +60,6 @@
   padding: 0;
 }
 
-
 .nav-link {
   color: #4a5568;
   text-decoration: none;
@@ -68,6 +67,9 @@
   padding: 0.5rem 0;
   position: relative;
   transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .nav-link:hover {
@@ -103,6 +105,14 @@
   background: #CE1126;
   color: white;
   border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .add-project-btn:hover {
@@ -129,56 +139,144 @@
   transform: translateY(-2px);
 }
 
-/* Mobile Menu */
+/* Mobile Menu Button - Hidden by default */
 .mobile-menu-btn {
   display: none;
-  background: none;
-  border: none;
-  color: #4a5568;
-  font-size: 1.5rem;
-  cursor: pointer;
 }
 
-/* Responsive Design */
+/* DESKTOP: Show text only, hide icons */
+@media (min-width: 769px) {
+  .nav-icon {
+    display: none;
+  }
+
+  .nav-text {
+    display: inline;
+  }
+}
+
+/* MOBILE: Show icons only, hide text */
 @media (max-width: 768px) {
+  /* Navbar content - stack vertically */
   .navbar-content {
-    padding: 1rem;
+    flex-direction: column;
+    padding: 0.75rem 0;
+    gap: 0.5rem;
   }
 
+  /* Logo centered at top */
+  .nav-brand {
+    width: 100%;
+    justify-content: center;
+    padding: 0.5rem 0;
+  }
+
+  .nav-brand img {
+    height: 50px;
+    width: 90px;
+  }
+
+  /* Hide mobile menu button completely */
   .mobile-menu-btn {
-    display: block;
+    display: none;
   }
 
+  /* Navigation links - full width below logo */
   .nav-links {
-    position: fixed;
-    top: 70px;
-    left: 0;
+    position: static;
+    transform: none;
+    flex-direction: row;
     width: 100%;
     background: white;
-    flex-direction: column;
-    align-items: center;
-    padding: 1rem 0;
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-    transform: translateY(-150%);
-    transition: transform 0.3s ease;
-    z-index: 999;
+    box-shadow: none;
+    padding: 0.75rem 0;
+    gap: 0;
+    justify-content: space-around;
+    border-top: 1px solid #f0f0f0;
   }
 
   .nav-links.active {
-    transform: translateY(0);
+    transform: none;
   }
 
-  .nav-link {
-    padding: 0.75rem 0;
+  /* Links styling for mobile with animations */
+  .nav-link, .nav-button-link {
+    padding: 0.75rem;
+    min-width: auto;
+    color: #6b7280;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    position: relative;
   }
 
-  .nav-button {
-    margin: 0.5rem 0;
+  /* Stunning hover animation with color gradient */
+  .nav-link:hover, .nav-button-link:hover {
+    color: #CE1126;
+    background: linear-gradient(135deg, rgba(206, 17, 38, 0.1), rgba(252, 209, 22, 0.1));
+    transform: translateY(-2px) scale(1.1);
+    box-shadow: 0 4px 12px rgba(206, 17, 38, 0.2);
+  }
+
+  /* Active state pulse animation */
+  .nav-link:active, .nav-button-link:active {
+    transform: scale(0.95);
+  }
+
+  .nav-link::after {
+    display: none;
+  }
+
+  /* Show larger icons, hide text on mobile */
+  .nav-icon {
+    display: block;
+    width: 28px;
+    height: 28px;
+    transition: all 0.3s ease;
+  }
+
+  /* Icon color animation on hover */
+  .nav-link:hover .nav-icon,
+  .nav-button-link:hover .nav-icon {
+    filter: drop-shadow(0 2px 4px rgba(206, 17, 38, 0.3));
+    animation: iconBounce 0.5s ease;
+  }
+
+  .nav-text {
+    display: none;
+  }
+
+  /* Add Project button - icon only on mobile with special styling */
+  .add-project-btn {
+    background: transparent;
+    color: #6b7280;
+    padding: 0.75rem;
+    transform: none;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .add-project-btn:hover {
+    background: linear-gradient(135deg, rgba(206, 17, 38, 0.1), rgba(252, 209, 22, 0.1));
+    color: #CE1126;
+    transform: translateY(-2px) scale(1.1);
+    box-shadow: 0 4px 12px rgba(206, 17, 38, 0.2);
+  }
+
+  .add-project-btn:hover .nav-icon {
+    filter: drop-shadow(0 2px 4px rgba(206, 17, 38, 0.3));
+    animation: iconBounce 0.5s ease;
   }
 }
 
-/* Animation for mobile menu */
-@keyframes slideIn {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
+/* Icon bounce animation */
+@keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }

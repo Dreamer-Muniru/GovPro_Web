@@ -1,12 +1,14 @@
-import React, { useState, useContext } from 'react';
+import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import '../css/navbar.css';
 
+// Install lucide-react: npm install lucide-react
+import { Home, FileText, MessageSquare, PlusCircle, Info, User } from 'lucide-react';
+
 const Navbar = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   
   const handleAddProjectClick = () => {
@@ -15,7 +17,6 @@ const Navbar = () => {
     } else {
       navigate('/login');
     }
-    setMobileMenuOpen(false);
   };
   
   const handleCreateForumClick = () => {
@@ -24,24 +25,6 @@ const Navbar = () => {
     } else {
       navigate('/login');
     }
-    setMobileMenuOpen(false);
-  };
-
-
-// const handleLogout = () => {
-//   logout(); // clears user context
-
-//   setTimeout(() => {
-//     navigate('/'); // safely redirect after context update
-//   }, 0);
-
-//   setMobileMenuOpen(false);
-// };
-
-
-
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
   };
 
   return (
@@ -49,49 +32,45 @@ const Navbar = () => {
       <div className="ghana-flag-stripe"></div>
       
       <div className="navbar-content">
-        <Link to="/" className="nav-brand" onClick={() => setMobileMenuOpen(false)}>
+        <Link to="/" className="nav-brand">
           <img src="/images/ghana-project-logo.png" alt="Abandoned Ghana" />
         </Link>
 
-        <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
-          {mobileMenuOpen ? '✕' : '☰'}
-        </button>
-
-        <div className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
-          <Link to="/" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
-            Home
+        <div className="nav-links">
+          <Link to="/" className="nav-link">
+            <Home className="nav-icon" size={24} />
+            <span className="nav-text">Home</span>
           </Link>
           
-        
-          {/* <Link to="/login" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
-            Login
-          </Link> */}
-          <Link to="/project-insights" className='nav-link' onClick={() => setMobileMenuOpen(false)}>Reports</Link>
-         <button onClick={handleCreateForumClick} className="nav-link nav-button-link">
-          Issues Forum
-        </button>
+          <Link to="/project-insights" className='nav-link'>
+            <FileText className="nav-icon" size={24} />
+            <span className="nav-text">Reports</span>
+          </Link>
 
-
+          <button onClick={handleCreateForumClick} className="nav-link nav-button-link">
+            <MessageSquare className="nav-icon" size={24} />
+            <span className="nav-text">Issues Forum</span>
+          </button>
 
           <button
             onClick={handleAddProjectClick}
-            className="nav-button add-project-btn"
+            className="nav-link add-project-btn"
           >
-            Add Project
+            <PlusCircle className="nav-icon" size={24} />
+            <span className="nav-text">Add Project</span>
           </button>
             
-            <Link to="/about" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
-            About
+          <Link to="/about" className="nav-link">
+            <Info className="nav-icon" size={24} />
+            <span className="nav-text">About</span>
           </Link>
 
-
           {user && (
-            <Link to="/profile" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
-              Profile
+            <Link to="/profile" className="nav-link">
+              <User className="nav-icon" size={24} />
+              <span className="nav-text">Profile</span>
             </Link>
           )}
-
-          
         </div>
       </div>
     </nav>
