@@ -12,6 +12,8 @@ const connectDB = require('./config/db'); // fixed path
 const Project = require('./models/projects');
 const forumRoutes = require('./routes/ForumRoutes');
 const commentRoutes = require('./routes/commentRoutes'); 
+
+// const petitionRoutes = require('./routes/petitionRoutes');
 // const Forums = require('./models/Forums')onst mongoose = require('mongoose');
 // ==========================================
 // const Project = require('./models/projects');
@@ -66,7 +68,7 @@ const authAdminRoutes = require('./routes/authAdmin');
 app.use('/api/admin-auth', authAdminRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/forums', forumRoutes);
-
+// app.use('/api/petitions', petitionRoutes);
 
 
 // Multer setup (store images in memory)
@@ -151,8 +153,12 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
 // ===============================================
 
 app.get('/api/users/count', async (req, res) => {
-  try { res.json({ count: await User.countDocuments() }); }
-  catch (e) { res.status(500).json({ error: 'Failed to count users' }); }
+  try {
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to count users' });
+  }
 });
 
 

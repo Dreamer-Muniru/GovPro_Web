@@ -4,13 +4,12 @@ import { AuthContext } from '../context/AuthContext';
 import '../css/navbar.css';
 
 // Install lucide-react: npm install lucide-react
-import { Home, FileText, MessageSquare, PlusCircle, Info, User } from 'lucide-react';
+import { Home, FileText, MessageSquare, PlusCircle, User } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
 
-  
   const handleAddProjectClick = () => {
     if (user) {
       navigate('/add-project');
@@ -32,23 +31,32 @@ const Navbar = () => {
       <div className="ghana-flag-stripe"></div>
       
       <div className="navbar-content">
+        {/* Logo */}
         <Link to="/" className="nav-brand">
           <img src="/images/ghana-project-logo.png" alt="Abandoned Ghana" />
         </Link>
 
+        {/* Profile Link - Only visible on mobile at top right */}
+        {user && (
+          <Link to="/profile" className="profile-top-mobile">
+            <User className="nav-icon" size={32} data-type="profile" />
+          </Link>
+        )}
+
+        {/* Main Navigation Links */}
         <div className="nav-links">
           <Link to="/" className="nav-link">
-            <Home className="nav-icon" size={24} />
+            <Home className="nav-icon" size={28} />
             <span className="nav-text">Home</span>
           </Link>
           
           <Link to="/project-insights" className='nav-link'>
-            <FileText className="nav-icon" size={24} />
+            <FileText className="nav-icon" size={28} />
             <span className="nav-text">Reports</span>
           </Link>
 
           <button onClick={handleCreateForumClick} className="nav-link nav-button-link">
-            <MessageSquare className="nav-icon" size={24} />
+            <MessageSquare className="nav-icon" size={28} />
             <span className="nav-text">Issues Forum</span>
           </button>
 
@@ -56,21 +64,17 @@ const Navbar = () => {
             onClick={handleAddProjectClick}
             className="nav-link add-project-btn"
           >
-            <PlusCircle className="nav-icon" size={24} />
+            <PlusCircle className="nav-icon" size={28} />
             <span className="nav-text">Add Project</span>
           </button>
-            
-          <Link to="/about" className="nav-link">
-            <Info className="nav-icon" size={24} />
-            <span className="nav-text">About</span>
-          </Link>
 
-          {user && (
+          {/* Profile Link - Hidden on mobile (shown at top) */}
+          {/* {user && (
             <Link to="/profile" className="nav-link">
               <User className="nav-icon" size={24} />
               <span className="nav-text">Profile</span>
             </Link>
-          )}
+          )} */}
         </div>
       </div>
     </nav>

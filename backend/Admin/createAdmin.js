@@ -13,7 +13,7 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
       username: 'admin_dreamer',
       password: 'Dreamer4422#', 
       fullName: 'Admin Dreamer',
-      phone: '+233200000000',
+      phone: '+233240527043',
       // password: hashed,
       isAdmin: true,
     });

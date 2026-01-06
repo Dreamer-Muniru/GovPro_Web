@@ -17,6 +17,8 @@ import CreateForum from './pages/CreateForum';
 import ForumDetail from './pages/ForumDetail';
 import ForumFeed from './components/ForumFeed';
 import ProfilePage from './pages/ProfilePage';
+// import PetitionSystem from './pages/PetitionSystem.js';
+// import PetitionsList from './components/PetitionsList';
 
 function App() {
   const ProtectedRoute = ({ children }) => {
@@ -40,6 +42,8 @@ function App() {
         <Route path="/forum-feed" element={<ForumFeed />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/profile" element={<ProfilePage />} />
+      
+        <Route path="/project/:projectId/petition" element={<PetitionSystem />} />
 
         {/* Admin routes */}
         <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>}/>

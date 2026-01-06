@@ -5,6 +5,7 @@ import { Icon } from 'leaflet';
 import axios from 'axios';
 import '../ProjectDetail.css';
 import Footer from '../components/Footer';
+import PetitionActionButton from '../components/PetitionActionButton';
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -13,10 +14,12 @@ const pinpointIcon = new Icon({
 });
 
 const ProjectDetail = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // This is your projectId
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [petitionCount, setPetitionCount] = useState(0);
+  const [petitionExists, setPetitionExists] = useState(false);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -27,6 +30,8 @@ const ProjectDetail = () => {
 
         if (res.data) {
           setProject(res.data);
+          // Fetch petition count after getting project
+          fetchPetitionCount(res.data._id);
         } else {
           console.error('Project not found');
           navigate('/not-found');
@@ -43,6 +48,24 @@ const ProjectDetail = () => {
       fetchProject();
     }
   }, [id, navigate]);
+
+  const fetchPetitionCount = async (projectId) => {
+    try {
+      const response = await fetch(`/api/petitions/project/${projectId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPetitionCount(data.signatures?.length || 0);
+        setPetitionExists(true);
+      } else {
+        setPetitionCount(0);
+        setPetitionExists(false);
+      }
+    } catch (error) {
+      console.error('Error fetching petition count:', error);
+      setPetitionCount(0);
+      setPetitionExists(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -86,6 +109,19 @@ const ProjectDetail = () => {
 
           <div className="project-header">
             <h1 className="project-title">{project.title}</h1>
+            
+            {/* Petition Count Badge */}
+            {petitionExists && petitionCount > 0 && (
+              <div className="petition-count-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>
+                  <strong>{petitionCount.toLocaleString()}</strong> {petitionCount === 1 ? 'person' : 'people'} demanding completion
+                </span>
+              </div>
+            )}
+
             {project.imageUrl && (
               <img 
                 src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
@@ -94,6 +130,12 @@ const ProjectDetail = () => {
               />
             )}
           </div>
+
+          {/* Petition Action Button */}
+          {/* <PetitionActionButton 
+            projectId={project._id} 
+            projectName={project.title}
+          /> */}
 
           <div className="project-details">
             <div className="detail-card">

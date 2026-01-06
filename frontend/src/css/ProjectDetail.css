@@ -49,3 +49,61 @@ footer {
     padding: 1rem;
   }
 }
+
+
+.petition-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #CE1126 0%, #FCD116 100%);
+  color: white;
+  border-radius: 12px;
+  margin: 1rem 0 1.5rem 0;
+  box-shadow: 0 4px 12px rgba(206, 17, 38, 0.3);
+  animation: slideInFromTop 0.5s ease-out;
+}
+
+.petition-count-badge svg {
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.petition-count-badge span {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.petition-count-badge strong {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-right: 0.25rem;
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .petition-count-badge {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .petition-count-badge strong {
+    font-size: 1.1rem;
+  }
+
+  .petition-count-badge svg {
+    width: 18px;
+    height: 18px;
+  }
+}
