@@ -5,7 +5,7 @@ import { Icon } from 'leaflet';
 import axios from 'axios';
 import '../ProjectDetail.css';
 import Footer from '../components/Footer';
-import PetitionActionButton from '../components/PetitionActionButton';
+// import PetitionActionButton from '../components/PetitionActionButton';
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
