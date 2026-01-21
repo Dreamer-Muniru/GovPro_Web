@@ -69,12 +69,12 @@ const Navbar = () => {
           </button>
 
           {/* Profile Link - Hidden on mobile (shown at top) */}
-          {/* {user && (
+          {user && (
             <Link to="/profile" className="nav-link">
-              <User className="nav-icon" size={24} />
+              <User className="nav-icon" size={28} data-type="profile" />
               <span className="nav-text">Profile</span>
             </Link>
-          )} */}
+          )}
         </div>
       </div>
     </nav>
