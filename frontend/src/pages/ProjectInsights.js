@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -15,50 +15,72 @@ import Footer from '../components/Footer';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+const CACHE_KEY = 'project-insights-cache';
+const CACHE_DURATION = 10 * 60 * 1000;
+
+const getCachedInsights = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+    if (!cached) return null;
+
+    if (Date.now() - cached.time > CACHE_DURATION) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+
+    return cached.data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedInsights = (data) => {
+  localStorage.setItem(
+    CACHE_KEY,
+    JSON.stringify({ data, time: Date.now() })
+  );
+};
+
 const ProjectInsights = () => {
   const [regionData, setRegionData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('regions');
 
   // Caching references
-  const hasFetchedRef = useRef(false);
-  const cacheTimeRef = useRef(null);
-  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache (insights data changes slowly)
+  // const hasFetchedRef = useRef(false);
+  // const cacheTimeRef = useRef(null);
+  // const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache (insights data changes slowly)
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Check if we have cached data and it's still valid
-      const now = Date.now();
-      const cacheValid = cacheTimeRef.current && (now - cacheTimeRef.current < CACHE_DURATION);
+  const cachedData = getCachedInsights();
 
-      // If we have cached data and cache is valid, don't fetch
-      if (hasFetchedRef.current && cacheValid && regionData.length > 0) {
-        console.log('✅ Using cached project insights data');
-        setLoading(false);
-        return;
-      }
+  if (cachedData) {
+    console.log('🟢 Loaded project insights from cache');
+    setRegionData(cachedData);
+    setLoading(false);
+    return;
+  }
 
-      // Otherwise, fetch fresh data
-      console.log('🔄 Fetching fresh project insights data...');
-      setLoading(true);
-      try {
-        const res = await axios.get('https://govpro-web-backend-gely.onrender.com/api/projects/stats');
-        setRegionData(res.data);
+  const fetchData = async () => {
+    console.log('🔵 Fetching fresh project insights data...');
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        'https://govpro-web-backend-gely.onrender.com/api/projects/stats'
+      );
 
-        // Update cache timestamp
-        hasFetchedRef.current = true;
-        cacheTimeRef.current = Date.now();
-        console.log('✅ Project insights data cached at:', new Date().toLocaleTimeString());
-      } catch (err) {
-        console.error('Error fetching region stats', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setRegionData(res.data);
+      setCachedInsights(res.data);
+      console.log('✅ Project insights cached');
+    } catch (err) {
+      console.error('Error fetching region stats', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  fetchData();
+}, []);
 
   // Extract chart datasets
   const labels = regionData.map((item) => item.region);
