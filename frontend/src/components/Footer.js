@@ -47,7 +47,7 @@ const Footer = () => {
           </p>
           
           <div className="footer-credits">
-            <p>© 2025 All Rights Reserved</p>
+            <p>© 2026 All Rights Reserved</p>
             <p className="footer-author">
               Crafted with <i className="fas fa-heart heart-icon"></i> by 
               <span className="author-name"> Muniru Dreamer</span>

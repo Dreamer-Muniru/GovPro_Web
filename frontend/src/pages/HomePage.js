@@ -112,8 +112,18 @@ const HomePage = () => {
   return (
     <>
       <div className="home-page">
+        {/* Ghana Flag Header with Black Star */}
         <div className="ghana-header">
-          <h1 className="page-title">Ghana Project Tracker</h1>
+          <div className="flag-container">
+            <div className="flag-stripe red"></div>
+            <div className="flag-stripe yellow">
+              <svg className="black-star" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="50,15 61,40 88,40 66,57 74,82 50,65 26,82 34,57 12,40 39,40" fill="#000000"/>
+              </svg>
+            </div>
+            <div className="flag-stripe green"></div>
+          </div>
+          {/* <h1 className="page-title">Ghana Project Tracker</h1> */}
         </div>
         
         {deferredPrompt && (
@@ -128,12 +138,13 @@ const HomePage = () => {
             <MapContainer 
               center={[7.9465, -1.0232]}
               zoom={7}
-              minZoom={7}
-              maxZoom={18}
+              minZoom={3}
+              maxZoom={10}
               maxBounds={[[4.5, -3.5], [11.2, 1.3]]}
               maxBoundsViscosity={1.0}
               scrollWheelZoom={true}
-              style={{ height: '500px', width: '100%' }}
+              zoomControl={true}
+              style={{ height: '600px', width: '100%' }}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -148,30 +159,32 @@ const HomePage = () => {
                   >
                     <Popup
                       autoPan={true}
-                      autoPanPadding={[40, 40]}
+                      autoPanPadding={[50, 50]}
                       closeButton={true}
                       className="project-popup"
-                      maxWidth={200}
-                      minWidth={180}
-                      offset={[0, -10]}
+                      maxWidth={220}
+                      minWidth={200}
+                      offset={[0, -20]}
                     >
-                      <h4 className="popup-title">{project.title}</h4>
-                      {project.imageUrl && (
-                        <img
-                          src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`}
-                          alt={project.title}
-                          className="popup-image"
-                        />
-                      )}
-                      <p className="popup-detail"><strong>Type:</strong> {project.type}</p>
-                      <p className="popup-detail"><strong>Status:</strong> {project.status}</p>
-                      <p className="popup-detail"><strong>Location:</strong> {project.region}</p>
-                      <button
-                        onClick={() => navigate(`/project/${project._id}`)}
-                        className="view-details-btn"
-                      >
-                        View Details
-                      </button>
+                      <div className="popup-content-wrapper">
+                        <h4 className="popup-title">{project.title}</h4>
+                        {project.imageUrl && (
+                          <img
+                            src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`}
+                            alt={project.title}
+                            className="popup-image"
+                          />
+                        )}
+                        <p className="popup-detail"><strong>Type:</strong> {project.type}</p>
+                        <p className="popup-detail"><strong>Status:</strong> {project.status}</p>
+                        <p className="popup-detail"><strong>Location:</strong> {project.region}</p>
+                        <button
+                          onClick={() => navigate(`/project/${project._id}`)}
+                          className="view-details-btn"
+                        >
+                          View Details
+                        </button>
+                      </div>
                     </Popup>
                   </Marker>
                 ) : null

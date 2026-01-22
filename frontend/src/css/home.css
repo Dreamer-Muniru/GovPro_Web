@@ -10,26 +10,62 @@ body, html, .home-page {
   overflow-x: hidden; 
 }
 
-/* Ghana Flag Header */
+/* Ghana Flag Header with Black Star */
 .ghana-header {
-  background: linear-gradient(to right, 
-    #CE1126 0%, #CE1126 33%, 
-    #FCD116 33%, #FCD116 66%, 
-    #006B3F 66%, #006B3F 100%);
-  padding: 1rem 0;
-  margin-bottom: 0;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: -2rem;
+  padding: 1.5rem 0;
 }
 
-.page-title {
+.flag-container {
+  display: flex;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.flag-stripe {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flag-stripe.red {
+  background-color: #CE1126;
+}
+
+.flag-stripe.yellow {
+  background-color: #FCD116;
+  position: relative;
+}
+
+.flag-stripe.green {
+  background-color: #006B3F;
+}
+
+.black-star {
+  width: 90px;
+  height: 90px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  animation: starPulse 3s ease-in-out infinite;
+}
+
+@keyframes starPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* .page-title {
   font-size: 2.5rem;
   font-weight: 800;
-  color: white;
+  color: #1a365d;
   text-align: center;
   margin: 0;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-}
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+} */
 
 /* Hero Section */
 .hero-section {
@@ -39,93 +75,136 @@ body, html, .home-page {
   margin-bottom: 3rem;
 }
 
-/* Centered Map Container */
+/* Enhanced Map Container */
 .map-container {
   height: 600px !important;
   width: 100%;
   margin: 0 auto;
   border-radius: 12px;
-  overflow: visible;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
   margin-bottom: 2rem;
-  border: 2px solid white;
+  border: 3px solid #FCD116;
   position: relative;
-}
-.map-container .leaflet-container {
-  border-radius: 12px;
-  overflow: visible; /* keep tiles clipped but let popups overflow parent */
+  background: white;
 }
 
+.map-container .leaflet-container {
+  border-radius: 12px;
+  height: 100% !important;
+  z-index: 1;
+}
+
+/* Zoom controls styling */
+.leaflet-control-zoom {
+  border: 2px solid #FCD116 !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+  background-color: white !important;
+  color: #1a365d !important;
+  font-weight: bold !important;
+  transition: all 0.2s ease;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #FCD116 !important;
+  color: #006B3F !important;
+}
+
+/* Map overlay gradient */
 .map-container::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 80px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.2), transparent);
-  z-index: 5;
+  height: 100px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.15), transparent);
+  z-index: 400;
   pointer-events: none;
+  border-radius: 12px 12px 0 0;
 }
 
-
-/* Popup Styling - UPDATED FOR SMALLER SIZE */
+/* Enhanced Popup Styling */
 .leaflet-popup-content-wrapper {
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  border: 2px solid #FCD116;
 }
 
 .leaflet-popup-content {
-  min-width: 180px !important;
-  max-width: 200px !important;
-  margin: 8px !important;
+  min-width: 200px !important;
+  max-width: 220px !important;
+  margin: 0 !important;
   font-size: 0.85rem;
 }
 
+.popup-content-wrapper {
+  padding: 12px;
+}
+
+.leaflet-popup-tip {
+  border-top-color: #FCD116 !important;
+}
+
 .popup-title {
-  font-size: 0.95rem;
-  margin: 0 0 8px 0;
+  font-size: 1rem;
+  margin: 0 0 10px 0;
   color: #1a365d;
-  font-weight: 600;
-  line-height: 1.2;
+  font-weight: 700;
+  line-height: 1.3;
+  border-bottom: 2px solid #FCD116;
+  padding-bottom: 6px;
 }
 
 .popup-image {
   width: 100%;
-  height: 80px;
+  height: 100px;
   object-fit: cover;
-  border-radius: 4px;
-  margin-bottom: 8px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #e2e8f0;
 }
 
 .popup-detail {
-  margin: 4px 0;
-  font-size: 0.8rem;
-  line-height: 1.3;
+  margin: 6px 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #4a5568;
 }
 
 .popup-detail strong {
   font-weight: 600;
-  color: #4a5568;
+  color: #1a365d;
 }
 
 .view-details-btn {
-  background: #CE1126;
+  background: linear-gradient(135deg, #CE1126, #a50e20);
   color: white;
   border: none;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-weight: 500;
-  font-size: 0.8rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 10px;
   width: 100%;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .view-details-btn:hover {
-  background: #a50e20;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #a50e20, #CE1126);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.view-details-btn:active {
+  transform: translateY(0);
 }
 
 /* Filter Section */
@@ -136,7 +215,9 @@ body, html, .home-page {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   margin: 0 auto 3rem;
   width: 60%;
+  border: 2px solid #FCD116;
 }
+
 .filter-section {
    box-sizing: border-box; 
   }
@@ -147,6 +228,7 @@ body, html, .home-page {
   color: #1a365d;
   font-size: 1.25rem;
   text-align: center;
+  font-weight: 700;
 }
 
 .filter-controls {
@@ -159,12 +241,17 @@ body, html, .home-page {
 .filter-controls select {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid #e2e8f0;
+  border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 1rem;
   background-color: #f8fafc;
   transition: all 0.2s;
   min-width: 0;
+  cursor: pointer;
+}
+
+.filter-controls select:hover {
+  border-color: #FCD116;
 }
 
 .filter-controls select:focus {
@@ -186,13 +273,13 @@ body, html, .home-page {
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   transition: all 0.3s ease;
-  border: 1px solid #e2e8f0;
+  border: 2px solid #e2e8f0;
 }
 
 .project-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-  border-color: #CE1126;
+  border-color: #FCD116;
 }
 
 .project-image {
@@ -279,13 +366,23 @@ body, html, .home-page {
   .home-page {
     padding: 0 1rem 2rem;
   }
+  
+  .flag-container {
+    height: 60px;
+  }
+  
+  .black-star {
+    width: 40px;
+    height: 40px;
+  }
+  
   .map-container{
     height: 400px !important;
   }
   
-  .page-title {
-    font-size: 2rem;
-  }
+  /* .page-title {
+    font-size: 1.75rem;
+  } */
   
   .map-container,
   .filter-section {
@@ -318,7 +415,7 @@ body, html, .home-page {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: linear-gradient(135deg, #388e3c, #2e7d32); /* Green gradient */
+  background: linear-gradient(135deg, #388e3c, #2e7d32);
   color: white;
   border: none;
   padding: 12px 16px;
@@ -383,6 +480,7 @@ body, html, .home-page {
   margin-top: 10px;
   padding: 8px 0;
 }
+
 /* Comment Modal Styles */
 .comment-modal-overlay {
   position: fixed;
@@ -452,6 +550,7 @@ body, html, .home-page {
   color: #65676B;
   font-style: italic;
 }
+
 .comment:last-child {
   border-bottom: none;
   margin-bottom: 0;
@@ -475,6 +574,7 @@ body, html, .home-page {
   font-weight: 600;
   font-size: 0.9rem;
 }
+
 .comment-author {
   font-weight: 600;
   color: var(--ghana-red);
@@ -484,12 +584,12 @@ body, html, .home-page {
   padding-left: 8px;
   line-height: 1.4;
 }
+
 .comment-header {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
 }
-
 
 .comment-time {
   font-size: 0.8rem;
@@ -506,7 +606,6 @@ body, html, .home-page {
   padding: 15px;
   border-top: 1px solid #ddd;
 }
-
 
 /* Mobile-specific styles */
 @media (max-width: 768px) {
@@ -563,13 +662,6 @@ body, html, .home-page {
   font-size: 14px;
 }
 
-/* Ensure header doesn't need positioning */
-.ghana-header {
-  text-align: center;
-  padding: 15px 0;
-}
-
-
 .comment-toggle-btn {
   margin-top: 10px;
   background-color: #0a66c2;
@@ -591,17 +683,28 @@ body, html, .home-page {
   display: flex;
   justify-content: center;
   margin-top: 20px;
+  gap: 8px;
 }
 
 .pagination button {
-  margin: 0 5px;
-  padding: 8px 12px;
-  border: none;
-  background-color: #eee;
+  margin: 0;
+  padding: 10px 16px;
+  border: 2px solid #e2e8f0;
+  background-color: white;
   cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.pagination button:hover {
+  border-color: #FCD116;
+  background-color: #FCD116;
+  transform: translateY(-2px);
 }
 
 .pagination button.active-page {
-  background-color: #333;
+  background-color: #CE1126;
   color: #fff;
+  border-color: #CE1126;
 }

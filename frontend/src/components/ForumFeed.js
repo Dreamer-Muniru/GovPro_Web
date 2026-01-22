@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useRef } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,8 +15,27 @@ const ForumFeed = () => {
   const [formData, setFormData] = useState({title: '', description: '', image: null});
   const [submitting, setSubmitting] = useState(false);
 
+  // Caching references
+  const hasFetchedRef = useRef(false);
+  const cacheTimeRef = useRef(null);
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+
   useEffect(() => {
     const fetchForums = async () => {
+      // Check if we have cached data and it's still valid
+      const now = Date.now();
+      const cacheValid = cacheTimeRef.current && (now - cacheTimeRef.current < CACHE_DURATION);
+
+      // If we have cached data and cache is valid, don't fetch
+      if (hasFetchedRef.current && cacheValid && forums.length > 0) {
+        console.log('✅ Using cached forums data');
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise, fetch fresh data
+      console.log('🔄 Fetching fresh forums data...');
+      setLoading(true);
       try {
         const region = encodeURIComponent(user.region);
         const district = encodeURIComponent(user.district);
@@ -24,6 +43,11 @@ const ForumFeed = () => {
         const data = res?.data;
         const list = Array.isArray(data) ? data : (Array.isArray(data?.forums) ? data.forums : []);
         setForums(list);
+        
+        // Update cache timestamp
+        hasFetchedRef.current = true;
+        cacheTimeRef.current = Date.now();
+        console.log('✅ Forums data cached at:', new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Failed to fetch forums:', err?.message || err);
         setForums([]);
@@ -37,7 +61,29 @@ const ForumFeed = () => {
     } else {
       setLoading(false);
     }
-  }, [user?.region, user?.district]);
+  }, [user?.region, user?.district, forums.length]);
+
+  // Function to force refresh (useful after creating new forum)
+  const refreshForums = async () => {
+    console.log('🔄 Manual refresh triggered...');
+    setLoading(true);
+    try {
+      const region = encodeURIComponent(user.region);
+      const district = encodeURIComponent(user.district);
+      const res = await axios.get(apiUrl(`/api/forums?region=${region}&district=${district}`));
+      const data = res?.data;
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.forums) ? data.forums : []);
+      setForums(list);
+      
+      // Update cache timestamp
+      cacheTimeRef.current = Date.now();
+      console.log('✅ Forums refreshed and cached at:', new Date().toLocaleTimeString());
+    } catch (err) {
+      console.error('Failed to refresh forums:', err?.message || err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCardClick = (forumId) => {
     navigate(`/forums/${forumId}`);
@@ -65,7 +111,7 @@ const ForumFeed = () => {
     e.preventDefault();
     setSubmitting(true);
 
-   try {
+    try {
       const submitData = new FormData();
       submitData.append('title', formData.title);
       submitData.append('description', formData.description);
@@ -78,8 +124,15 @@ const ForumFeed = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-    const created = res?.data && typeof res.data === 'object' ? res.data : null;
-      setForums((prev) => (created ? [created, ...(Array.isArray(prev) ? prev : [])] : (Array.isArray(prev) ? prev : [])));
+      const created = res?.data && typeof res.data === 'object' ? res.data : null;
+      
+      // Add new forum to the top of the list
+      if (created) {
+        setForums((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
+        // Update cache timestamp since we have fresh data
+        cacheTimeRef.current = Date.now();
+      }
+      
       handleCloseModal();
     } catch (err) {
       const msg = err?.response?.data?.error || err?.message || 'Failed to create forum';
@@ -90,9 +143,9 @@ const ForumFeed = () => {
     }
   };
 
- if (loading) {
-  
-  return (
+  if (loading && forums.length === 0) {
+    // Only show loading spinner if we have no cached data
+    return (
       <div className="forum-feed">
         <div className="loading-container">
           <div className="loading-spinner"></div>
@@ -101,23 +154,51 @@ const ForumFeed = () => {
       </div>
     );
   }
+
   const forumList = Array.isArray(forums) ? forums : [];
+
+  // Calculate cache age for display
+  const getCacheAge = () => {
+    if (!cacheTimeRef.current) return null;
+    const ageMs = Date.now() - cacheTimeRef.current;
+    const ageMinutes = Math.floor(ageMs / 60000);
+    const ageSeconds = Math.floor((ageMs % 60000) / 1000);
+    if (ageMinutes > 0) return `${ageMinutes}m ago`;
+    return `${ageSeconds}s ago`;
+  };
+
+  const isCached = hasFetchedRef.current && cacheTimeRef.current;
+
   return (
     <div className="forum-feed">
       {/* Header with Create Button */}
       <div className="forum-header">
         <div className="header-content">
-        <button className="back-button" onClick={() => navigate('/')}>← Back to Homepage</button>
+          <button className="back-button" onClick={() => navigate('/')}>← Back to Homepage</button>
           <h1 className="forum-title">Community Forums</h1>
-          <p className="forum-subtitle">Discuss local projects and community matters</p>
+          <p className="forum-subtitle">
+            Discuss local projects and community matters
+            {/* {isCached && (
+              <span className="cache-indicator" title="Using cached data for faster loading">
+                ⚡ Cached {getCacheAge()}
+              </span>
+            )} */}
+          </p>
         </div>
-        <button className="create-forum-btn" onClick={handleCreateClick}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Create Forum
-        </button>
+        <div className="header-actions">
+          {/* <button className="refresh-btn" onClick={refreshForums} title="Refresh forums">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button> */}
+          <button className="create-forum-btn" onClick={handleCreateClick}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create Forum
+          </button>
+        </div>
       </div>
 
       {/* Forums Grid */}
@@ -134,7 +215,7 @@ const ForumFeed = () => {
         </div>
       ) : (
         <div className="forum-grid">
-            {forumList.map((forum) => (
+          {forumList.map((forum) => (
             <div
               key={forum._id}
               className="forum-card"
@@ -142,7 +223,7 @@ const ForumFeed = () => {
             >
               {forum.imageUrl && (
                 <img
-                   src={apiUrl(forum.imageUrl)}
+                  src={apiUrl(forum.imageUrl)}
                   alt={forum.title}
                   className="forum-image"
                 />

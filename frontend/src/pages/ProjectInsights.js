@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -20,11 +20,35 @@ const ProjectInsights = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('regions');
 
+  // Caching references
+  const hasFetchedRef = useRef(false);
+  const cacheTimeRef = useRef(null);
+  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache (insights data changes slowly)
+
   useEffect(() => {
     const fetchData = async () => {
+      // Check if we have cached data and it's still valid
+      const now = Date.now();
+      const cacheValid = cacheTimeRef.current && (now - cacheTimeRef.current < CACHE_DURATION);
+
+      // If we have cached data and cache is valid, don't fetch
+      if (hasFetchedRef.current && cacheValid && regionData.length > 0) {
+        console.log('✅ Using cached project insights data');
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise, fetch fresh data
+      console.log('🔄 Fetching fresh project insights data...');
+      setLoading(true);
       try {
         const res = await axios.get('https://govpro-web-backend-gely.onrender.com/api/projects/stats');
         setRegionData(res.data);
+
+        // Update cache timestamp
+        hasFetchedRef.current = true;
+        cacheTimeRef.current = Date.now();
+        console.log('✅ Project insights data cached at:', new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Error fetching region stats', err);
       } finally {
@@ -33,13 +57,14 @@ const ProjectInsights = () => {
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Extract chart datasets
   const labels = regionData.map((item) => item.region);
   const completedData = regionData.map((item) => item.completed);
   const abandonedData = regionData.map((item) => item.abandoned);
-  const uncompletedData = regionData.map((item) => item.uncompleted); // FIXED – was item.pending
+  const uncompletedData = regionData.map((item) => item.uncompleted);
 
   const chartData = {
     labels,
@@ -105,97 +130,103 @@ const ProjectInsights = () => {
   const totalAbandoned = abandonedData.reduce((a, b) => a + b, 0);
   const totalUncompleted = uncompletedData.reduce((a, b) => a + b, 0);
 
-  return (
-    <>
-    <div className="insights-container">
-      <header className="insights-header">
-        <h1>Project Insights Dashboard</h1>
-        <div className="tabs">
-          <button
-            className={`tab ${activeTab === 'regions' ? 'active' : ''}`}
-            onClick={() => setActiveTab('regions')}
-          >
-            Regional View
-          </button>
-          <button
-            className={`tab ${activeTab === 'types' ? 'active' : ''}`}
-            onClick={() => setActiveTab('types')}
-          >
-            Project Types
-          </button>
-        </div>
-      </header>
-
-      <div className="summary-cards">
-        <div className="card completed">
-          <h3>Completed</h3>
-          <p>{totalCompleted}</p>
-          <small>Projects</small>
-        </div>
-        <div className="card abandoned">
-          <h3>Abandoned</h3>
-          <p>{totalAbandoned}</p>
-          <small>Projects</small>
-        </div>
-        <div className="card pending">
-          <h3>Uncompleted</h3>
-          <p>{totalUncompleted}</p>
-          <small>Projects</small>
-        </div>
-        <div className="card total">
-          <h3>Total</h3>
-          <p>{totalCompleted + totalAbandoned + totalUncompleted}</p>
-          <small>Projects</small>
-        </div>
-      </div>
-
-      <div className="chart-container">
-        {loading ? (
+  // Only show loading spinner if we have no cached data
+  if (loading && regionData.length === 0) {
+    return (
+      <>
+        <div className="insights-container">
           <div className="loading-spinner">
             <div className="spinner" />
             <p>Loading insights data...</p>
           </div>
-        ) : (
-          <>
-            <h2 className="chart-title">Regional Project Status Breakdown</h2>
-            <div className="chart-wrapper">
-              <Bar data={chartData} options={chartOptions} />
-            </div>
-          </>
-        )}
-      </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
-      <div className="data-table">
-        <h3>Detailed Regional Data</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Region</th>
-              <th>Completed</th>
-              <th>Abandoned</th>
-              <th>Uncompleted</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {regionData.map((region, index) => (
-              <tr key={index}>
-                <td>{region.region}</td>
-                <td>{region.completed}</td>
-                <td>{region.abandoned}</td>
-                <td>{region.uncompleted}</td>
-                <td>{
-                  region.completed +
-                  region.abandoned +
-                  region.uncompleted
-                }</td>
+  return (
+    <>
+      <div className="insights-container">
+        <header className="insights-header">
+          <h1>Project Insights Dashboard</h1>
+          <div className="tabs">
+            <button
+              className={`tab ${activeTab === 'regions' ? 'active' : ''}`}
+              onClick={() => setActiveTab('regions')}
+            >
+              Regional View
+            </button>
+            <button
+              className={`tab ${activeTab === 'types' ? 'active' : ''}`}
+              onClick={() => setActiveTab('types')}
+            >
+              Project Types
+            </button>
+          </div>
+        </header>
+
+        <div className="summary-cards">
+          <div className="card completed">
+            <h3>Completed</h3>
+            <p>{totalCompleted}</p>
+            <small>Projects</small>
+          </div>
+          <div className="card abandoned">
+            <h3>Abandoned</h3>
+            <p>{totalAbandoned}</p>
+            <small>Projects</small>
+          </div>
+          <div className="card pending">
+            <h3>Uncompleted</h3>
+            <p>{totalUncompleted}</p>
+            <small>Projects</small>
+          </div>
+          <div className="card total">
+            <h3>Total</h3>
+            <p>{totalCompleted + totalAbandoned + totalUncompleted}</p>
+            <small>Projects</small>
+          </div>
+        </div>
+
+        <div className="chart-container">
+          <h2 className="chart-title">Regional Project Status Breakdown</h2>
+          <div className="chart-wrapper">
+            <Bar data={chartData} options={chartOptions} />
+          </div>
+        </div>
+
+        <div className="data-table">
+          <h3>Detailed Regional Data</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Region</th>
+                <th>Completed</th>
+                <th>Abandoned</th>
+                <th>Uncompleted</th>
+                <th>Total</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {regionData.map((region, index) => (
+                <tr key={index}>
+                  <td>{region.region}</td>
+                  <td>{region.completed}</td>
+                  <td>{region.abandoned}</td>
+                  <td>{region.uncompleted}</td>
+                  <td>{
+                    region.completed +
+                    region.abandoned +
+                    region.uncompleted
+                  }</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-    <Footer/>
+      <Footer />
     </>
   );
 };

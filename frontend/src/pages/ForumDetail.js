@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useRef } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import '../css/ForumDetail.css';
 import { useNavigate } from 'react-router-dom';
 import { apiUrl } from '../utils/api';
-
 
 const ForumDetail = () => {
   const navigate = useNavigate();
@@ -22,25 +21,46 @@ const ForumDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
 
+  // Caching references
+  const hasFetchedRef = useRef(false);
+  const cacheTimeRef = useRef(null);
+  const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes cache (shorter for forum details as they update more frequently)
 
   const getReactionIcon = (type) => {
-  switch (type) {
-    case 'like': return '👍';
-    case 'love': return '❤️';
-    case 'angry': return '😠';
-    default: return '👍';
-  }
-};
-
-
+    switch (type) {
+      case 'like': return '👍';
+      case 'love': return '❤️';
+      case 'angry': return '😠';
+      default: return '👍';
+    }
+  };
 
   useEffect(() => {
     const fetchForumAndComments = async () => {
+      // Check if we have cached data and it's still valid
+      const now = Date.now();
+      const cacheValid = cacheTimeRef.current && (now - cacheTimeRef.current < CACHE_DURATION);
+
+      // If we have cached data and cache is valid, don't fetch
+      if (hasFetchedRef.current && cacheValid && forum && comments.length >= 0) {
+        console.log('✅ Using cached forum detail data');
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise, fetch fresh data
+      console.log('🔄 Fetching fresh forum detail data...');
+      setLoading(true);
       try {
         const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
         const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
         setForum(forumRes.data);
         setComments(commentRes.data);
+
+        // Update cache timestamp
+        hasFetchedRef.current = true;
+        cacheTimeRef.current = Date.now();
+        console.log('✅ Forum detail cached at:', new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Error loading forum:', err.message);
       } finally {
@@ -49,7 +69,28 @@ const ForumDetail = () => {
     };
 
     fetchForumAndComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Function to refresh forum and comments
+  const refreshForumDetail = async () => {
+    console.log('🔄 Refreshing forum detail...');
+    setLoading(true);
+    try {
+      const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
+      const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
+      setForum(forumRes.data);
+      setComments(commentRes.data);
+
+      // Update cache timestamp
+      cacheTimeRef.current = Date.now();
+      console.log('✅ Forum detail refreshed at:', new Date().toLocaleTimeString());
+    } catch (err) {
+      console.error('Error refreshing forum:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getTimeAgo = (timestamp) => {
     const now = new Date();
@@ -67,22 +108,23 @@ const ForumDetail = () => {
   };
 
   // Reaction or Like handle
- const handleReact = async (type) => {
-  try {
-     await axios.post(apiUrl(`/api/forums/${forum._id}/react`), {
-      type,
-      userId: user?._id
-    });
+  const handleReact = async (type) => {
+    try {
+      await axios.post(apiUrl(`/api/forums/${forum._id}/react`), {
+        type,
+        userId: user?._id
+      });
 
-    const res = await axios.get(apiUrl(`/api/forums/${forum._id}`));
-    setForum(res.data);
-    setShowReactions(false); // ✅ Close picker after selection
-  } catch (err) {
-    console.error('Reaction failed:', err.message);
-  }
-};
+      const res = await axios.get(apiUrl(`/api/forums/${forum._id}`));
+      setForum(res.data);
+      setShowReactions(false);
 
-
+      // Update cache timestamp since we have fresh data
+      cacheTimeRef.current = Date.now();
+    } catch (err) {
+      console.error('Reaction failed:', err.message);
+    }
+  };
 
   const toggleReplyInput = (commentId) => {
     setShowReplyInputs(prev => ({
@@ -111,14 +153,16 @@ const ForumDetail = () => {
         parentId,
         content,
         createdBy: user?._id
-
       });
 
       setReplyContents(prev => ({ ...prev, [parentId]: '' }));
       setShowReplyInputs(prev => ({ ...prev, [parentId]: false }));
-      
+
       const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
       setComments(updatedComments.data);
+
+      // Update cache timestamp since we have fresh data
+      cacheTimeRef.current = Date.now();
     } catch (err) {
       console.error('Failed to post reply:', err.message);
     } finally {
@@ -135,16 +179,18 @@ const ForumDetail = () => {
       const formData = new FormData();
       formData.append('forumId', id);
       formData.append('content', newComment.content);
-      formData.append('createdBy', user?._id
-);
+      formData.append('createdBy', user?._id);
 
-        await axios.post(apiUrl('/api/comments'), formData, {
+      await axios.post(apiUrl('/api/comments'), formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setNewComment({ content: '' });
       const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
       setComments(updatedComments.data);
+
+      // Update cache timestamp since we have fresh data
+      cacheTimeRef.current = Date.now();
     } catch (err) {
       console.error('Failed to post comment:', err.message);
     } finally {
@@ -208,7 +254,7 @@ const ForumDetail = () => {
         )}
 
         {/* Reply Button */}
-        <button 
+        <button
           className="reply-btn"
           onClick={() => toggleReplyInput(comment._id)}
         >
@@ -217,7 +263,7 @@ const ForumDetail = () => {
 
         {/* View Replies Button */}
         {!isReply && replyCount > 0 && (
-          <button 
+          <button
             className="view-replies-btn"
             onClick={() => toggleReplies(comment._id)}
           >
@@ -227,7 +273,7 @@ const ForumDetail = () => {
 
         {/* Reply Form */}
         {showReplyInputs[comment._id] && (
-          <form 
+          <form
             onSubmit={(e) => handleReplySubmit(e, comment._id)}
             className="reply-form"
           >
@@ -245,8 +291,8 @@ const ForumDetail = () => {
                   className="reply-textarea"
                   required
                 />
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="send-reply-btn"
                   disabled={submitting}
                 >
@@ -270,7 +316,20 @@ const ForumDetail = () => {
     );
   };
 
-  if (loading) {
+  // Calculate cache age for display
+  const getCacheAge = () => {
+    if (!cacheTimeRef.current) return null;
+    const ageMs = Date.now() - cacheTimeRef.current;
+    const ageMinutes = Math.floor(ageMs / 60000);
+    const ageSeconds = Math.floor((ageMs % 60000) / 1000);
+    if (ageMinutes > 0) return `${ageMinutes}m ago`;
+    return `${ageSeconds}s ago`;
+  };
+
+  const isCached = hasFetchedRef.current && cacheTimeRef.current;
+
+  // Only show loading spinner if we have no cached data
+  if (loading && !forum) {
     return (
       <div className="forum-detail">
         <div className="loading-container">
@@ -292,17 +351,28 @@ const ForumDetail = () => {
   }
 
   const totalComments = countTotalComments(comments);
-    const userReaction = forum.reactions?.find(r => r.user === user?.id)?.type;
+  const userReaction = forum.reactions?.find(r => r.user === user?.id)?.type;
 
   return (
     <div className="forum-detail">
-    <div>
-      <button className="back-button" onClick={() => navigate('/forum-feed')}>← Back to Forum Feed</button>
-    </div>
-    
+      <div className="forum-detail-header">
+        <button className="back-button" onClick={() => navigate('/forum-feed')}>← Back to Forum Feed</button>
+        {/* {isCached && (
+          <div className="cache-status">
+            <span className="cache-indicator-detail" title="Using cached data">
+              ⚡ Cached {getCacheAge()}
+            </span>
+            <button className="refresh-icon-btn" onClick={refreshForumDetail} title="Refresh forum">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
+        )} */}
+      </div>
+
       {/* Sweet Intro Text */}
       <div className="forum-intro">
-    {/* <button className="back-button" onClick={() => navigate('forumFeed')}>← Back to Homepage</button> */}
         💬 Join the conversation! Share your thoughts and connect with your community
       </div>
 
@@ -343,12 +413,11 @@ const ForumDetail = () => {
 
         {/* Post Actions */}
         <div className="post-actions">
-          <div className="post-actions">
-          <div 
-            className="like-button-wrapper" 
-            onMouseEnter={() => setShowReactions(true)} 
-            onMouseLeave={() => setShowReactions(false)} 
-            onTouchStart={() => setShowReactions(true)} // Mobile press
+          <div
+            className="like-button-wrapper"
+            onMouseEnter={() => setShowReactions(true)}
+            onMouseLeave={() => setShowReactions(false)}
+            onTouchStart={() => setShowReactions(true)}
           >
             <button className="like-button">
               {forum.reactions?.length || 0} {userReaction ? getReactionIcon(userReaction) : '👍'} Like
@@ -362,14 +431,9 @@ const ForumDetail = () => {
               </div>
             )}
           </div>
-        </div>
-
-      
-
-
 
           {/* Comments Button */}
-          <button 
+          <button
             className="action-btn"
             onClick={() => setShowCommentsModal(true)}
           >
@@ -391,7 +455,7 @@ const ForumDetail = () => {
             {/* Modal Header */}
             <div className="modal-header">
               <h2 className="modal-title">Comments</h2>
-              <button 
+              <button
                 className="close-btn"
                 onClick={() => setShowCommentsModal(false)}
               >
@@ -424,8 +488,8 @@ const ForumDetail = () => {
                     className="new-comment-input"
                     required
                   />
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="send-comment-btn"
                     disabled={submitting}
                   >
