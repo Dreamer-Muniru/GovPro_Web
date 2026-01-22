@@ -5,6 +5,32 @@ import { useNavigate } from 'react-router-dom';
 import '../css/ForumFeed.css';
 import { apiUrl } from '../utils/api';
 
+
+const CACHE_DURATION = 5 * 60 * 1000;
+
+const getCachedForums = (key) => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(key));
+    if (!cached) return null;
+
+    if (Date.now() - cached.time > CACHE_DURATION) {
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    return cached.data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedForums = (key, data) => {
+  localStorage.setItem(
+    key,
+    JSON.stringify({ data, time: Date.now() })
+  );
+};
+
 const ForumFeed = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -16,56 +42,49 @@ const ForumFeed = () => {
   const [submitting, setSubmitting] = useState(false);
 
   // Caching references
-  const hasFetchedRef = useRef(false);
+  // const hasFetchedRef = useRef(false);
   const cacheTimeRef = useRef(null);
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+  // const locationKeyRef = useRef(null);
 
-  useEffect(() => {
-    const fetchForums = async () => {
-      // Check if we have cached data and it's still valid
-      const now = Date.now();
-      const cacheValid = cacheTimeRef.current && (now - cacheTimeRef.current < CACHE_DURATION);
+ 
+useEffect(() => {
+  if (!user?.region || !user?.district) return;
 
-      // If we have cached data and cache is valid, don't fetch
-      if (hasFetchedRef.current && cacheValid && forums.length > 0) {
-        console.log('✅ Using cached forums data');
-        setLoading(false);
-        return;
-      }
+  const cacheKey = `forums-${user.region}-${user.district}`;
 
-      // Otherwise, fetch fresh data
-      console.log('🔄 Fetching fresh forums data...');
+  const cachedData = getCachedForums(cacheKey);
+  if (cachedData) {
+    console.log('🟢 Loaded forums from localStorage');
+    setForums(cachedData);
+    setLoading(false);
+    return;
+  }
+
+  const fetchForums = async () => {
+    try {
+      console.log('🔵 Fetching forums from API');
       setLoading(true);
-      try {
-        const region = encodeURIComponent(user.region);
-        const district = encodeURIComponent(user.district);
-        const res = await axios.get(apiUrl(`/api/forums?region=${region}&district=${district}`));
-        const data = res?.data;
-        const list = Array.isArray(data) ? data : (Array.isArray(data?.forums) ? data.forums : []);
-        setForums(list);
-        
-        // Update cache timestamp
-        hasFetchedRef.current = true;
-        cacheTimeRef.current = Date.now();
-        console.log('✅ Forums data cached at:', new Date().toLocaleTimeString());
-      } catch (err) {
-        console.error('Failed to fetch forums:', err?.message || err);
-        setForums([]);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    if (user?.region && user?.district) {
-      fetchForums();
-    } else {
+      const res = await axios.get(
+        apiUrl(`/api/forums?region=${user.region}&district=${user.district}`)
+      );
+
+      const list = res?.data?.forums || res?.data || [];
+      setForums(list);
+      setCachedForums(cacheKey, list);
+    } catch (e) {
+      console.error(e);
+    } finally {
       setLoading(false);
     }
-  }, [user?.region, user?.district, forums.length]);
+  };
+
+  fetchForums();
+}, [user?.region, user?.district]);
+
 
   // Function to force refresh (useful after creating new forum)
   const refreshForums = async () => {
-    console.log('🔄 Manual refresh triggered...');
     setLoading(true);
     try {
       const region = encodeURIComponent(user.region);
@@ -77,7 +96,6 @@ const ForumFeed = () => {
       
       // Update cache timestamp
       cacheTimeRef.current = Date.now();
-      console.log('✅ Forums refreshed and cached at:', new Date().toLocaleTimeString());
     } catch (err) {
       console.error('Failed to refresh forums:', err?.message || err);
     } finally {
@@ -143,8 +161,7 @@ const ForumFeed = () => {
     }
   };
 
-  if (loading && forums.length === 0) {
-    // Only show loading spinner if we have no cached data
+  if (loading) {
     return (
       <div className="forum-feed">
         <div className="loading-container">
@@ -157,18 +174,6 @@ const ForumFeed = () => {
 
   const forumList = Array.isArray(forums) ? forums : [];
 
-  // Calculate cache age for display
-  const getCacheAge = () => {
-    if (!cacheTimeRef.current) return null;
-    const ageMs = Date.now() - cacheTimeRef.current;
-    const ageMinutes = Math.floor(ageMs / 60000);
-    const ageSeconds = Math.floor((ageMs % 60000) / 1000);
-    if (ageMinutes > 0) return `${ageMinutes}m ago`;
-    return `${ageSeconds}s ago`;
-  };
-
-  const isCached = hasFetchedRef.current && cacheTimeRef.current;
-
   return (
     <div className="forum-feed">
       {/* Header with Create Button */}
@@ -176,21 +181,14 @@ const ForumFeed = () => {
         <div className="header-content">
           <button className="back-button" onClick={() => navigate('/')}>← Back to Homepage</button>
           <h1 className="forum-title">Community Forums</h1>
-          <p className="forum-subtitle">
-            Discuss local projects and community matters
-            {/* {isCached && (
-              <span className="cache-indicator" title="Using cached data for faster loading">
-                ⚡ Cached {getCacheAge()}
-              </span>
-            )} */}
-          </p>
+          <p className="forum-subtitle">Discuss local projects and community matters</p>
         </div>
         <div className="header-actions">
-          {/* <button className="refresh-btn" onClick={refreshForums} title="Refresh forums">
+          <button className="refresh-btn" onClick={refreshForums} title="Refresh forums">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-          </button> */}
+          </button>
           <button className="create-forum-btn" onClick={handleCreateClick}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="12" y1="5" x2="12" y2="19"></line>

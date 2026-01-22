@@ -73,24 +73,24 @@ const ForumDetail = () => {
   }, [id]);
 
   // Function to refresh forum and comments
-  const refreshForumDetail = async () => {
-    console.log('🔄 Refreshing forum detail...');
-    setLoading(true);
-    try {
-      const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
-      const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
-      setForum(forumRes.data);
-      setComments(commentRes.data);
+  // const refreshForumDetail = async () => {
+  //   console.log('🔄 Refreshing forum detail...');
+  //   setLoading(true);
+  //   try {
+  //     const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
+  //     const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
+  //     setForum(forumRes.data);
+  //     setComments(commentRes.data);
 
       // Update cache timestamp
-      cacheTimeRef.current = Date.now();
-      console.log('✅ Forum detail refreshed at:', new Date().toLocaleTimeString());
-    } catch (err) {
-      console.error('Error refreshing forum:', err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     cacheTimeRef.current = Date.now();
+  //     console.log('✅ Forum detail refreshed at:', new Date().toLocaleTimeString());
+  //   } catch (err) {
+  //     console.error('Error refreshing forum:', err.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const getTimeAgo = (timestamp) => {
     const now = new Date();
@@ -317,16 +317,16 @@ const ForumDetail = () => {
   };
 
   // Calculate cache age for display
-  const getCacheAge = () => {
-    if (!cacheTimeRef.current) return null;
-    const ageMs = Date.now() - cacheTimeRef.current;
-    const ageMinutes = Math.floor(ageMs / 60000);
-    const ageSeconds = Math.floor((ageMs % 60000) / 1000);
-    if (ageMinutes > 0) return `${ageMinutes}m ago`;
-    return `${ageSeconds}s ago`;
-  };
+  // const getCacheAge = () => {
+  //   if (!cacheTimeRef.current) return null;
+  //   const ageMs = Date.now() - cacheTimeRef.current;
+  //   const ageMinutes = Math.floor(ageMs / 60000);
+  //   const ageSeconds = Math.floor((ageMs % 60000) / 1000);
+  //   if (ageMinutes > 0) return `${ageMinutes}m ago`;
+  //   return `${ageSeconds}s ago`;
+  // };
 
-  const isCached = hasFetchedRef.current && cacheTimeRef.current;
+  // const isCached = hasFetchedRef.current && cacheTimeRef.current;
 
   // Only show loading spinner if we have no cached data
   if (loading && !forum) {
