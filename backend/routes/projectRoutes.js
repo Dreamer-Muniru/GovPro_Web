@@ -164,7 +164,7 @@ router.delete('/:id', verifyAdminToken, async (req, res) => {
 
 router.post('/:id/comments', authenticateUser, async (req, res) => {
   console.log('=== COMMENT ROUTE CALLED ===');
-  console.log('User ID from token:', req.user.id);
+  console.log('User ID from token:', req.user._id);
   console.log('Request body:', req.body);
 
   const { comment } = req.body;
@@ -172,9 +172,9 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
 
   try {
     // ✅ Fetch user from DB
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
     if (!user) {
-      console.log('❌ User not found for ID:', req.user.id);
+      console.log('❌ User not found for ID:', req.user._id);
       return res.status(404).json({ error: 'User not found' });
     }
 

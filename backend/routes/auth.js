@@ -36,7 +36,7 @@ router.post('/register', async (req, res) => {
     }
 
     const token = await jwt.sign(
-      { id: user._id, username: user.username, isAdmin: user.isAdmin },
+      { _id: user._id, username: user.username, isAdmin: user.isAdmin },
       jwtSecret,
       { expiresIn: '1d' }
     );
