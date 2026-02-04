@@ -10,13 +10,20 @@ const authenticateUser = async(req, res, next) => {
 
   const token = authHeader.split(' ')[1];
 
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    console.error('❌ JWT_SECRET is not set on the server. Set it in your deployment environment (e.g. Render).');
+    return res.status(500).json({ error: 'Server configuration error. Please try again later.' });
+  }
+
   try {
-     const decoded = await jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, jwtSecret);
     req.user = decoded; // contains userId, username, etc.
-    // console.log('Decoded token:', decoded);
-    // console.log('Authenticated user:', req.user);
     next();
   } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired' });
+    }
     return res.status(401).json({ error: 'Invalid token' });
   }
 };
