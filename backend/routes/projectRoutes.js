@@ -198,6 +198,7 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
       userId: user._id,
       username: user.username,
       comment,
+      district: user.district || undefined,
       createdAt: new Date()
     };
 

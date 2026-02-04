@@ -38,7 +38,7 @@ router.post('/register', async (req, res) => {
     const token = await jwt.sign(
       { _id: user._id, username: user.username, isAdmin: user.isAdmin },
       jwtSecret,
-      { expiresIn: '1d' }
+      { expiresIn: '7d' }
     );
 
     res.status(201).json({ token });
@@ -121,7 +121,7 @@ router.post('/login', async (req, res) => {
         region: finalUser.region
       },
       jwtSecret,
-      { expiresIn: '24h' }
+      { expiresIn: '7d' }
     );
 
 
