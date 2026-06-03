@@ -33,7 +33,7 @@ const Navbar = () => {
       <div className="navbar-content">
         {/* Logo */}
         <Link to="/" className="nav-brand">
-          <img src="/images/ghana-project-logo.png" alt="Abandoned Ghana" />
+          <img src="/images/logo.png" alt="Abandoned Ghana" />
         </Link>
 
         {/* Profile Link - Only visible on mobile at top right */}
