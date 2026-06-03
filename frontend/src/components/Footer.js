@@ -15,7 +15,7 @@ const Footer = () => {
           </div>
           <p className="footer-text">
             <i className="fas fa-map-marker-alt footer-icon"></i> 
-            Gate360, Garu - U/ER
+            Gate360, Accra, Ghana
           </p>
           <div className="footer-social">
              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"><i className="fab fa-facebook-f"></i></a>
@@ -29,7 +29,6 @@ const Footer = () => {
           <h3 className="footer-heading">Quick Links</h3>
           <ul className="footer-links">
             <li><a href="/"><i className="fas fa-chevron-right"></i> Home</a></li>
-            <li><a href="/projects"><i className="fas fa-chevron-right"></i> Projects</a></li>
             <li><a href="/about"><i className="fas fa-chevron-right"></i> About</a></li>
             {/* <li><a href="#"><i className="fas fa-chevron-right"></i> Contact</a></li> */}
           </ul>
@@ -39,7 +38,7 @@ const Footer = () => {
           <h3 className="footer-heading">Contact Us</h3>
           <p className="footer-text">
             <i className="fas fa-phone-alt footer-icon"></i> 
-            <a href="tel:+233240527043">+233 240527043</a>
+            <a href="tel:+233240527043">233 246346503 </a>
           </p>
           <p className="footer-text">
             <i className="fas fa-envelope footer-icon"></i> 
@@ -50,7 +49,7 @@ const Footer = () => {
             <p>© 2026 All Rights Reserved</p>
             <p className="footer-author">
               Crafted with <i className="fas fa-heart heart-icon"></i> by 
-              <span className="author-name"> Muniru Dreamer</span>
+              <span className="author-name"> Pin Consult LTD</span>
             </p>
           </div>
         </div>
