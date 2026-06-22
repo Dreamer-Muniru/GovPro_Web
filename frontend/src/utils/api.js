@@ -1,17 +1,26 @@
+const PRODUCTION_API = 'https://govpro-web-backend-gely.onrender.com';
+
 const inferBaseFromWindow = () => {
-  if (typeof window === 'undefined') return '';
+  if (typeof window === 'undefined') return PRODUCTION_API;
   const { protocol, hostname, port } = window.location;
-  // If running CRA dev server on :3000, point to backend :5000
-  if (port === '3001') {
+  const isLocal =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '0.0.0.0';
+
+  // CRA dev server runs on :3000/:3001 — API lives on :5000
+  if (isLocal && (!port || port === '3000' || port === '3001')) {
     return `${protocol}//localhost:5000`;
   }
-  return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+
+  // Deployed frontend (Vercel, Netlify, custom domain, etc.)
+  return PRODUCTION_API;
 };
 
 const envBase = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) || '';
 
 let resolvedBase = envBase || inferBaseFromWindow();
-// Safety: if someone set REACT_APP_API_URL to the frontend origin on :3000, override to backend :5000
+// Safety: if REACT_APP_API_URL points at the frontend dev server, use the backend port instead
 if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0):3000$/.test(resolvedBase)) {
   resolvedBase = resolvedBase.replace(/:\d+$/, ':5000').replace('0.0.0.0', 'localhost');
 }

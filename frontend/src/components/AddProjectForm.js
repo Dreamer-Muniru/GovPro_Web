@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { createProject } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiUrl } from '../utils/api';
 import ghanaRegions from '../data/ghanaRegions';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import '../css/AddProjectForm.css';
+
+const DEFAULT_LAT = 5.5546;
+const DEFAULT_LNG = -0.1963
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -13,11 +18,77 @@ const pinpointIcon = new Icon({
   iconAnchor: [12, 41],
 });
 
+// Repositions the map whenever `position` changes — avoids full remount.
+const MapUpdater = ({ position }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (position) {
+      map.flyTo(position, 15, { animate: false });
+    }
+  }, [position, map]);
+  return null;
+};
+
+// Component to handle map centering on user location
+const MapView = ({ position, handleMarkerDrag }) => {
+  if (!position) {
+    return (
+      <div style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#f3f4f6',
+        color: '#6b7280',
+        fontSize: '0.9rem',
+        gap: '10px',
+      }}>
+        <div className="spinner" style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #e5e7eb',
+          borderTop: '4px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <span>Detecting your location…</span>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <MapContainer
+      center={position}
+      zoom={15}
+      style={{ height: '100%', width: '100%' }}
+    >
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <MapUpdater position={position} />
+      <Marker
+        position={position}
+        icon={pinpointIcon}
+        draggable
+        eventHandlers={{ dragend: handleMarkerDrag }}
+      />
+    </MapContainer>
+  );
+};
+
 const AddProjectForm = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     title: '',
     type: '',
+    fundingSource: '',
+    otherFundingSources: '',
     description: '',
     region: '',
     district: '',
@@ -35,31 +106,128 @@ const AddProjectForm = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [position, setPosition] = useState([10.853388, -0.174521]);
-  const [mapKey, setMapKey] = useState(Date.now());
+  const [position, setPosition] = useState(null);
+  const [locationStatus, setLocationStatus] = useState('loading');
+
+  const applyPosition = (latitude, longitude) => {
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    setPosition([lat, lng]);
+    setFormData((prev) => ({
+      ...prev,
+      gps_latitude: lat.toFixed(6),
+      gps_longitude: lng.toFixed(6),
+    }));
+  };
+
+  const requestLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationStatus('unsupported');
+      // Set default position when geolocation is not supported
+      const defaultLat = DEFAULT_LAT;
+      const defaultLng = DEFAULT_LNG;
+      setPosition([defaultLat, defaultLng]);
+      setFormData((prev) => ({
+        ...prev,
+        gps_latitude: defaultLat.toFixed(6),
+        gps_longitude: defaultLng.toFixed(6),
+      }));
+      return;
+    }
+
+    setLocationStatus('loading');
+    setPosition(null); // Reset position while loading
+
+    const handleSuccess = (pos) => {
+      const { latitude, longitude } = pos.coords;
+      applyPosition(latitude, longitude);
+      setLocationStatus('success');
+    };
+
+    const handleError = (err) => {
+      console.error('Geolocation error:', err);
+      
+      if (err.code === 1) {
+        // PERMISSION_DENIED
+        setLocationStatus('denied');
+      } else if (err.code === 2) {
+        // POSITION_UNAVAILABLE
+        setLocationStatus('unavailable');
+      } else if (err.code === 3) {
+        // TIMEOUT
+        setLocationStatus('timeout');
+      } else {
+        setLocationStatus('unavailable');
+      }
+
+      // Use default position as fallback
+      const defaultLat = DEFAULT_LAT;
+      const defaultLng = DEFAULT_LNG;
+      setPosition([defaultLat, defaultLng]);
+      setFormData((prev) => ({
+        ...prev,
+        gps_latitude: defaultLat.toFixed(6),
+        gps_longitude: defaultLng.toFixed(6),
+      }));
+    };
+
+    // Try with high accuracy first
+    navigator.geolocation.getCurrentPosition(
+      handleSuccess,
+      (err) => {
+        console.warn('High accuracy attempt failed, trying with low accuracy...', err);
+        // If high accuracy fails, try with low accuracy (works better on Firefox)
+        navigator.geolocation.getCurrentPosition(
+          handleSuccess,
+          (err2) => {
+            console.warn('Low accuracy attempt failed:', err2);
+            handleError(err2);
+          },
+          { 
+            enableHighAccuracy: false, 
+            timeout: 10000, 
+            maximumAge: 60000,
+            // Added these options for better Firefox compatibility
+          }
+        );
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 8000, 
+        maximumAge: 0 
+      }
+    );
+  };
 
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          const coords = [latitude, longitude];
-          setPosition(coords);
-          setFormData((prev) => ({
-            ...prev,
-            gps_latitude: latitude.toFixed(6),
-            gps_longitude: longitude.toFixed(6),
-          }));
-          setMapKey(Date.now());
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          setError('Location access denied. Enable GPS for accurate coordinates.');
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    }
+    requestLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const locationStatusContent = {
+    loading: { text: '📍 Detecting your location…', tone: 'info', showRetry: false },
+    success: { text: '✓ Using your current location', tone: 'success', showRetry: false },
+    denied: {
+      text: "Location access is blocked for this site. Click the location icon in your browser's address bar, allow access, then try again — or drag the pin on the map.",
+      tone: 'warning',
+      showRetry: true,
+    },
+    unavailable: {
+      text: "Couldn't determine your location. Check that location services are enabled on your device, or drag the pin on the map.",
+      tone: 'warning',
+      showRetry: true,
+    },
+    timeout: {
+      text: 'Location request timed out. You can try again, or drag the pin on the map to set it manually.',
+      tone: 'warning',
+      showRetry: true,
+    },
+    unsupported: {
+      text: 'Your browser doesn\u2019t support location detection. Please drag the pin on the map to set your location.',
+      tone: 'warning',
+      showRetry: false,
+    },
+  }[locationStatus];
 
   const handleMarkerDrag = (event) => {
     const { lat, lng } = event.target.getLatLng();
@@ -69,6 +237,7 @@ const AddProjectForm = () => {
       gps_latitude: lat.toFixed(6),
       gps_longitude: lng.toFixed(6),
     }));
+    setLocationStatus('manual');
   };
 
   const handleChange = (e) => {
@@ -90,19 +259,35 @@ const AddProjectForm = () => {
     setLoading(true);
     setError('');
 
+    // Build FormData
     const formDataToSend = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
-      formDataToSend.append(key, value);
+      if (value !== undefined && value !== null) formDataToSend.append(key, value);
     });
     formDataToSend.append('location_region', formData.region);
+    if (formData.startDate) formDataToSend.set('projectStartDate', formData.startDate);
+    if (formData.fundingSource) formDataToSend.set('fundingSource', formData.fundingSource);
+    if (formData.otherFundingSources) formDataToSend.set('otherFundingSources', formData.otherFundingSources);
     if (image) formDataToSend.append('image', image);
 
+    // Debug logs
+    const endpoint = apiUrl('/api/projects');
+    console.log('Submitting project to:', endpoint);
+    for (const pair of formDataToSend.entries()) console.log('FormData:', pair[0], pair[1]);
+
     try {
-      await axios.post('https://govpro-web-backend-gely.onrender.com/api/projects', formDataToSend);
-      navigate('/');
+      const res = await createProject(formDataToSend);
+      console.log('CreateProject response:', res && res.status, res && res.data);
+      if (res && res.status >= 200 && res.status < 300) {
+        try { await queryClient.invalidateQueries(['projects']); } catch (e) { console.warn('Invalidate projects failed', e); }
+        navigate('/');
+      } else {
+        setError('Failed to submit project. Server returned an error.');
+      }
     } catch (err) {
-      console.error('Submission error:', err);
-      setError('Failed to submit project. Please check all fields and try again.');
+      console.error('Submission error (caught):', err);
+      const serverMessage = err?.response?.data?.message || err?.response?.data?.error || err?.message;
+      setError(serverMessage ? `Failed to submit project: ${serverMessage}` : 'Failed to submit project. Check console/network and try again.');
     } finally {
       setLoading(false);
     }
@@ -121,21 +306,53 @@ const AddProjectForm = () => {
           <div className="form-group">
             <label className="form-label">Map Location</label>
             <div className="map-container">
-              <MapContainer 
-                key={mapKey} 
-                center={position} 
-                zoom={15} 
-                style={{ height: '100%', width: '100%' }}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker
-                  position={position}
-                  icon={pinpointIcon}
-                  draggable
-                  eventHandlers={{ dragend: handleMarkerDrag }}
-                />
-              </MapContainer>
+              <MapView 
+                position={position} 
+                handleMarkerDrag={handleMarkerDrag}
+              />
             </div>
+            {locationStatusContent && (
+              <div
+                className={`location-status location-status--${locationStatusContent.tone}`}
+                style={{
+                  marginTop: '8px',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  color:
+                    locationStatusContent.tone === 'success'
+                      ? '#15803d'
+                      : locationStatusContent.tone === 'warning'
+                      ? '#b45309'
+                      : '#374151',
+                }}
+              >
+                <span>{locationStatusContent.text}</span>
+                {locationStatusContent.showRetry && (
+                  <button
+                    type="button"
+                    onClick={requestLocation}
+                    className="location-retry-btn"
+                    style={{
+                      border: '1px solid currentColor',
+                      background: 'transparent',
+                      color: 'inherit',
+                      borderRadius: '4px',
+                      padding: '2px 10px',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Try Again
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="map-hint" style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
+              You can drag the pin on the map at any time to set the exact project location.
+            </p>
           </div>
 
           <div className="form-group">
@@ -148,8 +365,10 @@ const AddProjectForm = () => {
                   value={formData.gps_latitude}
                   onChange={handleChange}
                   className="form-input"
-                  placeholder="GPS Latitude"
+                  placeholder="Waiting for location…"
+                  readOnly
                   required
+                  style={{ cursor: 'default', background: '#f3f4f6', color: '#374151' }}
                 />
               </div>
               <div>
@@ -160,8 +379,10 @@ const AddProjectForm = () => {
                   value={formData.gps_longitude}
                   onChange={handleChange}
                   className="form-input"
-                  placeholder="GPS Longitude"
+                  placeholder="Waiting for location…"
+                  readOnly
                   required
+                  style={{ cursor: 'default', background: '#f3f4f6', color: '#374151' }}
                 />
               </div>
             </div>
@@ -295,10 +516,44 @@ const AddProjectForm = () => {
               <option value="">Select Status</option>
               <option value="Uncompleted">Uncompleted</option>
               <option value="Abandoned">Abandoned</option>
-              <option value="Resumed">Resumed</option>
+              <option value="Resumed">Ongoing</option>
               <option value="Completed">Completed</option>
             </select>
           </div>
+          {/* Select Source of funding */}
+          <div className="form-group">
+            <label className="form-label">Source of Funding</label>
+            <select
+              name="fundingSource"
+              value={formData.fundingSource}
+              onChange={handleChange}
+              className="form-select"
+            >
+              <option value="">Select (optional)</option>
+              <option value="Government">Government budget allocations</option>
+              <option value="GIIF">Ghana Infrastructure Investment Fund (GIIF)</option>
+              <option value="DACF">District Assemblies Common Fund (DACF)</option>
+              <option value="WorldBank">World Bank Group</option>
+              <option value="IMF">International Monetary Fund (IMF)</option>
+              <option value="UNDP">United Nations Development Programme (UNDP)</option>
+              <option value="Other">Other Funding</option>
+            </select>
+          </div>
+          {/* Conditionally show "other funding" input only when Other selected */}
+          {formData.fundingSource === 'Other' && (
+            <div className="form-group">
+              <label className="form-label">Please specify other funding source</label>
+              <input
+                type="text"
+                name="otherFundingSources"
+                value={formData.otherFundingSources || ''}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="Enter source of funding"
+                required
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Start Date</label>

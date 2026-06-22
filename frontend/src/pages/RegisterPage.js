@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { apiUrl } from '../utils/api';
 import ghanaRegions from '../data/ghanaRegions';
 import '../css/RegisterPage.css';
 
@@ -41,7 +42,7 @@ const RegisterPage = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post('https://govpro-web-backend-gely.onrender.com/api/auth/register', form);
+      const res = await axios.post(apiUrl('/api/auth/register'), form);
       const token = res.data.token;
       login(token);
       navigate('/add-project');

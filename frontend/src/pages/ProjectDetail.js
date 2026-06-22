@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import axios from 'axios';
+import { apiUrl } from '../utils/api';
 import '../ProjectDetail.css';
 import Footer from '../components/Footer';
 // import PetitionActionButton from '../components/PetitionActionButton';
@@ -24,9 +25,7 @@ const ProjectDetail = () => {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const res = await axios.get(
-          `https://govpro-web-backend-gely.onrender.com/api/projects/${id}`
-        );
+        const res = await axios.get(apiUrl(`/api/projects/${id}`));
 
         if (res.data) {
           setProject(res.data);
@@ -34,11 +33,11 @@ const ProjectDetail = () => {
           fetchPetitionCount(res.data._id);
         } else {
           console.error('Project not found');
-          navigate('/not-found');
+          navigate('/');
         }
       } catch (err) {
         console.error('Error fetching project details:', err);
-        navigate('/not-found');
+        navigate('/');
       } finally {
         setLoading(false);
       }
@@ -124,7 +123,7 @@ const ProjectDetail = () => {
 
             {project.imageUrl && (
               <img 
-                src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
+                src={apiUrl(project.imageUrl)} 
                 alt={project.title} 
                 className="project-image" 
               />
@@ -154,10 +153,16 @@ const ProjectDetail = () => {
                   <span className="detail-value">{project.contractor}</span>
                 </div>
               )}
-              {project.startDate && (
+              {project.fundingSource && (
+                <div className="detail-item">
+                  <span className="detail-label">Funding Source:</span>
+                  <span className="detail-value">{project.fundingSource}</span>
+                </div>
+              )}
+              {(project.startDate || project.projectStartDate) && (
                 <div className="detail-item">
                   <span className="detail-label">Start Date:</span>
-                  <span className="detail-value">{new Date(project.startDate).toLocaleDateString()}</span>
+                  <span className="detail-value">{new Date(project.startDate || project.projectStartDate).toLocaleDateString()}</span>
                 </div>
               )}
               {project.submittedBy && (
@@ -224,7 +229,7 @@ const ProjectDetail = () => {
                     <h4>{project.title}</h4>
                     {project.imageUrl && (
                       <img 
-                        src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`} 
+                        src={apiUrl(project.imageUrl)} 
                         alt={project.title} 
                         style={{ 
                           width: '100px', 

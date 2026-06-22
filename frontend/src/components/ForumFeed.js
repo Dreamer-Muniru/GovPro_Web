@@ -48,9 +48,10 @@ const ForumFeed = () => {
 
  
 useEffect(() => {
-  if (!user?.region || !user?.district) return;
+  const region = user?.region;
+  const district = user?.district;
 
-  const cacheKey = `forums-${user.region}-${user.district}`;
+  const cacheKey = region && district ? `forums-${region}-${district}` : 'forums-all';
 
   const cachedData = getCachedForums(cacheKey);
   if (cachedData) {
@@ -65,9 +66,11 @@ useEffect(() => {
       console.log('🔵 Fetching forums from API');
       setLoading(true);
 
-      const res = await axios.get(
-        apiUrl(`/api/forums?region=${user.region}&district=${user.district}`)
-      );
+      const url = region && district
+        ? apiUrl(`/api/forums?region=${encodeURIComponent(region)}&district=${encodeURIComponent(district)}`)
+        : apiUrl('/api/forums');
+
+      const res = await axios.get(url);
 
       const list = res?.data?.forums || res?.data || [];
       setForums(list);
@@ -87,9 +90,12 @@ useEffect(() => {
   const refreshForums = async () => {
     setLoading(true);
     try {
-      const region = encodeURIComponent(user.region);
-      const district = encodeURIComponent(user.district);
-      const res = await axios.get(apiUrl(`/api/forums?region=${region}&district=${district}`));
+        const region = user?.region;
+        const district = user?.district;
+        const url = region && district
+          ? apiUrl(`/api/forums?region=${encodeURIComponent(region)}&district=${encodeURIComponent(district)}`)
+          : apiUrl('/api/forums');
+        const res = await axios.get(url);
       const data = res?.data;
       const list = Array.isArray(data) ? data : (Array.isArray(data?.forums) ? data.forums : []);
       setForums(list);

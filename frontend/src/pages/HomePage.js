@@ -2,11 +2,12 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import '../css/home.css';
 import Footer from '../components/Footer';
 import CommentModal from '../components/CommentModal';
+import { apiUrl } from '../utils/api';
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -16,7 +17,7 @@ const pinpointIcon = new Icon({
 
 // Extract API call to separate function
 const fetchProjectsData = async () => {
-  const res = await axios.get('https://govpro-web-backend-gely.onrender.com/api/projects');
+  const res = await axios.get(apiUrl('/api/projects'));
   const projectsData = Array.isArray(res.data) ? res.data : res.data.projects || [];
   
   const projectsWithCount = projectsData
@@ -45,6 +46,7 @@ const HomePage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
   });
+  const queryClient = useQueryClient();
 
   // Calculate unique values from cached data
   const uniqueValues = useMemo(() => {
@@ -87,8 +89,13 @@ const HomePage = () => {
   };
 
   const handleCommentCountChange = (projectId, newCount) => {
-    // Update comment count in cached data would require queryClient.setQueryData
-    // For now, this maintains existing behavior
+    try {
+      queryClient.setQueryData(['projects'], (old = []) => {
+        return old.map(p => p._id === projectId ? { ...p, commentCount: newCount } : p);
+      });
+    } catch (err) {
+      console.warn('Failed to update comment count in cache', err);
+    }
   };
 
   const filteredProjects = useMemo(() => {
@@ -170,7 +177,7 @@ const HomePage = () => {
                         <h4 className="popup-title">{project.title}</h4>
                         {project.imageUrl && (
                           <img
-                            src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}`}
+                            src={apiUrl(project.imageUrl)}
                             alt={project.title}
                             className="popup-image"
                           />
@@ -227,7 +234,7 @@ const HomePage = () => {
               <div key={project._id} className="project-card">
                 {project.imageUrl && (
                   <img 
-                    src={`https://govpro-web-backend-gely.onrender.com${project.imageUrl}?${Date.now()}`} 
+                    src={`${apiUrl(project.imageUrl)}?${Date.now()}`} 
                     alt={project.title} 
                     className="project-image"
                   />

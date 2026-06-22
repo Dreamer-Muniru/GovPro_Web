@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ghanaRegions from '../data/ghanaRegions';
+import { apiUrl } from '../utils/api';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -42,7 +43,7 @@ const EditProject = () => {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const res = await axios.get(`https://govpro-web-backend-gely.onrender.com/api/projects/${id}`);
+        const res = await axios.get(apiUrl(`/api/projects/${id}`));
         const data = res.data;
         
         setFormData({
@@ -65,7 +66,7 @@ const EditProject = () => {
           setPosition([parseFloat(data.gps.latitude), parseFloat(data.gps.longitude)]);
         }
 
-        setPreviewUrl(`https://govpro-web-backend-gely.onrender.com${data.imageUrl}?${Date.now()}`);
+        setPreviewUrl(`${apiUrl(data.imageUrl)}?${Date.now()}`);
       } catch (err) {
         console.error('Failed to load project:', err);
         setError('Could not load project data.');
@@ -113,9 +114,7 @@ const EditProject = () => {
     if (image) updatedData.append('image', image);
 
     try {
-      await axios.put(`https://govpro-web-backend-gely.onrender.com/api/projects/${id}`, updatedData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await axios.put(apiUrl(`/api/projects/${id}`), updatedData);
       navigate('/admin');
     } catch (err) {
       console.error('Update failed:', err);

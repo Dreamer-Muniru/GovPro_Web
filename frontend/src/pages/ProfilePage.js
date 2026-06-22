@@ -67,7 +67,7 @@ const ProfilePage = () => {
       const payload = { ...formData };
       if (!payload.password) delete payload.password;
 
-      await axios.put(`https://govpro-web-backend-gely.onrender.com/api/auth/${user._id}`, payload);
+      await axios.put(apiUrl(`/api/auth/${user._id}`), payload);
       
       setMessage('Profile updated successfully! Please log out and log back in to see changes reflected across the platform.');
       setEditing(false);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../utils/api';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -65,9 +66,7 @@ const ProjectInsights = () => {
     console.log('🔵 Fetching fresh project insights data...');
     setLoading(true);
     try {
-      const res = await axios.get(
-        'https://govpro-web-backend-gely.onrender.com/api/projects/stats'
-      );
+      const res = await axios.get(apiUrl('/api/projects/stats'));
 
       setRegionData(res.data);
       setCachedInsights(res.data);
