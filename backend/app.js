@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const multer = require('multer');
 const { GridFSBucket } = require('mongodb');
 const mongoose = require('mongoose');
 const stream = require('stream');
@@ -69,86 +68,6 @@ app.use('/api/admin-auth', authAdminRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/forums', forumRoutes);
 // app.use('/api/petitions', petitionRoutes);
-
-
-// Multer setup (store images in memory)
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
-// POST route for creating a project with image (GridFS storage)
-app.post('/api/projects', upload.single('image'), async (req, res) => {
-  try {
-    const {
-      title,
-      type,
-      description,
-      region,
-      district,
-      contractor,
-      status,
-      submittedBy,
-      startDate,
-      location_address,
-      location_city,
-      location_region,
-      gps_latitude,
-      gps_longitude,
-    } = req.body;
-
-    const project = new Project({
-      title,
-      type,
-      description,
-      region,
-      district,
-      location: {
-        address: location_address,
-        city: location_city,
-        region: location_region,
-      },
-      gps: {
-        latitude: parseFloat(gps_latitude),
-        longitude: parseFloat(gps_longitude),
-      },
-      contractor,
-      status,
-      projectStartDate: startDate,
-      submittedBy,
-    });
-
-    if (req.file && gridBucket) {
-      const readableStream = new stream.PassThrough();
-      readableStream.end(req.file.buffer);
-
-      const uploadStream = gridBucket.openUploadStream(req.file.originalname, {
-        contentType: req.file.mimetype,
-      });
-
-      await new Promise((resolve, reject) => {
-        readableStream.pipe(uploadStream);
-
-        uploadStream.on('finish', async () => {
-          try {
-            project.imageUrl = `/api/uploads/${uploadStream.id}`;
-            await project.save();
-            res.status(201).json({ message: 'Project created successfully', project });
-            resolve();
-          } catch (err) {
-            reject(err);
-          }
-        });
-
-        uploadStream.on('error', reject);
-      });
-    } else {
-      await project.save();
-      res.status(201).json({ message: 'Project created successfully', project });
-    }
-  } catch (error) {
-    console.error('Server error:', error.message);
-    res.status(500).json({ message: error.message });
-  }
-});
 
 // ===============================================
 

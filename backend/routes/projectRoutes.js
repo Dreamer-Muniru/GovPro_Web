@@ -6,8 +6,17 @@ const verifyAdminToken = require('../middleware/verifyAdminToken');
 const { createProject, getProjects } = require('../controllers/projectController');
 const authenticateUser = require('../middleware/authenticateUser');
 const User = require('../models/user')
-// POST /api/projects
-router.post('/', createProject);
+const upload = require('../middleware/upload');
+const stream = require('stream');
+const { GridFSBucket } = require('mongodb');
+
+let gridBucket;
+mongoose.connection.once('open', () => {
+  gridBucket = new GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' });
+});
+
+// POST /api/projects (accept optional image)
+router.post('/', upload.single('image'), createProject);
 
 // GET /api/projects
 // router.get('/', getProjects);
@@ -39,34 +48,49 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch projects' });
   }
 });
-const multer = require('multer');
-const upload = multer({ storage: multer.memoryStorage() }); // or your GridFS setup
-
 router.put('/:id', upload.single('image'), async (req, res) => {
   try {
     const updates = { ...req.body };
 
-    if (req.file) {
-      updates.image = {
-        data: req.file.buffer,
+    // Ensure funding fields from the form/body are included
+    if (req.body.fundingSource !== undefined) updates.fundingSource = req.body.fundingSource;
+    if (req.body.otherFundingSources !== undefined) updates.otherFundingSources = req.body.otherFundingSources;
+
+    const doUpdate = async () => {
+      const updated = await Project.findByIdAndUpdate(req.params.id, updates, {
+        new: true,
+        runValidators: true,
+      });
+
+      if (!updated) return res.status(404).json({ error: 'Project not found' });
+      res.json(updated);
+    };
+
+    if (req.file && gridBucket) {
+      const readable = new stream.PassThrough();
+      readable.end(req.file.buffer);
+      const uploadStream = gridBucket.openUploadStream(req.file.originalname, {
         contentType: req.file.mimetype,
-      };
+      });
+
+      readable.pipe(uploadStream)
+        .on('error', (err) => {
+          console.error('Project image upload error:', err.message);
+          res.status(500).json({ error: 'Image upload failed' });
+        })
+        .on('finish', async () => {
+          updates.imageUrl = `/api/uploads/${uploadStream.id}`;
+          await doUpdate();
+        });
+    } else {
+      await doUpdate();
     }
-
-    const updated = await Project.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!updated) return res.status(404).json({ error: 'Project not found' });
-    res.json(updated);
   } catch (err) {
     console.error('Update error:', err.message);
     res.status(500).json({ error: 'Failed to update project' });
   }
 });
 // GET /api/regions/stats
-// GET /api/projects/stats – aggregated project counts per region & status
 // GET /api/projects/stats – aggregated project counts per region & status
 router.get('/stats', async (req, res) => {
   try {
@@ -163,9 +187,6 @@ router.delete('/:id', verifyAdminToken, async (req, res) => {
 });
 
 router.post('/:id/comments', authenticateUser, async (req, res) => {
-  console.log('=== COMMENT ROUTE CALLED ===');
-  console.log('User ID from token:', req.user._id);
-  console.log('Request body:', req.body);
 
   const { comment } = req.body;
   const { id } = req.params;
@@ -174,7 +195,6 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
     // ✅ Fetch user from DB
     const user = await User.findById(req.user._id);
     if (!user) {
-      console.log('❌ User not found for ID:', req.user._id);
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -183,13 +203,11 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
       const fallback = user.name || user.fullname || user.email?.split('@')[0] || 'Anonymous';
       user.username = fallback;
       await user.save();
-      console.log('🔧 Patched legacy user with username:', user.username);
     }
 
     // ✅ Fetch project
     const project = await Project.findById(id);
     if (!project) {
-      console.log('❌ Project not found for ID:', id);
       return res.status(404).json({ error: 'Project not found' });
     }
 
@@ -209,7 +227,6 @@ router.post('/:id/comments', authenticateUser, async (req, res) => {
     const savedComment = project.comments[project.comments.length - 1];
     const safeComment = savedComment.toObject ? savedComment.toObject() : savedComment;
 
-    console.log('✅ Returned comment object:', safeComment);
     res.status(201).json({ message: 'Comment added', comment: safeComment });
   } catch (err) {
     console.error('🔥 Error posting comment:', err);

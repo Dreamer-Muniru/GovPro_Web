@@ -11,8 +11,10 @@ const connectDB = async () => {
   }
 
   try {
-    await mongoose.connect(mongoURL);
-    console.log('✅ Connected to MongoDB');
+    const connectOptions = { useNewUrlParser: true, useUnifiedTopology: true };
+    if (process.env.MONGO_DB_NAME) connectOptions.dbName = process.env.MONGO_DB_NAME;
+    await mongoose.connect(mongoURL, connectOptions);
+    console.log('✅ Connected to MongoDB — DB:', mongoose.connection.db.databaseName);
   } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
     if (err.message.includes('querySrv')) {

@@ -39,6 +39,9 @@ const projectSchema = new mongoose.Schema({
     contentType: String
   },
 
+  fundingSource: { type: String },
+  otherFundingSources: { type: String },
+
   status: {
     type: String,
     enum: ['Uncompleted', 'Abandoned', 'Resumed', 'Completed'],
