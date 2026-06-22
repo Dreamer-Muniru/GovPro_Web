@@ -5,26 +5,23 @@ import { useNavigate } from 'react-router-dom';
 import '../css/ForumFeed.css';
 import { apiUrl } from '../utils/api';
 
-
 const CACHE_DURATION = 5 * 60 * 1000;
 
-const getCachedForums = (key) => {
+const getCachedMessages = (key) => {
   try {
     const cached = JSON.parse(localStorage.getItem(key));
     if (!cached) return null;
-
     if (Date.now() - cached.time > CACHE_DURATION) {
       localStorage.removeItem(key);
       return null;
     }
-
     return cached.data;
   } catch {
     return null;
   }
 };
 
-const setCachedForums = (key, data) => {
+const setCachedMessages = (key, data) => {
   localStorage.setItem(
     key,
     JSON.stringify({ data, time: Date.now() })
@@ -34,83 +31,104 @@ const setCachedForums = (key, data) => {
 const ForumFeed = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-
-  const [forums, setForums] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({title: '', description: '', image: null});
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    image: null,
+    recipientType: 'all', // 'all' or 'specific'
+    recipientDistrict: '',
+  });
   const [submitting, setSubmitting] = useState(false);
+  const [selectedDistrict, setSelectedDistrict] = useState('all');
+  const [userRole, setUserRole] = useState('');
 
-  // Caching references
-  // const hasFetchedRef = useRef(false);
-  const cacheTimeRef = useRef(null);
-  // const locationKeyRef = useRef(null);
-
- 
-useEffect(() => {
-  const region = user?.region;
-  const district = user?.district;
-
-  const cacheKey = region && district ? `forums-${region}-${district}` : 'forums-all';
-
-  const cachedData = getCachedForums(cacheKey);
-  if (cachedData) {
-    console.log('🟢 Loaded forums from localStorage');
-    setForums(cachedData);
-    setLoading(false);
-    return;
-  }
-
-  const fetchForums = async () => {
-    try {
-      console.log('🔵 Fetching forums from API');
-      setLoading(true);
-
-      const url = region && district
-        ? apiUrl(`/api/forums?region=${encodeURIComponent(region)}&district=${encodeURIComponent(district)}`)
-        : apiUrl('/api/forums');
-
-      const res = await axios.get(url);
-
-      const list = res?.data?.forums || res?.data || [];
-      setForums(list);
-      setCachedForums(cacheKey, list);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+  // Determine user role
+  useEffect(() => {
+    if (user) {
+      // Check if user is ministry admin
+      if (user.role === 'admin' || user.role === 'ministry' || user.isMinistry) {
+        setUserRole('ministry');
+      } else {
+        setUserRole('mmdce');
+      }
     }
-  };
+  }, [user]);
 
-  fetchForums();
-}, [user?.region, user?.district]);
+  useEffect(() => {
+    const region = user?.region;
+    const district = user?.district;
+    const role = userRole;
 
+    const cacheKey = `messages-${role}-${region}-${district}`;
+    const cachedData = getCachedMessages(cacheKey);
 
-  // Function to force refresh (useful after creating new forum)
-  const refreshForums = async () => {
+    if (cachedData) {
+      console.log('🟢 Loaded messages from localStorage');
+      setMessages(cachedData);
+      setLoading(false);
+      return;
+    }
+
+    const fetchMessages = async () => {
+      try {
+        console.log('🔵 Fetching messages from API');
+        setLoading(true);
+
+        let url;
+        if (role === 'ministry') {
+          // Ministry sees all messages
+          url = apiUrl('/api/forums?type=ministry');
+        } else {
+          // MMDCE sees messages for their district
+          url = apiUrl(`/api/forums?type=mmdce&district=${encodeURIComponent(district)}`);
+        }
+
+        const res = await axios.get(url);
+        const list = res?.data?.forums || res?.data || [];
+        setMessages(list);
+        setCachedMessages(cacheKey, list);
+      } catch (e) {
+        console.error('Error fetching messages:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (userRole) {
+      fetchMessages();
+    }
+  }, [user?.region, user?.district, userRole]);
+
+  const refreshMessages = async () => {
     setLoading(true);
     try {
-        const region = user?.region;
-        const district = user?.district;
-        const url = region && district
-          ? apiUrl(`/api/forums?region=${encodeURIComponent(region)}&district=${encodeURIComponent(district)}`)
-          : apiUrl('/api/forums');
-        const res = await axios.get(url);
+      const region = user?.region;
+      const district = user?.district;
+      const role = userRole;
+
+      let url;
+      if (role === 'ministry') {
+        url = apiUrl('/api/forums?type=ministry');
+      } else {
+        url = apiUrl(`/api/forums?type=mmdce&district=${encodeURIComponent(district)}`);
+      }
+
+      const res = await axios.get(url);
       const data = res?.data;
       const list = Array.isArray(data) ? data : (Array.isArray(data?.forums) ? data.forums : []);
-      setForums(list);
-      
-      // Update cache timestamp
-      cacheTimeRef.current = Date.now();
+      setMessages(list);
     } catch (err) {
-      console.error('Failed to refresh forums:', err?.message || err);
+      console.error('Failed to refresh messages:', err?.message || err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCardClick = (forumId) => {
-    navigate(`/forums/${forumId}`);
+  const handleCardClick = (messageId) => {
+    navigate(`/forums/${messageId}`);
   };
 
   const handleCreateClick = () => {
@@ -119,7 +137,7 @@ useEffect(() => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setFormData({ title: '', description: '', image: null });
+    setFormData({ title: '', description: '', image: null, recipientType: 'all', recipientDistrict: '' });
   };
 
   const handleInputChange = (e) => {
@@ -142,6 +160,17 @@ useEffect(() => {
       submitData.append('region', user.region);
       submitData.append('district', user.district);
       submitData.append('createdBy', user?._id || user?.id);
+      submitData.append('type', 'ministry_message');
+      submitData.append('senderRole', userRole);
+      
+      // For ministry messages, specify recipient type
+      if (userRole === 'ministry') {
+        submitData.append('recipientType', formData.recipientType);
+        if (formData.recipientType === 'specific') {
+          submitData.append('recipientDistrict', formData.recipientDistrict);
+        }
+      }
+
       if (formData.image) submitData.append('image', formData.image);
 
       const res = await axios.post(apiUrl('/api/forums'), submitData, {
@@ -149,21 +178,38 @@ useEffect(() => {
       });
 
       const created = res?.data && typeof res.data === 'object' ? res.data : null;
-      
-      // Add new forum to the top of the list
+
       if (created) {
-        setForums((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
-        // Update cache timestamp since we have fresh data
-        cacheTimeRef.current = Date.now();
+        setMessages((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
+        // Clear cache for this user
+        const cacheKey = `messages-${userRole}-${user?.region}-${user?.district}`;
+        localStorage.removeItem(cacheKey);
       }
-      
+
       handleCloseModal();
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.message || 'Failed to create forum';
-      console.error('Failed to create forum:', msg);
+      const msg = err?.response?.data?.error || err?.message || 'Failed to send message';
+      console.error('Failed to send message:', msg);
       alert(msg);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const getMessageIcon = (message) => {
+    if (message.senderRole === 'ministry') {
+      return '🏛️';
+    } else if (message.senderRole === 'mmdce') {
+      return '👤';
+    }
+    return '💬';
+  };
+
+  const getMessageType = (message) => {
+    if (message.senderRole === 'ministry') {
+      return 'Ministry';
+    } else {
+      return 'MMDCE';
     }
   };
 
@@ -172,25 +218,33 @@ useEffect(() => {
       <div className="forum-feed">
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p className="loading-text">Loading forums...</p>
+          <p className="loading-text">Loading messages...</p>
         </div>
       </div>
     );
   }
 
-  const forumList = Array.isArray(forums) ? forums : [];
+  const messageList = Array.isArray(messages) ? messages : [];
 
   return (
     <div className="forum-feed">
-      {/* Header with Create Button */}
+      {/* Header */}
       <div className="forum-header">
         <div className="header-content">
-          <button className="back-button" onClick={() => navigate('/')}>← Back to Homepage</button>
-          <h1 className="forum-title">Community Forums</h1>
-          <p className="forum-subtitle">Discuss local projects and community matters</p>
+          <button className="back-button" onClick={() => navigate('/')}>
+            ← Back to Dashboard
+          </button>
+          <h1 className="forum-title">
+            {userRole === 'ministry' ? '🏛️ Ministry Communications' : '📬 District Communications'}
+          </h1>
+          <p className="forum-subtitle">
+            {userRole === 'ministry' 
+              ? 'Communication Channel with Ministry of Local Government -'
+              : 'Communication with the Ministry of Local Government'}
+          </p>
         </div>
         <div className="header-actions">
-          <button className="refresh-btn" onClick={refreshForums} title="Refresh forums">
+          <button className="refresh-btn" onClick={refreshMessages} title="Refresh messages">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
@@ -200,50 +254,66 @@ useEffect(() => {
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Create Forum
+            New Message
           </button>
         </div>
       </div>
 
-      {/* Forums Grid */}
-      {forumList.length === 0 ? (
+      {/* Messages Grid */}
+      {messageList.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">💬</div>
-          <h3 className="empty-title">No Forums Yet</h3>
+          <div className="empty-icon">📬</div>
+          <h3 className="empty-title">No Messages</h3>
           <p className="empty-description">
-            Be the first to start a discussion in your community
+            {userRole === 'ministry' 
+              ? 'Start a conversation with your District Chiefs'
+              : 'Your district has no messages from the Ministry yet'}
           </p>
           <button className="create-forum-btn" onClick={handleCreateClick}>
-            Create First Forum
+            {userRole === 'ministry' ? 'Send First Message' : 'Contact Ministry'}
           </button>
         </div>
       ) : (
         <div className="forum-grid">
-          {forumList.map((forum) => (
+          {messageList.map((message) => (
             <div
-              key={forum._id}
+              key={message._id}
               className="forum-card"
-              onClick={() => handleCardClick(forum._id)}
+              onClick={() => handleCardClick(message._id)}
             >
-              {forum.imageUrl && (
+              {message.imageUrl && (
                 <img
-                  src={apiUrl(forum.imageUrl)}
-                  alt={forum.title}
+                  src={apiUrl(message.imageUrl)}
+                  alt={message.title}
                   className="forum-image"
                 />
               )}
               <div className="forum-content">
-                <h3>{forum.title}</h3>
-                <p className="forum-description">{forum.description}</p>
+                <div className="message-badge">
+                  <span className={`badge ${message.senderRole === 'ministry' ? 'badge-ministry' : 'badge-mmdce'}`}>
+                    {getMessageIcon(message)} {getMessageType(message)}
+                  </span>
+                  {message.recipientDistrict && (
+                    <span className="badge badge-district">
+                      📍 {message.recipientDistrict}
+                    </span>
+                  )}
+                  {!message.isRead && (
+                    <span className="badge badge-unread">🔴 New</span>
+                  )}
+                </div>
+                <h3>{message.title}</h3>
+                <p className="forum-description">{message.description}</p>
                 <p className="forum-creator">
-                  Created by: {forum.createdBy?.username || 'Unknown'}
+                  From: {message.createdBy?.username || 'Unknown'}
                 </p>
-
                 <div className="forum-meta">
                   <span className="forum-date">
-                    Posted on {new Date(forum.createdAt).toLocaleString()}
+                    {new Date(message.createdAt).toLocaleString()}
                   </span>
-                  <span className="forum-badge">{forum.district}</span>
+                  <span className="forum-badge">
+                    {message.district || 'All Districts'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -251,18 +321,51 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Create Forum Modal */}
+      {/* Create Message Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Create New Forum</h2>
+              <h2 className="modal-title">
+                {userRole === 'ministry' ? '🏛️ Send Message to District' : '📤 Contact Ministry'}
+              </h2>
               <button className="close-btn" onClick={handleCloseModal}>×</button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="forum-form">
+              {userRole === 'ministry' && (
+                <div className="form-group">
+                  <label className="form-label">Recipient</label>
+                  <select
+                    name="recipientType"
+                    value={formData.recipientType}
+                    onChange={handleInputChange}
+                    className="form-select"
+                    required
+                  >
+                    <option value="all">All Districts</option>
+                    <option value="specific">Specific District</option>
+                  </select>
+                </div>
+              )}
+
+              {userRole === 'ministry' && formData.recipientType === 'specific' && (
+                <div className="form-group">
+                  <label className="form-label">Select District</label>
+                  <input
+                    type="text"
+                    name="recipientDistrict"
+                    value={formData.recipientDistrict}
+                    onChange={handleInputChange}
+                    className="form-input"
+                    placeholder="Enter district name"
+                    required
+                  />
+                </div>
+              )}
+
               <div className="form-group">
-                <label htmlFor="title" className="form-label">Forum Title</label>
+                <label className="form-label">Subject</label>
                 <input
                   type="text"
                   id="title"
@@ -270,33 +373,33 @@ useEffect(() => {
                   value={formData.title}
                   onChange={handleInputChange}
                   className="form-input"
-                  placeholder="Enter forum title"
+                  placeholder="Enter message subject"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="description" className="form-label">Description</label>
+                <label className="form-label">Message</label>
                 <textarea
                   id="description"
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
                   className="form-textarea"
-                  placeholder="Describe what this forum is about"
+                  placeholder="Type your message here..."
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="image" className="form-label">Forum Image (Optional)</label>
+                <label className="form-label">Attachment (Optional)</label>
                 <input
                   type="file"
                   id="image"
                   name="image"
                   onChange={handleImageChange}
                   className="form-input"
-                  accept="image/*"
+                  accept="image/*,.pdf,.doc,.docx"
                 />
               </div>
 
@@ -305,7 +408,7 @@ useEffect(() => {
                 className="submit-btn"
                 disabled={submitting}
               >
-                {submitting ? 'Creating...' : 'Create Forum'}
+                {submitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </div>

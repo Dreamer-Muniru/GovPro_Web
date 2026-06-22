@@ -24,7 +24,7 @@ const ForumDetail = () => {
   // Caching references
   const hasFetchedRef = useRef(false);
   const cacheTimeRef = useRef(null);
-  const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes cache (shorter for forum details as they update more frequently)
+  const CACHE_DURATION = 2 * 60 * 1000;
 
   const getReactionIcon = (type) => {
     switch (type) {
@@ -37,18 +37,15 @@ const ForumDetail = () => {
 
   useEffect(() => {
     const fetchForumAndComments = async () => {
-      // Check if we have cached data and it's still valid
       const now = Date.now();
       const cacheValid = cacheTimeRef.current && (now - cacheTimeRef.current < CACHE_DURATION);
 
-      // If we have cached data and cache is valid, don't fetch
       if (hasFetchedRef.current && cacheValid && forum && comments.length >= 0) {
         console.log('✅ Using cached forum detail data');
         setLoading(false);
         return;
       }
 
-      // Otherwise, fetch fresh data
       console.log('🔄 Fetching fresh forum detail data...');
       setLoading(true);
       try {
@@ -57,10 +54,8 @@ const ForumDetail = () => {
         setForum(forumRes.data);
         setComments(commentRes.data);
 
-        // Update cache timestamp
         hasFetchedRef.current = true;
         cacheTimeRef.current = Date.now();
-        console.log('✅ Forum detail cached at:', new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Error loading forum:', err.message);
       } finally {
@@ -69,28 +64,7 @@ const ForumDetail = () => {
     };
 
     fetchForumAndComments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  // Function to refresh forum and comments
-  // const refreshForumDetail = async () => {
-  //   console.log('🔄 Refreshing forum detail...');
-  //   setLoading(true);
-  //   try {
-  //     const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
-  //     const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
-  //     setForum(forumRes.data);
-  //     setComments(commentRes.data);
-
-      // Update cache timestamp
-  //     cacheTimeRef.current = Date.now();
-  //     console.log('✅ Forum detail refreshed at:', new Date().toLocaleTimeString());
-  //   } catch (err) {
-  //     console.error('Error refreshing forum:', err.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const getTimeAgo = (timestamp) => {
     const now = new Date();
@@ -107,7 +81,6 @@ const ForumDetail = () => {
     return time.toLocaleDateString();
   };
 
-  // Reaction or Like handle
   const handleReact = async (type) => {
     try {
       await axios.post(apiUrl(`/api/forums/${forum._id}/react`), {
@@ -118,8 +91,6 @@ const ForumDetail = () => {
       const res = await axios.get(apiUrl(`/api/forums/${forum._id}`));
       setForum(res.data);
       setShowReactions(false);
-
-      // Update cache timestamp since we have fresh data
       cacheTimeRef.current = Date.now();
     } catch (err) {
       console.error('Reaction failed:', err.message);
@@ -147,7 +118,6 @@ const ForumDetail = () => {
 
     setSubmitting(true);
     try {
-      console.log('Commenting as:', user?._id);
       await axios.post(apiUrl('/api/comments/reply'), {
         forumId: id,
         parentId,
@@ -160,8 +130,6 @@ const ForumDetail = () => {
 
       const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
       setComments(updatedComments.data);
-
-      // Update cache timestamp since we have fresh data
       cacheTimeRef.current = Date.now();
     } catch (err) {
       console.error('Failed to post reply:', err.message);
@@ -188,8 +156,6 @@ const ForumDetail = () => {
       setNewComment({ content: '' });
       const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
       setComments(updatedComments.data);
-
-      // Update cache timestamp since we have fresh data
       cacheTimeRef.current = Date.now();
     } catch (err) {
       console.error('Failed to post comment:', err.message);
@@ -221,14 +187,17 @@ const ForumDetail = () => {
     const showThisReplies = showReplies[comment._id];
 
     return (
-      <div key={comment._id} className="comment">
+      <div key={comment._id} className={`comment ${isReply ? 'comment-reply' : ''}`}>
         <div className="comment-header">
-          <div className="comment-avatar">
+          <div className="comment-avatar" style={{
+            background: `linear-gradient(135deg, ${isReply ? '#FCD116' : '#CE1126'}, ${isReply ? '#006B3F' : '#FCD116'})`
+          }}>
             {getInitials(comment.createdBy?.username)}
           </div>
           <div className="comment-user-info">
             <div className="comment-username">
               {comment.createdBy?.username || 'User'}
+              {isReply && <span className="reply-badge">↳ Reply</span>}
             </div>
             <div className="comment-meta">
               <span className="comment-region">
@@ -253,32 +222,34 @@ const ForumDetail = () => {
           />
         )}
 
-        {/* Reply Button */}
-        <button
-          className="reply-btn"
-          onClick={() => toggleReplyInput(comment._id)}
-        >
-          Reply
-        </button>
-
-        {/* View Replies Button */}
-        {!isReply && replyCount > 0 && (
-          <button
-            className="view-replies-btn"
-            onClick={() => toggleReplies(comment._id)}
-          >
-            {showThisReplies ? 'Hide' : `View ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
-          </button>
+        {!isReply && (
+          <div className="comment-actions">
+            <button
+              className="reply-btn"
+              onClick={() => toggleReplyInput(comment._id)}
+            >
+              💬 Reply
+            </button>
+            {replyCount > 0 && (
+              <button
+                className="view-replies-btn"
+                onClick={() => toggleReplies(comment._id)}
+              >
+                {showThisReplies ? '🔼 Hide' : `🔽 View ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
+              </button>
+            )}
+          </div>
         )}
 
-        {/* Reply Form */}
         {showReplyInputs[comment._id] && (
           <form
             onSubmit={(e) => handleReplySubmit(e, comment._id)}
             className="reply-form"
           >
             <div className="reply-input-container">
-              <div className="reply-avatar">
+              <div className="reply-avatar" style={{
+                background: 'linear-gradient(135deg, #006B3F, #FCD116)'
+              }}>
                 {getInitials(user?.username)}
               </div>
               <div className="reply-input-wrapper">
@@ -306,7 +277,6 @@ const ForumDetail = () => {
           </form>
         )}
 
-        {/* Render Replies */}
         {showThisReplies && comment.replies && comment.replies.length > 0 && (
           <div className="replies-list">
             {comment.replies.map((reply) => renderCommentNode(reply, true))}
@@ -316,25 +286,12 @@ const ForumDetail = () => {
     );
   };
 
-  // Calculate cache age for display
-  // const getCacheAge = () => {
-  //   if (!cacheTimeRef.current) return null;
-  //   const ageMs = Date.now() - cacheTimeRef.current;
-  //   const ageMinutes = Math.floor(ageMs / 60000);
-  //   const ageSeconds = Math.floor((ageMs % 60000) / 1000);
-  //   if (ageMinutes > 0) return `${ageMinutes}m ago`;
-  //   return `${ageSeconds}s ago`;
-  // };
-
-  // const isCached = hasFetchedRef.current && cacheTimeRef.current;
-
-  // Only show loading spinner if we have no cached data
   if (loading && !forum) {
     return (
       <div className="forum-detail">
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p>Loading forum...</p>
+          <p className="loading-text">Loading conversation...</p>
         </div>
       </div>
     );
@@ -343,8 +300,9 @@ const ForumDetail = () => {
   if (!forum) {
     return (
       <div className="forum-detail">
-        <div className="empty-comments">
-          <p>Forum not found</p>
+        <div className="empty-state">
+          <div className="empty-icon">📭</div>
+          <p>Conversation not found</p>
         </div>
       </div>
     );
@@ -355,41 +313,42 @@ const ForumDetail = () => {
 
   return (
     <div className="forum-detail">
+      {/* Ghana Flag Banner */}
+      <div className="ghana-flag-banner">
+        <div className="flag-stripe flag-red"></div>
+        <div className="flag-stripe flag-gold"></div>
+        <div className="flag-stripe flag-green"></div>
+        <div className="flag-star">⭐</div>
+      </div>
+
+      {/* Header */}
       <div className="forum-detail-header">
-        <button className="back-button" onClick={() => navigate('/forum-feed')}>← Back to Forum Feed</button>
-        {/* {isCached && (
-          <div className="cache-status">
-            <span className="cache-indicator-detail" title="Using cached data">
-              ⚡ Cached {getCacheAge()}
-            </span>
-            <button className="refresh-icon-btn" onClick={refreshForumDetail} title="Refresh forum">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </div>
-        )} */}
+         <button className="back-button" onClick={() => navigate('/forum-feed')}>
+            ← Back to Dashboard
+          </button>
+        <div className="header-badge">
+          <span className="badge-official">🇬🇭 Official Communication</span>
+        </div>
       </div>
 
-      {/* Sweet Intro Text */}
-      <div className="forum-intro">
-        💬 Join the conversation! Share your thoughts and connect with your community
-      </div>
-
-      {/* Main Forum Post Card */}
+      {/* Main Post Card */}
       <div className="forum-post-card">
-        {/* Post Header */}
         <div className="post-header">
-          <div className="post-avatar">
+          <div className="post-avatar" style={{
+            background: 'linear-gradient(135deg, #CE1126, #FCD116, #006B3F)'
+          }}>
             {getInitials(forum.createdBy?.username)}
           </div>
           <div className="post-user-info">
             <div className="post-username">
               {forum.createdBy?.username || 'User'}
+              {forum.createdBy?.role === 'admin' && (
+                <span className="admin-badge">👑 Admin</span>
+              )}
             </div>
             <div className="post-meta">
               <span className="post-region">
-                {forum.region}, {forum.district}
+                📍 {forum.region}, {forum.district}
               </span>
               <span className="post-time">
                 {getTimeAgo(forum.createdAt)}
@@ -398,20 +357,21 @@ const ForumDetail = () => {
           </div>
         </div>
 
-        {/* Post Content */}
         <div className="post-content">
           <h1 className="post-title">{forum.title}</h1>
           <p className="post-description">{forum.description}</p>
           {forum.imageUrl && (
-            <img
-              src={apiUrl(forum.imageUrl)}
-              alt="Forum"
-              className="post-image"
-            />
+            <div className="post-image-wrapper">
+              <img
+                src={apiUrl(forum.imageUrl)}
+                alt="Forum"
+                className="post-image"
+              />
+            </div>
           )}
         </div>
+{/*  */}
 
-        {/* Post Actions */}
         <div className="post-actions">
           <div
             className="like-button-wrapper"
@@ -419,28 +379,26 @@ const ForumDetail = () => {
             onMouseLeave={() => setShowReactions(false)}
             onTouchStart={() => setShowReactions(true)}
           >
-            <button className="like-button">
-              {forum.reactions?.length || 0} {userReaction ? getReactionIcon(userReaction) : '👍'} Like
+            <button className={`action-btn like-btn ${userReaction ? 'active' : ''}`}>
+              {userReaction ? getReactionIcon(userReaction) : '👍'} 
+              {userReaction ? ' Reacted' : ' React'}
+              <span className="reaction-count">{forum.reactions?.length || 0}</span>
             </button>
 
             {showReactions && (
               <div className="reaction-picker">
-                <span onClick={() => handleReact('like')}>👍</span>
-                <span onClick={() => handleReact('love')}>❤️</span>
-                <span onClick={() => handleReact('angry')}>😠</span>
+                <span onClick={() => handleReact('like')} title="Like">👍</span>
+                <span onClick={() => handleReact('love')} title="Love">❤️</span>
+                <span onClick={() => handleReact('angry')} title="Angry">😠</span>
               </div>
             )}
           </div>
 
-          {/* Comments Button */}
           <button
-            className="action-btn"
+            className="action-btn comment-btn"
             onClick={() => setShowCommentsModal(true)}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            Comment
+            💬 Comment
             {totalComments > 0 && (
               <span className="comment-count">{totalComments}</span>
             )}
@@ -452,9 +410,11 @@ const ForumDetail = () => {
       {showCommentsModal && (
         <div className="comments-modal-overlay" onClick={() => setShowCommentsModal(false)}>
           <div className="comments-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
             <div className="modal-header">
-              <h2 className="modal-title">Comments</h2>
+              <h2 className="modal-title">
+                💬 Conversation
+                <span className="modal-comment-count">{totalComments} comments</span>
+              </h2>
               <button
                 className="close-btn"
                 onClick={() => setShowCommentsModal(false)}
@@ -463,21 +423,22 @@ const ForumDetail = () => {
               </button>
             </div>
 
-            {/* Comments Container */}
             <div className="comments-container">
               {comments.length === 0 ? (
                 <div className="empty-comments">
-                  <p>No comments yet. Be the first to comment!</p>
+                  <div className="empty-icon">💭</div>
+                  <p>No comments yet. Start the conversation!</p>
                 </div>
               ) : (
                 comments.map((comment) => renderCommentNode(comment))
               )}
             </div>
 
-            {/* New Comment Form */}
             <form onSubmit={handleCommentSubmit} className="new-comment-form">
               <div className="new-comment-container">
-                <div className="new-comment-avatar">
+                <div className="new-comment-avatar" style={{
+                  background: 'linear-gradient(135deg, #CE1126, #FCD116)'
+                }}>
                   {getInitials(user?.username)}
                 </div>
                 <div className="new-comment-wrapper">
@@ -493,7 +454,7 @@ const ForumDetail = () => {
                     className="send-comment-btn"
                     disabled={submitting}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <line x1="22" y1="2" x2="11" y2="13"></line>
                       <polygon points="22,2 15,22 11,13 2,9"></polygon>
                     </svg>
