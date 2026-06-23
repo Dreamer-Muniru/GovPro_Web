@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { createProject } from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiUrl } from '../utils/api';
 import ghanaRegions from '../data/ghanaRegions';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import { Icon } from 'leaflet';
