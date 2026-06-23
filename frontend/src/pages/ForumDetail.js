@@ -1,284 +1,173 @@
 import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import '../css/ForumDetail.css';
-import { useNavigate } from 'react-router-dom';
 import { apiUrl } from '../utils/api';
 
+// ── constants (mirror ForumFeed.js) ──────────────────────────────────────────
+
+const PRIORITY_CLASS = {
+  Urgent: 'urgent', High: 'high', Medium: 'medium', Low: 'low',
+};
+
+const STATUS_CLASS = {
+  'Open': 'open', 'Under Review': 'review',
+  'Replied': 'replied', 'Resolved': 'resolved',
+};
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+const getInitials = (name = '') =>
+  name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
+
+const timeAgo = (dateStr) => {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7)  return `${d}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+};
+
+const formatDate = (dateStr) =>
+  new Date(dateStr).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+
+// Parse encoded description (same logic as ForumFeed.js)
+const parseForumMeta = (forum) => {
+  if (!forum.description) return { category: 'Other', priority: 'Medium', description: '' };
+  try {
+    const sepIdx = forum.description.indexOf('||');
+    if (sepIdx === -1) return { category: 'Other', priority: 'Medium', description: forum.description };
+    const meta = JSON.parse(forum.description.slice(0, sepIdx));
+    return {
+      category:    meta.cat || 'Other',
+      priority:    meta.pri || 'Medium',
+      description: forum.description.slice(sepIdx + 2),
+    };
+  } catch {
+    return { category: 'Other', priority: 'Medium', description: forum.description };
+  }
+};
+
+const deriveStatus = (forum) => {
+  if (forum.status) return forum.status;
+  const hasAdminReply = forum.comments?.some(c => c.isAdmin || c.fromMinistry);
+  if (hasAdminReply) return 'Replied';
+  return 'Open';
+};
+
+// ── component ─────────────────────────────────────────────────────────────────
+
 const ForumDetail = () => {
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const { user } = useContext(AuthContext);
-  const [forum, setForum] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState({ content: '' });
-  const [loading, setLoading] = useState(true);
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
-  const [showReplyInputs, setShowReplyInputs] = useState({});
-  const [showReplies, setShowReplies] = useState({});
-  const [replyContents, setReplyContents] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [showReactions, setShowReactions] = useState(false);
+  const { id }      = useParams();
+  const navigate    = useNavigate();
+  const { user }    = useContext(AuthContext);
 
-  const getReactionIcon = (type) => {
-    switch (type) {
-      case 'like': return '👍';
-      case 'love': return '❤️';
-      case 'angry': return '😠';
-      default: return '👍';
-    }
-  };
+  const [forum,       setForum]       = useState(null);
+  const [comments,    setComments]    = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [commentText,       setCommentText]       = useState('');
+  const [posting,           setPosting]           = useState(false);
+  const [collapsedComments, setCollapsedComments] = useState({});   // id → true when collapsed
 
+  const toggleComment = (id) =>
+    setCollapsedComments(prev => ({ ...prev, [id]: !prev[id] }));
+
+  // ── fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
-    const fetchForumAndComments = async () => {
+    const fetchAll = async () => {
       setLoading(true);
       try {
-        const [forumRes, commentRes] = await Promise.all([
+        const [forumRes, commentsRes] = await Promise.all([
           axios.get(apiUrl(`/api/forums/${id}`)),
           axios.get(apiUrl(`/api/comments/${id}`)),
         ]);
         if (!cancelled) {
           setForum(forumRes.data);
-          setComments(Array.isArray(commentRes.data) ? commentRes.data : []);
+          const loadedComments = Array.isArray(commentsRes.data) ? commentsRes.data : [];
+          setComments(loadedComments);
+          // Start every top-level comment collapsed
+          const allCollapsed = {};
+          loadedComments
+            .filter(c => !c.fromMinistry && !c.isAdminReply)
+            .forEach((c, i) => { allCollapsed[c._id || i] = true; });
+          setCollapsedComments(allCollapsed);
         }
       } catch (err) {
-        console.error('Error loading forum:', err.message);
+        console.error('Failed to load issue:', err.message);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
-    fetchForumAndComments();
-
-    return () => {
-      cancelled = true;
-    };
+    fetchAll();
+    return () => { cancelled = true; };
   }, [id]);
 
-  const refreshComments = async () => {
-    try {
-      const res = await axios.get(apiUrl(`/api/comments/${id}`));
-      setComments(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Failed to refresh comments:', err.message);
-    }
-  };
-
-  const getTimeAgo = (timestamp) => {
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diffInSeconds = Math.floor((now - time) / 1000);
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    return time.toLocaleDateString();
-  };
-
-  const handleReact = async (type) => {
-    if (!user?._id) return;
-    try {
-      await axios.post(apiUrl(`/api/forums/${forum._id}/react`), {
-        type,
-        userId: user._id,
-      });
-
-      const res = await axios.get(apiUrl(`/api/forums/${forum._id}`));
-      setForum(res.data);
-      setShowReactions(false);
-    } catch (err) {
-      console.error('Reaction failed:', err.message);
-    }
-  };
-
-  const toggleReplyInput = (commentId) => {
-    setShowReplyInputs((prev) => ({
-      ...prev,
-      [commentId]: !prev[commentId],
-    }));
-  };
-
-  const toggleReplies = (commentId) => {
-    setShowReplies((prev) => ({
-      ...prev,
-      [commentId]: !prev[commentId],
-    }));
-  };
-
-  const handleReplySubmit = async (e, parentId) => {
+  // ── post comment ───────────────────────────────────────────────────────────
+  const handlePostComment = async (e) => {
     e.preventDefault();
-    const content = replyContents[parentId];
-    if (!content || !user?._id) return;
+    if (!commentText.trim() || !user?._id) return;
+    setPosting(true);
 
-    setSubmitting(true);
     try {
-      await axios.post(apiUrl('/api/comments/reply'), {
-        forumId: id,
-        parentId,
-        content,
-        createdBy: user._id,
-      });
+      const fd = new FormData();
+      fd.append('forumId',   id);
+      fd.append('content',   commentText.trim());
+      fd.append('createdBy', user._id);
 
-      setReplyContents((prev) => ({ ...prev, [parentId]: '' }));
-      setShowReplyInputs((prev) => ({ ...prev, [parentId]: false }));
-      await refreshComments();
-    } catch (err) {
-      console.error('Failed to post reply:', err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleCommentSubmit = async (e) => {
-    e.preventDefault();
-    if (!newComment.content.trim() || !user?._id) return;
-
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append('forumId', id);
-      formData.append('content', newComment.content);
-      formData.append('createdBy', user._id);
-
-      await axios.post(apiUrl('/api/comments'), formData, {
+      await axios.post(apiUrl('/api/comments'), fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      setNewComment({ content: '' });
-      await refreshComments();
+      setCommentText('');
+      // Refresh comments
+      const res = await axios.get(apiUrl(`/api/comments/${id}`));
+      const refreshed = Array.isArray(res.data) ? res.data : [];
+      setComments(refreshed);
+      // Keep existing collapsed states, collapse any new ones
+      setCollapsedComments(prev => {
+        const next = { ...prev };
+        refreshed
+          .filter(c => !c.fromMinistry && !c.isAdminReply)
+          .forEach((c, i) => { if (next[c._id || i] === undefined) next[c._id || i] = true; });
+        return next;
+      });
     } catch (err) {
       console.error('Failed to post comment:', err.message);
+      alert('Failed to post comment. Please try again.');
     } finally {
-      setSubmitting(false);
+      setPosting(false);
     }
   };
 
-  const getInitials = (username) => {
-    return username ? username.charAt(0).toUpperCase() : 'U';
-  };
-
-  const countTotalComments = (commentList) => {
-    let count = 0;
-    const countReplies = (list) => {
-      list.forEach((comment) => {
-        count++;
-        if (comment.replies && comment.replies.length > 0) {
-          countReplies(comment.replies);
-        }
-      });
-    };
-    countReplies(commentList);
-    return count;
-  };
-
-  const renderCommentNode = (comment, isReply = false) => {
-    const replyCount = comment.replies ? comment.replies.length : 0;
-    const showThisReplies = showReplies[comment._id];
-
-    return (
-      <div key={comment._id} className={`comment ${isReply ? 'comment-reply' : ''}`}>
-        <div className="comment-header">
-          <div
-            className="comment-avatar"
-            style={{
-              background: `linear-gradient(135deg, ${isReply ? '#FCD116' : '#CE1126'}, ${isReply ? '#006B3F' : '#FCD116'})`,
-            }}
-          >
-            {getInitials(comment.createdBy?.username)}
-          </div>
-          <div className="comment-user-info">
-            <div className="comment-username">
-              {comment.createdBy?.username || 'User'}
-              {isReply && <span className="reply-badge">↳ Reply</span>}
-            </div>
-            <div className="comment-meta">
-              {forum && (
-                <span className="comment-region">
-                  {comment.district || forum.district}
-                </span>
-              )}
-              <span className="comment-time">{getTimeAgo(comment.createdAt)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="comment-content">{comment.content}</div>
-
-        {comment.imageUrl && (
-          <img
-            src={apiUrl(comment.imageUrl)}
-            alt="Comment attachment"
-            className="comment-image"
-          />
-        )}
-
-        {!isReply && (
-          <div className="comment-actions">
-            <button className="reply-btn" onClick={() => toggleReplyInput(comment._id)}>
-              💬 Reply
-            </button>
-            {replyCount > 0 && (
-              <button className="view-replies-btn" onClick={() => toggleReplies(comment._id)}>
-                {showThisReplies
-                  ? '🔼 Hide'
-                  : `🔽 View ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
-              </button>
-            )}
-          </div>
-        )}
-
-        {showReplyInputs[comment._id] && (
-          <form onSubmit={(e) => handleReplySubmit(e, comment._id)} className="reply-form">
-            <div className="reply-input-container">
-              <div
-                className="reply-avatar"
-                style={{ background: 'linear-gradient(135deg, #006B3F, #FCD116)' }}
-              >
-                {getInitials(user?.username)}
-              </div>
-              <div className="reply-input-wrapper">
-                <textarea
-                  placeholder="Write a reply..."
-                  value={replyContents[comment._id] || ''}
-                  onChange={(e) =>
-                    setReplyContents((prev) => ({ ...prev, [comment._id]: e.target.value }))
-                  }
-                  className="reply-textarea"
-                  required
-                />
-                <button type="submit" className="send-reply-btn" disabled={submitting}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22,2 15,22 11,13 2,9"></polygon>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
-
-        {showThisReplies && comment.replies && comment.replies.length > 0 && (
-          <div className="replies-list">
-            {comment.replies.map((reply) => renderCommentNode(reply, true))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
+  // ── loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="forum-detail">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p className="loading-text">Loading conversation...</p>
+      <div className="fd-root">
+        <div className="fd-topbar">
+          <div className="fd-flag"><div className="fd-flag-r"/><div className="fd-flag-g"/><div className="fd-flag-gr"/></div>
+          <div className="fd-topbar-inner">
+            <button className="fd-back-btn" onClick={() => navigate('/forum-feed')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Back to Issues
+            </button>
+          </div>
+        </div>
+        <div className="fd-loading">
+          <div className="fd-spinner" />
+          <p>Loading issue…</p>
         </div>
       </div>
     );
@@ -286,172 +175,321 @@ const ForumDetail = () => {
 
   if (!forum) {
     return (
-      <div className="forum-detail">
-        <div className="empty-state">
-          <div className="empty-icon">📭</div>
-          <p>Conversation not found</p>
+      <div className="fd-root">
+        <div className="fd-not-found">
+          <span style={{fontSize:'3rem'}}>📭</span>
+          <h3>Issue not found</h3>
+          <p>This issue may have been removed or you don't have access.</p>
+          <button className="ff-gate-btn" style={{marginTop:'0.5rem'}} onClick={() => navigate('/forum-feed')}>
+            Back to Issues Board
+          </button>
         </div>
       </div>
     );
   }
 
-  const totalComments = countTotalComments(comments);
-  const userId = user?._id || user?.id;
-  const userReaction = forum.reactions?.find(
-    (r) => r.user === userId || r.user?._id === userId
-  )?.type;
+  // ── derive display values ──────────────────────────────────────────────────
+  const { category, priority, description } = parseForumMeta(forum);
+  const status   = deriveStatus(forum);
+  const priCls   = PRIORITY_CLASS[priority] || 'low';
+  const stsCls   = STATUS_CLASS[status]     || 'open';
+  const stripeClass = `fd-stripe-${priCls}`;
 
+  // Ministry replies = comments where isAdmin or fromMinistry flag is set
+  // For now, surface ALL comments from users with isAdmin = true
+  const ministryReplies = comments.filter(c => c.fromMinistry || c.isAdminReply);
+  const userComments    = comments.filter(c => !c.fromMinistry && !c.isAdminReply);
+
+  const authorName  = forum.createdBy?.fullName || forum.createdBy?.username || 'Unknown';
+  const authorInit  = getInitials(authorName);
+
+  // ── render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="forum-detail">
-      {/* Ghana Flag Banner */}
-      <div className="ghana-flag-banner">
-        <div className="flag-stripe flag-red"></div>
-        <div className="flag-stripe flag-gold"></div>
-        <div className="flag-stripe flag-green"></div>
-        <div className="flag-star">⭐</div>
-      </div>
+    <div className="fd-root">
 
-      {/* Header */}
-      <div className="forum-detail-header">
-        <button className="back-button" onClick={() => navigate('/forum-feed')}>
-          ← Back to Dashboard
-        </button>
-        <div className="header-badge">
-          <span className="badge-official">🇬🇭 Official Communication</span>
+      {/* ── Top bar ──────────────────────────────────────────────────────── */}
+      <div className="fd-topbar">
+        <div className="fd-flag">
+          <div className="fd-flag-r"/><div className="fd-flag-g"/><div className="fd-flag-gr"/>
+        </div>
+        <div className="fd-topbar-inner">
+          <button className="fd-back-btn" onClick={() => navigate('/forum-feed')}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back to Issues
+          </button>
+          <div className="fd-breadcrumb">
+            <span>Issues Forum</span>
+            <span className="fd-breadcrumb-sep">›</span>
+            <span className="fd-breadcrumb-current">{forum.district}</span>
+            <span className="fd-breadcrumb-sep">›</span>
+            <span className="fd-breadcrumb-current" style={{maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              {forum.title}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Main Post Card */}
-      <div className="forum-post-card">
-        <div className="post-header">
-          <div
-            className="post-avatar"
-            style={{ background: 'linear-gradient(135deg, #CE1126, #FCD116, #006B3F)' }}
-          >
-            {getInitials(forum.createdBy?.username)}
-          </div>
-          <div className="post-user-info">
-            <div className="post-username">
-              {forum.createdBy?.username || 'User'}
-              {forum.createdBy?.role === 'admin' && (
-                <span className="admin-badge">👑 Admin</span>
-              )}
-            </div>
-            <div className="post-meta">
-              <span className="post-region">
-                📍 {forum.region}, {forum.district}
+      <div className="fd-content">
+
+        {/* ── Issue card ───────────────────────────────────────────────────── */}
+        <div className="fd-issue-card">
+          <div className={`fd-issue-priority-stripe ${stripeClass}`} />
+
+          <div className="fd-issue-header">
+            {/* Badges */}
+            <div className="fd-badges">
+              <span className={`fd-badge fd-badge-${priCls}`}>
+                {priority === 'Urgent' && '🚨 '}
+                {priority === 'High'   && '🔴 '}
+                {priority}
               </span>
-              <span className="post-time">{getTimeAgo(forum.createdAt)}</span>
+              <span className={`fd-badge fd-badge-${stsCls}`}>
+                {status === 'Open'         && '⏳ '}
+                {status === 'Under Review' && '👀 '}
+                {status === 'Replied'      && '✅ '}
+                {status === 'Resolved'     && '✔️ '}
+                {status}
+              </span>
+              <span className="fd-badge fd-badge-cat">{category}</span>
             </div>
+
+            {/* Title */}
+            <h1 className="fd-issue-title">{forum.title}</h1>
+
+            {/* Meta */}
+            <div className="fd-issue-meta">
+              <div className="fd-meta-item">
+                <div className="fd-meta-avatar">{authorInit}</div>
+                <span>{authorName}</span>
+              </div>
+              <div className="fd-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                {forum.district}, {forum.region}
+              </div>
+              <div className="fd-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                {formatDate(forum.createdAt)}
+              </div>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="fd-issue-body">
+            {forum.imageUrl && (
+              <img
+                src={apiUrl(forum.imageUrl)}
+                alt="Issue attachment"
+                className="fd-issue-image"
+              />
+            )}
+            <p className="fd-issue-description">{description}</p>
           </div>
         </div>
 
-        <div className="post-content">
-          <h1 className="post-title">{forum.title}</h1>
-          <p className="post-description">{forum.description}</p>
-          {forum.imageUrl && (
-            <div className="post-image-wrapper">
-              <img src={apiUrl(forum.imageUrl)} alt="Forum attachment" className="post-image" />
+        {/* ── Ministry Response ─────────────────────────────────────────────── */}
+        <div className="fd-ministry-section">
+          <div className="fd-ministry-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Ministry Response
+          </div>
+
+          {ministryReplies.length === 0 ? (
+            <div className="fd-ministry-waiting">
+              <span className="fd-waiting-icon">📬</span>
+              <div className="fd-waiting-title">Awaiting Ministry Review</div>
+              <p className="fd-waiting-sub">
+                Your issue has been submitted and is pending review by the
+                Ministry of Local Government. You will see the official response here.
+              </p>
+            </div>
+          ) : (
+            <div style={{display:'flex',flexDirection:'column',gap:'0.875rem'}}>
+              {ministryReplies.map((reply, i) => (
+                <div key={reply._id || i} className="fd-ministry-reply">
+                  <div className="fd-ministry-reply-header">
+                    <div className="fd-ministry-icon">🏛️</div>
+                    <div className="fd-ministry-reply-meta">
+                      <div className="fd-ministry-reply-from">
+                        Ministry of Local Government &amp; Rural Development
+                      </div>
+                      <div className="fd-ministry-reply-time">
+                        {timeAgo(reply.createdAt || reply.updatedAt)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="fd-ministry-reply-body">
+                    {reply.content || reply.comment}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        <div className="post-actions">
-          <div
-            className="like-button-wrapper"
-            onMouseEnter={() => setShowReactions(true)}
-            onMouseLeave={() => setShowReactions(false)}
-            onTouchStart={() => setShowReactions(true)}
-          >
-            <button className={`action-btn like-btn ${userReaction ? 'active' : ''}`}>
-              {userReaction ? getReactionIcon(userReaction) : '👍'}
-              {userReaction ? ' Reacted' : ' React'}
-              <span className="reaction-count">{forum.reactions?.length || 0}</span>
-            </button>
-
-            {showReactions && (
-              <div className="reaction-picker">
-                <span onClick={() => handleReact('like')} title="Like">👍</span>
-                <span onClick={() => handleReact('love')} title="Love">❤️</span>
-                <span onClick={() => handleReact('angry')} title="Angry">😠</span>
-              </div>
+        {/* ── Discussion section ────────────────────────────────────────────── */}
+        <div className="fd-discussion">
+          <div className="fd-section-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            Discussion ({userComments.length})
+            {userComments.length > 0 && (
+              <span className="fd-section-hint">click a user to expand</span>
             )}
           </div>
 
-          <button
-            className="action-btn comment-btn"
-            onClick={() => setShowCommentsModal(true)}
-          >
-            💬 Comment
-            {totalComments > 0 && (
-              <span className="comment-count">{totalComments}</span>
+          <div className="fd-comments">
+            {userComments.length === 0 ? (
+              <div className="fd-no-comments">
+                No discussion yet. Be the first to add a comment below.
+              </div>
+            ) : (
+              userComments.map((comment, i) => {
+                const cName      = comment.createdBy?.username || comment.createdBy?.fullName || 'Unknown';
+                const cInit      = getInitials(cName);
+                const commentId  = comment._id || i;
+                const isCollapsed = !!collapsedComments[commentId];
+                const replyCount = comment.replies?.length || 0;
+                return (
+                  <div key={commentId} className={`fd-comment ${isCollapsed ? 'fd-comment--collapsed' : ''}`}>
+                    {/* Clickable header — toggles body */}
+                    <div
+                      className="fd-comment-header fd-comment-header--clickable"
+                      onClick={() => toggleComment(commentId)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => e.key === 'Enter' && toggleComment(commentId)}
+                      aria-expanded={!isCollapsed}
+                      aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} comment by ${cName}`}
+                    >
+                      <div className="fd-comment-avatar">{cInit}</div>
+                      <div style={{flex:1}}>
+                        <div className="fd-comment-name">{cName}</div>
+                        {comment.district && (
+                          <div className="fd-comment-district">{comment.district}</div>
+                        )}
+                      </div>
+                      {isCollapsed && replyCount > 0 && (
+                        <span className="fd-comment-reply-badge">{replyCount} {replyCount === 1 ? 'reply' : 'replies'}</span>
+                      )}
+                      <span className="fd-comment-time">{timeAgo(comment.createdAt)}</span>
+                      {/* Chevron indicator */}
+                      <svg
+                        className={`fd-chevron ${isCollapsed ? 'fd-chevron--collapsed' : ''}`}
+                        width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </div>
+
+                    {/* Collapsible body */}
+                    {!isCollapsed && (
+                      <div className="fd-comment-body">
+                        <p className="fd-comment-text">{comment.content || comment.comment}</p>
+
+                        {/* Replies to this comment */}
+                        {comment.replies?.map((reply, j) => {
+                          const rName = reply.createdBy?.username || 'Unknown';
+                          const rInit = getInitials(rName);
+                          return (
+                            <div key={reply._id || j} className="fd-comment fd-comment-reply">
+                              <div className="fd-comment-header">
+                                <div className="fd-comment-avatar" style={{background:'linear-gradient(135deg,#475569,#94a3b8)'}}>{rInit}</div>
+                                <div style={{flex:1}}>
+                                  <div className="fd-comment-name">{rName}</div>
+                                </div>
+                                <span className="fd-comment-time">{timeAgo(reply.createdAt)}</span>
+                              </div>
+                              <div className="fd-comment-body">
+                                <p className="fd-comment-text">{reply.content}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
-          </button>
-        </div>
-      </div>
+          </div>
 
-      {/* Comments Modal */}
-      {showCommentsModal && (
-        <div
-          className="comments-modal-overlay"
-          onClick={() => setShowCommentsModal(false)}
-        >
-          <div className="comments-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">
-                💬 Conversation
-                <span className="modal-comment-count">{totalComments} comments</span>
-              </h2>
-              <button className="close-btn" onClick={() => setShowCommentsModal(false)}>
-                ×
-              </button>
-            </div>
-
-            <div className="comments-container">
-              {comments.length === 0 ? (
-                <div className="empty-comments">
-                  <div className="empty-icon">💭</div>
-                  <p>No comments yet. Start the conversation!</p>
+          {/* Compose */}
+          {user ? (
+            <div className="fd-compose">
+              <div className="fd-compose-header">
+                <div className="fd-compose-avatar">{getInitials(user.fullName || user.username)}</div>
+                <div>
+                  <div className="fd-compose-label">{user.fullName || user.username}</div>
+                  <div className="fd-compose-sublabel">{user.district}</div>
                 </div>
-              ) : (
-                comments.map((comment) => renderCommentNode(comment))
-              )}
-            </div>
-
-            <form onSubmit={handleCommentSubmit} className="new-comment-form">
-              <div className="new-comment-container">
-                <div
-                  className="new-comment-avatar"
-                  style={{ background: 'linear-gradient(135deg, #CE1126, #FCD116)' }}
-                >
-                  {getInitials(user?.username)}
-                </div>
-                <div className="new-comment-wrapper">
-                  <textarea
-                    value={newComment.content}
-                    onChange={(e) =>
-                      setNewComment({ ...newComment, content: e.target.value })
-                    }
-                    placeholder="Write a comment..."
-                    className="new-comment-input"
-                    required
-                  />
+              </div>
+              <form onSubmit={handlePostComment}>
+                <textarea
+                  className="fd-compose-textarea"
+                  placeholder="Add a comment or additional context to this issue…"
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  required
+                  minLength={3}
+                />
+                <div className="fd-compose-footer">
                   <button
                     type="submit"
-                    className="send-comment-btn"
-                    disabled={submitting}
+                    className="fd-compose-send"
+                    disabled={posting || !commentText.trim()}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <line x1="22" y1="2" x2="11" y2="13"></line>
-                      <polygon points="22,2 15,22 11,13 2,9"></polygon>
-                    </svg>
+                    {posting ? (
+                      <>
+                        <div className="fd-spinner" style={{width:13,height:13,borderWidth:2}} />
+                        Posting…
+                      </>
+                    ) : (
+                      <>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"/>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                        Post Comment
+                      </>
+                    )}
                   </button>
                 </div>
-              </div>
-            </form>
-          </div>
+              </form>
+            </div>
+          ) : (
+            <div className="fd-login-prompt">
+              <p>Sign in to join the discussion on this issue.</p>
+              <button
+                className="fd-login-prompt-btn"
+                onClick={() => navigate('/login')}
+              >
+                Sign In
+              </button>
+            </div>
+          )}
         </div>
-      )}
+
+      </div>
     </div>
   );
 };
