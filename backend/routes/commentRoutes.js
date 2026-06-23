@@ -1,22 +1,23 @@
-const express = require('express');
-const router = express.Router();
-const Forum = require('../models/forums');
-const upload = require('../middleware/upload');
-const stream = require('stream');
+const express  = require('express');
+const router   = express.Router();
+const Forum    = require('../models/forums');
+const upload   = require('../middleware/upload');
+const stream   = require('stream');
 const { GridFSBucket } = require('mongodb');
 const mongoose = require('mongoose');
 
-// Lazy-initialised GridFS bucket (same pattern used in other route files)
 let gridBucket;
 mongoose.connection.once('open', () => {
   gridBucket = new GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' });
 });
 
+// ── GET /api/comments/:forumId ───────────────────────────────────────────────
+// Populate isAdmin + fullName so the frontend can distinguish ministry replies
 router.get('/:forumId', async (req, res) => {
   try {
     const forum = await Forum.findById(req.params.forumId)
-      .populate('comments.createdBy', 'username')
-      .populate('comments.replies.createdBy', 'username');
+      .populate('comments.createdBy',          'username fullName isAdmin')
+      .populate('comments.replies.createdBy',  'username fullName isAdmin');
 
     res.json(forum ? forum.comments : []);
   } catch (error) {
@@ -25,6 +26,7 @@ router.get('/:forumId', async (req, res) => {
   }
 });
 
+// ── POST /api/comments/reply ─────────────────────────────────────────────────
 router.post('/reply', async (req, res) => {
   try {
     const { forumId, parentId, content, createdBy } = req.body;
@@ -49,7 +51,7 @@ router.post('/reply', async (req, res) => {
       content,
       createdBy,
       createdAt: new Date(),
-      replies: [],
+      replies:   [],
     });
 
     await forum.save();
@@ -60,7 +62,7 @@ router.post('/reply', async (req, res) => {
   }
 });
 
-// Comment posting
+// ── POST /api/comments ───────────────────────────────────────────────────────
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { forumId, content, createdBy } = req.body;
@@ -71,13 +73,12 @@ router.post('/', upload.single('image'), async (req, res) => {
       content,
       createdBy,
       createdAt: new Date(),
-      replies: [],
+      replies:   [],
     };
 
     if (req.file && gridBucket) {
-      const readableStream = new stream.PassThrough();
+      const readableStream  = new stream.PassThrough();
       readableStream.end(req.file.buffer);
-
       const uploadStream = gridBucket.openUploadStream(req.file.originalname, {
         contentType: req.file.mimetype,
       });

@@ -197,7 +197,7 @@ const ForumDetail = () => {
 
   // Ministry replies = comments where isAdmin or fromMinistry flag is set
   // For now, surface ALL comments from users with isAdmin = true
-  const ministryReplies = comments.filter(c => c.fromMinistry || c.isAdminReply);
+  const ministryReplies = comments.filter(c => c.fromMinistry || c.isAdminReply || c.createdBy?.isAdmin);
   const userComments    = comments.filter(c => !c.fromMinistry && !c.isAdminReply);
 
   const authorName  = forum.createdBy?.fullName || forum.createdBy?.username || 'Unknown';

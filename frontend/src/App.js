@@ -25,7 +25,8 @@ function App() {
 
   const ProtectedRoute = ({ children }) => {
     const { user } = useContext(AuthContext);
-    return user?.isAdmin ? children : <Navigate to="/admin-login" />;
+    // Redirect to the new hidden admin login URL
+    return user?.isAdmin ? children : <Navigate to="/ministry-portal/auth" />;
   };
 
   return (
@@ -42,22 +43,30 @@ function App() {
       <ToastContainer position="top-right" />
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/add-project" element={<AddProjectForm />} />
-        <Route path="/project/:id" element={<ProjectDetail />} />
-        <Route path="/edit/:id" element={<EditProject />} />
-        <Route path="/project-insights" element={<ProjectInsights />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/create-forum" element={<CreateForum />} />
-        <Route path="/forums/:id" element={<ForumDetail />} />
-        <Route path="/forum-feed" element={<ForumFeed />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        {/* ── Public routes ── */}
+        <Route path="/"                   element={<HomePage />} />
+        <Route path="/add-project"        element={<AddProjectForm />} />
+        <Route path="/project/:id"        element={<ProjectDetail />} />
+        <Route path="/edit/:id"           element={<EditProject />} />
+        <Route path="/project-insights"   element={<ProjectInsights />} />
+        <Route path="/about"              element={<AboutPage />} />
+        <Route path="/create-forum"       element={<CreateForum />} />
+        <Route path="/forums/:id"         element={<ForumDetail />} />
+        <Route path="/forum-feed"         element={<ForumFeed />} />
+        <Route path="/profile"            element={<ProfilePage />} />
+        <Route path="/login"              element={<LoginPage />} />
+        <Route path="/register"           element={<RegisterPage />} />
 
-        {/* Admin routes */}
-        <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        {/* ── Admin routes — obfuscated URL ── */}
+        {/* Old /admin-login and /admin redirect to new paths so bookmarks don't 404 */}
+        <Route path="/admin-login"        element={<Navigate to="/ministry-portal/auth" replace />} />
+        <Route path="/admin"              element={<Navigate to="/ministry-portal/auth" replace />} />
+
+        {/* New hidden admin paths */}
+        <Route path="/ministry-portal/auth"   element={<AdminLogin />} />
+        <Route path="/ministry-portal"
+          element={<ProtectedRoute><AdminPanel /></ProtectedRoute>}
+        />
       </Routes>
     </Router>
   );

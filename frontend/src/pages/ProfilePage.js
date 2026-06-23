@@ -9,34 +9,36 @@ import ghanaRegions from '../data/ghanaRegions';
 const ProfilePage = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Admins have their own settings inside the Ministry Portal — redirect them
+  useEffect(() => {
+    if (user?.isAdmin) {
+      navigate('/ministry-portal', { replace: true });
+    }
+  }, [user, navigate]);
+
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [stats, setStats] = useState({
     projectsCreated: 0,
-    forumsStarted: 0,
-    commentsMade: 0,
-    reactionsGiven: 0
+    forumsStarted:   0,
+    commentsMade:    0,
+    reactionsGiven:  0,
   });
 
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
-    phone: user?.phone || '',
+    phone:    user?.phone    || '',
     username: user?.username || '',
-    region: user?.region || '',
+    region:   user?.region   || '',
     district: user?.district || '',
-    password: ''
+    password: '',
   });
 
-  const handleLogout = () => {
-    logout();
-    setTimeout(() => navigate('/'), 0);
-  };
+  const handleLogout = () => { logout(); navigate('/'); };
 
-  const handleEditToggle = () => {
-    setEditing(prev => !prev);
-    setMessage('');
-  };
+  const handleEditToggle = () => { setEditing(prev => !prev); setMessage(''); };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -46,9 +48,9 @@ const ProfilePage = () => {
         const data = res?.data || {};
         setStats({
           projectsCreated: Number(data.projectsCreated) || 0,
-          forumsStarted: Number(data.forumsStarted) || 0,
-          commentsMade: Number(data.commentsMade) || 0,
-          reactionsGiven: Number(data.reactionsGiven) || 0,
+          forumsStarted:   Number(data.forumsStarted)   || 0,
+          commentsMade:    Number(data.commentsMade)     || 0,
+          reactionsGiven:  Number(data.reactionsGiven)   || 0,
         });
       } catch (err) {
         console.error('Failed to fetch user stats:', err?.message || err);
@@ -57,28 +59,27 @@ const ProfilePage = () => {
     fetchStats();
   }, [user?._id]);
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
 
   const handleSave = async () => {
     try {
       setLoading(true);
       const payload = { ...formData };
       if (!payload.password) delete payload.password;
-
       await axios.put(apiUrl(`/api/auth/${user._id}`), payload);
-      
-      setMessage('Profile updated successfully! Please log out and log back in to see changes reflected across the platform.');
+      setMessage('Profile updated successfully! Log out and back in to see all changes.');
       setEditing(false);
-      
     } catch (err) {
       setMessage('Profile update failed. Please try again.');
-      console.error('Profile update failed:', err.message);
+      console.error(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  // While redirect is in progress for admins, render nothing
+  if (user?.isAdmin) return null;
 
   return (
     <div className="profile-container">
@@ -98,7 +99,7 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {/* Stats Section */}
+      {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
           <span className="stat-number">{stats.projectsCreated}</span>
@@ -143,12 +144,8 @@ const ProfilePage = () => {
                 <span className="info-value">{formData.district || 'Not set'}</span>
               </div>
             </div>
-            
             <div className="action-buttons">
-              <button 
-                className="btn-primary" 
-                onClick={handleEditToggle}
-              >
+              <button className="btn-primary" onClick={handleEditToggle}>
                 <i className="fas fa-edit"></i> Edit Profile
               </button>
             </div>
@@ -158,108 +155,52 @@ const ProfilePage = () => {
             <div className="form-grid">
               <div className="form-group">
                 <label className="form-label">Full Name</label>
-                <input 
-                  className="form-input"
-                  name="fullName" 
-                  value={formData.fullName} 
-                  onChange={handleChange} 
-                  placeholder="Enter your full name" 
-                />
+                <input className="form-input" name="fullName" value={formData.fullName}
+                  onChange={handleChange} placeholder="Enter your full name" />
               </div>
-              
               <div className="form-group">
                 <label className="form-label">Phone Number</label>
-                <input 
-                  className="form-input"
-                  name="phone" 
-                  value={formData.phone} 
-                  onChange={handleChange} 
-                  placeholder="+233 XX XXX XXXX" 
-                />
+                <input className="form-input" name="phone" value={formData.phone}
+                  onChange={handleChange} placeholder="+233 XX XXX XXXX" />
               </div>
-              
               <div className="form-group">
                 <label className="form-label">Username</label>
-                <input 
-                  className="form-input"
-                  name="username" 
-                  value={formData.username} 
-                  onChange={handleChange} 
-                  placeholder="Choose a username" 
-                />
+                <input className="form-input" name="username" value={formData.username}
+                  onChange={handleChange} placeholder="Choose a username" />
               </div>
-              
               <div className="form-group">
                 <label className="form-label">Region</label>
-                <select
-                  className="form-select"
-                  value={formData.region}
-                  onChange={(e) => {
-                    setFormData({ ...formData, region: e.target.value, district: '' });
-                  }}
-                >
+                <select className="form-select" value={formData.region}
+                  onChange={e => setFormData({ ...formData, region: e.target.value, district: '' })}>
                   <option value="">Select Region</option>
-                  {ghanaRegions.map((regionObj) => (
-                    <option key={regionObj.name} value={regionObj.name}>
-                      {regionObj.name}
-                    </option>
+                  {ghanaRegions.map(r => (
+                    <option key={r.name} value={r.name}>{r.name}</option>
                   ))}
                 </select>
               </div>
-
               <div className="form-group">
                 <label className="form-label">District</label>
-                <select
-                  className="form-select"
-                  value={formData.district}
-                  onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                  disabled={!formData.region}
-                >
+                <select className="form-select" value={formData.district}
+                  onChange={e => setFormData({ ...formData, district: e.target.value })}
+                  disabled={!formData.region}>
                   <option value="">Select District</option>
-                  {(ghanaRegions.find(r => r.name === formData.region)?.districts || []).map((district) => (
-                    <option key={district} value={district}>
-                      {district}
-                    </option>
+                  {(ghanaRegions.find(r => r.name === formData.region)?.districts || []).map(d => (
+                    <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
               </div>
-
               <div className="form-group full-width">
                 <label className="form-label">New Password (optional)</label>
-                <input 
-                  className="form-input"
-                  name="password" 
-                  type="password" 
-                  value={formData.password} 
-                  onChange={handleChange} 
-                  placeholder="Enter new password" 
-                />
+                <input className="form-input" name="password" type="password"
+                  value={formData.password} onChange={handleChange}
+                  placeholder="Leave blank to keep current password" />
                 <small className="form-hint">Leave blank to keep current password</small>
               </div>
             </div>
-            
             <div className="edit-actions">
-              <button 
-                className="btn-secondary" 
-                onClick={handleEditToggle}
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn-primary" 
-                onClick={handleSave}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin"></i> Saving...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-save"></i> Save Changes
-                  </>
-                )}
+              <button className="btn-secondary" onClick={handleEditToggle} disabled={loading}>Cancel</button>
+              <button className="btn-primary" onClick={handleSave} disabled={loading}>
+                {loading ? <><i className="fas fa-spinner fa-spin"></i> Saving…</> : <><i className="fas fa-save"></i> Save Changes</>}
               </button>
             </div>
           </div>
@@ -267,10 +208,7 @@ const ProfilePage = () => {
       </div>
 
       <div className="profile-footer">
-        <button 
-          className="btn-logout" 
-          onClick={handleLogout}
-        >
+        <button className="btn-logout" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout
         </button>
       </div>
