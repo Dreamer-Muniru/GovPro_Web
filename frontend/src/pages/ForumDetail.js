@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext, useRef } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -21,11 +21,6 @@ const ForumDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
 
-  // Caching references
-  const hasFetchedRef = useRef(false);
-  const cacheTimeRef = useRef(null);
-  const CACHE_DURATION = 2 * 60 * 1000;
-
   const getReactionIcon = (type) => {
     switch (type) {
       case 'like': return '👍';
@@ -36,35 +31,41 @@ const ForumDetail = () => {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchForumAndComments = async () => {
-      const now = Date.now();
-      const cacheValid = cacheTimeRef.current && (now - cacheTimeRef.current < CACHE_DURATION);
-
-      if (hasFetchedRef.current && cacheValid && forum && comments.length >= 0) {
-        console.log('✅ Using cached forum detail data');
-        setLoading(false);
-        return;
-      }
-
-      console.log('🔄 Fetching fresh forum detail data...');
       setLoading(true);
       try {
-        const forumRes = await axios.get(apiUrl(`/api/forums/${id}`));
-        const commentRes = await axios.get(apiUrl(`/api/comments/${id}`));
-        setForum(forumRes.data);
-        setComments(commentRes.data);
-
-        hasFetchedRef.current = true;
-        cacheTimeRef.current = Date.now();
+        const [forumRes, commentRes] = await Promise.all([
+          axios.get(apiUrl(`/api/forums/${id}`)),
+          axios.get(apiUrl(`/api/comments/${id}`)),
+        ]);
+        if (!cancelled) {
+          setForum(forumRes.data);
+          setComments(Array.isArray(commentRes.data) ? commentRes.data : []);
+        }
       } catch (err) {
         console.error('Error loading forum:', err.message);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchForumAndComments();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
+
+  const refreshComments = async () => {
+    try {
+      const res = await axios.get(apiUrl(`/api/comments/${id}`));
+      setComments(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Failed to refresh comments:', err.message);
+    }
+  };
 
   const getTimeAgo = (timestamp) => {
     const now = new Date();
@@ -82,39 +83,39 @@ const ForumDetail = () => {
   };
 
   const handleReact = async (type) => {
+    if (!user?._id) return;
     try {
       await axios.post(apiUrl(`/api/forums/${forum._id}/react`), {
         type,
-        userId: user?._id
+        userId: user._id,
       });
 
       const res = await axios.get(apiUrl(`/api/forums/${forum._id}`));
       setForum(res.data);
       setShowReactions(false);
-      cacheTimeRef.current = Date.now();
     } catch (err) {
       console.error('Reaction failed:', err.message);
     }
   };
 
   const toggleReplyInput = (commentId) => {
-    setShowReplyInputs(prev => ({
+    setShowReplyInputs((prev) => ({
       ...prev,
-      [commentId]: !prev[commentId]
+      [commentId]: !prev[commentId],
     }));
   };
 
   const toggleReplies = (commentId) => {
-    setShowReplies(prev => ({
+    setShowReplies((prev) => ({
       ...prev,
-      [commentId]: !prev[commentId]
+      [commentId]: !prev[commentId],
     }));
   };
 
   const handleReplySubmit = async (e, parentId) => {
     e.preventDefault();
     const content = replyContents[parentId];
-    if (!content) return;
+    if (!content || !user?._id) return;
 
     setSubmitting(true);
     try {
@@ -122,15 +123,12 @@ const ForumDetail = () => {
         forumId: id,
         parentId,
         content,
-        createdBy: user?._id
+        createdBy: user._id,
       });
 
-      setReplyContents(prev => ({ ...prev, [parentId]: '' }));
-      setShowReplyInputs(prev => ({ ...prev, [parentId]: false }));
-
-      const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
-      setComments(updatedComments.data);
-      cacheTimeRef.current = Date.now();
+      setReplyContents((prev) => ({ ...prev, [parentId]: '' }));
+      setShowReplyInputs((prev) => ({ ...prev, [parentId]: false }));
+      await refreshComments();
     } catch (err) {
       console.error('Failed to post reply:', err.message);
     } finally {
@@ -140,23 +138,21 @@ const ForumDetail = () => {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!newComment.content.trim()) return;
+    if (!newComment.content.trim() || !user?._id) return;
 
     setSubmitting(true);
     try {
       const formData = new FormData();
       formData.append('forumId', id);
       formData.append('content', newComment.content);
-      formData.append('createdBy', user?._id);
+      formData.append('createdBy', user._id);
 
       await axios.post(apiUrl('/api/comments'), formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       setNewComment({ content: '' });
-      const updatedComments = await axios.get(apiUrl(`/api/comments/${id}`));
-      setComments(updatedComments.data);
-      cacheTimeRef.current = Date.now();
+      await refreshComments();
     } catch (err) {
       console.error('Failed to post comment:', err.message);
     } finally {
@@ -168,17 +164,17 @@ const ForumDetail = () => {
     return username ? username.charAt(0).toUpperCase() : 'U';
   };
 
-  const countTotalComments = (comments) => {
+  const countTotalComments = (commentList) => {
     let count = 0;
-    const countReplies = (commentList) => {
-      commentList.forEach(comment => {
+    const countReplies = (list) => {
+      list.forEach((comment) => {
         count++;
         if (comment.replies && comment.replies.length > 0) {
           countReplies(comment.replies);
         }
       });
     };
-    countReplies(comments);
+    countReplies(commentList);
     return count;
   };
 
@@ -189,9 +185,12 @@ const ForumDetail = () => {
     return (
       <div key={comment._id} className={`comment ${isReply ? 'comment-reply' : ''}`}>
         <div className="comment-header">
-          <div className="comment-avatar" style={{
-            background: `linear-gradient(135deg, ${isReply ? '#FCD116' : '#CE1126'}, ${isReply ? '#006B3F' : '#FCD116'})`
-          }}>
+          <div
+            className="comment-avatar"
+            style={{
+              background: `linear-gradient(135deg, ${isReply ? '#FCD116' : '#CE1126'}, ${isReply ? '#006B3F' : '#FCD116'})`,
+            }}
+          >
             {getInitials(comment.createdBy?.username)}
           </div>
           <div className="comment-user-info">
@@ -200,56 +199,48 @@ const ForumDetail = () => {
               {isReply && <span className="reply-badge">↳ Reply</span>}
             </div>
             <div className="comment-meta">
-              <span className="comment-region">
-                {comment.district || forum.district}
-              </span>
-              <span className="comment-time">
-                {getTimeAgo(comment.createdAt)}
-              </span>
+              {forum && (
+                <span className="comment-region">
+                  {comment.district || forum.district}
+                </span>
+              )}
+              <span className="comment-time">{getTimeAgo(comment.createdAt)}</span>
             </div>
           </div>
         </div>
 
-        <div className="comment-content">
-          {comment.content}
-        </div>
+        <div className="comment-content">{comment.content}</div>
 
         {comment.imageUrl && (
           <img
             src={apiUrl(comment.imageUrl)}
-            alt="Comment"
+            alt="Comment attachment"
             className="comment-image"
           />
         )}
 
         {!isReply && (
           <div className="comment-actions">
-            <button
-              className="reply-btn"
-              onClick={() => toggleReplyInput(comment._id)}
-            >
+            <button className="reply-btn" onClick={() => toggleReplyInput(comment._id)}>
               💬 Reply
             </button>
             {replyCount > 0 && (
-              <button
-                className="view-replies-btn"
-                onClick={() => toggleReplies(comment._id)}
-              >
-                {showThisReplies ? '🔼 Hide' : `🔽 View ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
+              <button className="view-replies-btn" onClick={() => toggleReplies(comment._id)}>
+                {showThisReplies
+                  ? '🔼 Hide'
+                  : `🔽 View ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
               </button>
             )}
           </div>
         )}
 
         {showReplyInputs[comment._id] && (
-          <form
-            onSubmit={(e) => handleReplySubmit(e, comment._id)}
-            className="reply-form"
-          >
+          <form onSubmit={(e) => handleReplySubmit(e, comment._id)} className="reply-form">
             <div className="reply-input-container">
-              <div className="reply-avatar" style={{
-                background: 'linear-gradient(135deg, #006B3F, #FCD116)'
-              }}>
+              <div
+                className="reply-avatar"
+                style={{ background: 'linear-gradient(135deg, #006B3F, #FCD116)' }}
+              >
                 {getInitials(user?.username)}
               </div>
               <div className="reply-input-wrapper">
@@ -257,16 +248,12 @@ const ForumDetail = () => {
                   placeholder="Write a reply..."
                   value={replyContents[comment._id] || ''}
                   onChange={(e) =>
-                    setReplyContents(prev => ({ ...prev, [comment._id]: e.target.value }))
+                    setReplyContents((prev) => ({ ...prev, [comment._id]: e.target.value }))
                   }
                   className="reply-textarea"
                   required
                 />
-                <button
-                  type="submit"
-                  className="send-reply-btn"
-                  disabled={submitting}
-                >
+                <button type="submit" className="send-reply-btn" disabled={submitting}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <line x1="22" y1="2" x2="11" y2="13"></line>
                     <polygon points="22,2 15,22 11,13 2,9"></polygon>
@@ -286,7 +273,7 @@ const ForumDetail = () => {
     );
   };
 
-  if (loading && !forum) {
+  if (loading) {
     return (
       <div className="forum-detail">
         <div className="loading-container">
@@ -309,7 +296,10 @@ const ForumDetail = () => {
   }
 
   const totalComments = countTotalComments(comments);
-  const userReaction = forum.reactions?.find(r => r.user === user?.id)?.type;
+  const userId = user?._id || user?.id;
+  const userReaction = forum.reactions?.find(
+    (r) => r.user === userId || r.user?._id === userId
+  )?.type;
 
   return (
     <div className="forum-detail">
@@ -323,9 +313,9 @@ const ForumDetail = () => {
 
       {/* Header */}
       <div className="forum-detail-header">
-         <button className="back-button" onClick={() => navigate('/forum-feed')}>
-            ← Back to Dashboard
-          </button>
+        <button className="back-button" onClick={() => navigate('/forum-feed')}>
+          ← Back to Dashboard
+        </button>
         <div className="header-badge">
           <span className="badge-official">🇬🇭 Official Communication</span>
         </div>
@@ -334,9 +324,10 @@ const ForumDetail = () => {
       {/* Main Post Card */}
       <div className="forum-post-card">
         <div className="post-header">
-          <div className="post-avatar" style={{
-            background: 'linear-gradient(135deg, #CE1126, #FCD116, #006B3F)'
-          }}>
+          <div
+            className="post-avatar"
+            style={{ background: 'linear-gradient(135deg, #CE1126, #FCD116, #006B3F)' }}
+          >
             {getInitials(forum.createdBy?.username)}
           </div>
           <div className="post-user-info">
@@ -350,9 +341,7 @@ const ForumDetail = () => {
               <span className="post-region">
                 📍 {forum.region}, {forum.district}
               </span>
-              <span className="post-time">
-                {getTimeAgo(forum.createdAt)}
-              </span>
+              <span className="post-time">{getTimeAgo(forum.createdAt)}</span>
             </div>
           </div>
         </div>
@@ -362,15 +351,10 @@ const ForumDetail = () => {
           <p className="post-description">{forum.description}</p>
           {forum.imageUrl && (
             <div className="post-image-wrapper">
-              <img
-                src={apiUrl(forum.imageUrl)}
-                alt="Forum"
-                className="post-image"
-              />
+              <img src={apiUrl(forum.imageUrl)} alt="Forum attachment" className="post-image" />
             </div>
           )}
         </div>
-{/*  */}
 
         <div className="post-actions">
           <div
@@ -380,7 +364,7 @@ const ForumDetail = () => {
             onTouchStart={() => setShowReactions(true)}
           >
             <button className={`action-btn like-btn ${userReaction ? 'active' : ''}`}>
-              {userReaction ? getReactionIcon(userReaction) : '👍'} 
+              {userReaction ? getReactionIcon(userReaction) : '👍'}
               {userReaction ? ' Reacted' : ' React'}
               <span className="reaction-count">{forum.reactions?.length || 0}</span>
             </button>
@@ -408,17 +392,17 @@ const ForumDetail = () => {
 
       {/* Comments Modal */}
       {showCommentsModal && (
-        <div className="comments-modal-overlay" onClick={() => setShowCommentsModal(false)}>
+        <div
+          className="comments-modal-overlay"
+          onClick={() => setShowCommentsModal(false)}
+        >
           <div className="comments-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">
                 💬 Conversation
                 <span className="modal-comment-count">{totalComments} comments</span>
               </h2>
-              <button
-                className="close-btn"
-                onClick={() => setShowCommentsModal(false)}
-              >
+              <button className="close-btn" onClick={() => setShowCommentsModal(false)}>
                 ×
               </button>
             </div>
@@ -436,15 +420,18 @@ const ForumDetail = () => {
 
             <form onSubmit={handleCommentSubmit} className="new-comment-form">
               <div className="new-comment-container">
-                <div className="new-comment-avatar" style={{
-                  background: 'linear-gradient(135deg, #CE1126, #FCD116)'
-                }}>
+                <div
+                  className="new-comment-avatar"
+                  style={{ background: 'linear-gradient(135deg, #CE1126, #FCD116)' }}
+                >
                   {getInitials(user?.username)}
                 </div>
                 <div className="new-comment-wrapper">
                   <textarea
                     value={newComment.content}
-                    onChange={(e) => setNewComment({ ...newComment, content: e.target.value })}
+                    onChange={(e) =>
+                      setNewComment({ ...newComment, content: e.target.value })
+                    }
                     placeholder="Write a comment..."
                     className="new-comment-input"
                     required

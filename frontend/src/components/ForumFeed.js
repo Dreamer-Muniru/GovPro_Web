@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext, useRef } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -22,10 +22,14 @@ const getCachedMessages = (key) => {
 };
 
 const setCachedMessages = (key, data) => {
-  localStorage.setItem(
-    key,
-    JSON.stringify({ data, time: Date.now() })
-  );
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify({ data, time: Date.now() })
+    );
+  } catch {
+    // localStorage may be unavailable in some environments
+  }
 };
 
 const ForumFeed = () => {
@@ -38,17 +42,15 @@ const ForumFeed = () => {
     title: '',
     description: '',
     image: null,
-    recipientType: 'all', // 'all' or 'specific'
+    recipientType: 'all',
     recipientDistrict: '',
   });
   const [submitting, setSubmitting] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState('all');
   const [userRole, setUserRole] = useState('');
 
   // Determine user role
   useEffect(() => {
     if (user) {
-      // Check if user is ministry admin
       if (user.role === 'admin' || user.role === 'ministry' || user.isMinistry) {
         setUserRole('ministry');
       } else {
@@ -58,15 +60,15 @@ const ForumFeed = () => {
   }, [user]);
 
   useEffect(() => {
+    if (!userRole) return;
+
     const region = user?.region;
     const district = user?.district;
-    const role = userRole;
 
-    const cacheKey = `messages-${role}-${region}-${district}`;
+    const cacheKey = `messages-${userRole}-${region}-${district}`;
     const cachedData = getCachedMessages(cacheKey);
 
     if (cachedData) {
-      console.log('🟢 Loaded messages from localStorage');
       setMessages(cachedData);
       setLoading(false);
       return;
@@ -74,52 +76,50 @@ const ForumFeed = () => {
 
     const fetchMessages = async () => {
       try {
-        console.log('🔵 Fetching messages from API');
         setLoading(true);
 
         let url;
-        if (role === 'ministry') {
-          // Ministry sees all messages
+        if (userRole === 'ministry') {
           url = apiUrl('/api/forums?type=ministry');
         } else {
-          // MMDCE sees messages for their district
-          url = apiUrl(`/api/forums?type=mmdce&district=${encodeURIComponent(district)}`);
+          url = apiUrl(`/api/forums?type=mmdce&district=${encodeURIComponent(district || '')}`);
         }
 
         const res = await axios.get(url);
         const list = res?.data?.forums || res?.data || [];
-        setMessages(list);
-        setCachedMessages(cacheKey, list);
+        setMessages(Array.isArray(list) ? list : []);
+        setCachedMessages(cacheKey, Array.isArray(list) ? list : []);
       } catch (e) {
         console.error('Error fetching messages:', e);
+        setMessages([]);
       } finally {
         setLoading(false);
       }
     };
 
-    if (userRole) {
-      fetchMessages();
-    }
-  }, [user?.region, user?.district, userRole]);
+    fetchMessages();
+  }, [userRole, user?.region, user?.district]);
 
   const refreshMessages = async () => {
     setLoading(true);
     try {
-      const region = user?.region;
       const district = user?.district;
-      const role = userRole;
 
       let url;
-      if (role === 'ministry') {
+      if (userRole === 'ministry') {
         url = apiUrl('/api/forums?type=ministry');
       } else {
-        url = apiUrl(`/api/forums?type=mmdce&district=${encodeURIComponent(district)}`);
+        url = apiUrl(`/api/forums?type=mmdce&district=${encodeURIComponent(district || '')}`);
       }
 
       const res = await axios.get(url);
       const data = res?.data;
       const list = Array.isArray(data) ? data : (Array.isArray(data?.forums) ? data.forums : []);
       setMessages(list);
+
+      // Invalidate cache
+      const cacheKey = `messages-${userRole}-${user?.region}-${user?.district}`;
+      localStorage.removeItem(cacheKey);
     } catch (err) {
       console.error('Failed to refresh messages:', err?.message || err);
     } finally {
@@ -157,13 +157,12 @@ const ForumFeed = () => {
       const submitData = new FormData();
       submitData.append('title', formData.title);
       submitData.append('description', formData.description);
-      submitData.append('region', user.region);
-      submitData.append('district', user.district);
-      submitData.append('createdBy', user?._id || user?.id);
+      submitData.append('region', user?.region || '');
+      submitData.append('district', user?.district || '');
+      submitData.append('createdBy', user?._id || user?.id || '');
       submitData.append('type', 'ministry_message');
       submitData.append('senderRole', userRole);
-      
-      // For ministry messages, specify recipient type
+
       if (userRole === 'ministry') {
         submitData.append('recipientType', formData.recipientType);
         if (formData.recipientType === 'specific') {
@@ -181,7 +180,6 @@ const ForumFeed = () => {
 
       if (created) {
         setMessages((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
-        // Clear cache for this user
         const cacheKey = `messages-${userRole}-${user?.region}-${user?.district}`;
         localStorage.removeItem(cacheKey);
       }
@@ -197,20 +195,14 @@ const ForumFeed = () => {
   };
 
   const getMessageIcon = (message) => {
-    if (message.senderRole === 'ministry') {
-      return '🏛️';
-    } else if (message.senderRole === 'mmdce') {
-      return '👤';
-    }
+    if (message.senderRole === 'ministry') return '🏛️';
+    if (message.senderRole === 'mmdce') return '👤';
     return '💬';
   };
 
   const getMessageType = (message) => {
-    if (message.senderRole === 'ministry') {
-      return 'Ministry';
-    } else {
-      return 'MMDCE';
-    }
+    if (message.senderRole === 'ministry') return 'Ministry';
+    return 'MMDCE';
   };
 
   if (loading) {
@@ -238,7 +230,7 @@ const ForumFeed = () => {
             {userRole === 'ministry' ? '🏛️ Ministry Communications' : '📬 District Communications'}
           </h1>
           <p className="forum-subtitle">
-            {userRole === 'ministry' 
+            {userRole === 'ministry'
               ? 'Communication Channel with Ministry of Local Government -'
               : 'Communication with the Ministry of Local Government'}
           </p>
@@ -265,7 +257,7 @@ const ForumFeed = () => {
           <div className="empty-icon">📬</div>
           <h3 className="empty-title">No Messages</h3>
           <p className="empty-description">
-            {userRole === 'ministry' 
+            {userRole === 'ministry'
               ? 'Start a conversation with your District Chiefs'
               : 'Your district has no messages from the Ministry yet'}
           </p>

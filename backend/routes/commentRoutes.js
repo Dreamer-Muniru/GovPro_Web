@@ -1,15 +1,16 @@
 const express = require('express');
 const router = express.Router();
-// const multer = require('multer');
-// const mongoose = require('mongoose');
-// const Forum = require('../models/forum');
 const Forum = require('../models/forums');
 const upload = require('../middleware/upload');
 const stream = require('stream');
-const { gridBucket } = require('../config/db');
+const { GridFSBucket } = require('mongodb');
+const mongoose = require('mongoose');
 
-
-
+// Lazy-initialised GridFS bucket (same pattern used in other route files)
+let gridBucket;
+mongoose.connection.once('open', () => {
+  gridBucket = new GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' });
+});
 
 router.get('/:forumId', async (req, res) => {
   try {
@@ -17,27 +18,12 @@ router.get('/:forumId', async (req, res) => {
       .populate('comments.createdBy', 'username')
       .populate('comments.replies.createdBy', 'username');
 
-    res.json(forum.comments || []);
+    res.json(forum ? forum.comments : []);
   } catch (error) {
     console.error('Error fetching comments:', error.message);
     res.status(500).json({ error: 'Failed to fetch comments' });
   }
 });
-
-
-
-
-
-// POST /api/comments/reply
-const findCommentById = (comments, id) => {
-  for (let comment of comments) {
-    if (comment._id.toString() === id) return comment;
-    const foundInReplies = findCommentById(comment.replies || [], id);
-    if (foundInReplies) return foundInReplies;
-  }
-  return null;
-};
-
 
 router.post('/reply', async (req, res) => {
   try {
@@ -45,7 +31,6 @@ router.post('/reply', async (req, res) => {
     const forum = await Forum.findById(forumId);
     if (!forum) return res.status(404).json({ error: 'Forum not found' });
 
-    // ✅ Traverse all comments and nested replies
     const findComment = (comments) => {
       for (let comment of comments) {
         if (comment._id.toString() === parentId) return comment;
@@ -64,7 +49,7 @@ router.post('/reply', async (req, res) => {
       content,
       createdBy,
       createdAt: new Date(),
-      replies: []
+      replies: [],
     });
 
     await forum.save();
@@ -74,9 +59,6 @@ router.post('/reply', async (req, res) => {
     res.status(500).json({ error: 'Failed to post reply' });
   }
 });
-
-
-
 
 // Comment posting
 router.post('/', upload.single('image'), async (req, res) => {
@@ -89,10 +71,9 @@ router.post('/', upload.single('image'), async (req, res) => {
       content,
       createdBy,
       createdAt: new Date(),
-      replies: []
+      replies: [],
     };
 
-    // ✅ If image is present, upload to GridFS first
     if (req.file && gridBucket) {
       const readableStream = new stream.PassThrough();
       readableStream.end(req.file.buffer);
@@ -115,7 +96,6 @@ router.post('/', upload.single('image'), async (req, res) => {
         res.status(500).json({ error: 'Image upload failed' });
       });
     } else {
-      // ✅ No image — save immediately
       forum.comments.push(comment);
       await forum.save();
       res.status(201).json({ message: 'Comment posted', comment });
@@ -125,6 +105,5 @@ router.post('/', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: 'Failed to post comment' });
   }
 });
-
 
 module.exports = router;
