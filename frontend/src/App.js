@@ -39,7 +39,6 @@ function App() {
         syncNow={syncNow}
       />
 
-      {/* Single ToastContainer for the whole app */}
       <ToastContainer position="top-right" />
 
       <Routes>
