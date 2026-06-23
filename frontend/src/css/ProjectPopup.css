@@ -1,0 +1,235 @@
+/* ProjectPopup.css */
+
+.pp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  animation: pp-fade-in 0.3s ease forwards;
+}
+
+@keyframes pp-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.pp-card {
+  background: #fff;
+  border-radius: 16px;
+  width: 330px;
+  max-width: calc(100vw - 2rem);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.08);
+  animation: pp-slide-up 0.45s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+@keyframes pp-slide-up {
+  from { transform: translateY(36px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* flag */
+.pp-flag { display: flex; height: 5px; }
+.pp-flag-r  { flex: 1; background: #CE1126; }
+.pp-flag-g  { flex: 1; background: #FCD116; }
+.pp-flag-gr { flex: 1; background: #006B3F; }
+
+/* header */
+.pp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+}
+
+.pp-live-badge { display: flex; align-items: center; gap: 6px; }
+
+.pp-live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #CE1126;
+  animation: pp-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pp-pulse {
+  0%,100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.6); opacity: 0.45; }
+}
+
+.pp-live-text {
+  font-size: 10px; font-weight: 700;
+  color: #CE1126;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.pp-close {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 16px; line-height: 1;
+  color: #64748b;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.pp-close:hover { background: #fff; color: #CE1126; border-color: #CE1126; }
+
+/* image */
+.pp-image-wrap {
+  position: relative; width: 100%; height: 140px;
+  overflow: hidden; background: #0f172a;
+}
+
+.pp-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.pp-image-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 52px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+.pp-region-tag {
+  position: absolute; bottom: 8px; right: 10px;
+  background: rgba(0,0,0,0.55);
+  color: #fff; font-size: 9px; font-weight: 500;
+  padding: 3px 8px; border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.pp-status-badge {
+  position: absolute; top: 10px; left: 10px;
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 3px 9px; border-radius: 20px;
+}
+.pp-status-resumed     { background: #dcfce7; color: #166534; }
+.pp-status-completed   { background: #dbeafe; color: #1e40af; }
+.pp-status-abandoned   { background: #fee2e2; color: #991b1b; }
+.pp-status-uncompleted { background: #fef9c3; color: #854d0e; }
+
+/* body */
+.pp-body { padding: 12px 14px 0; }
+
+.pp-location {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: #64748b; margin-bottom: 5px;
+}
+
+.pp-title {
+  font-size: 13px; font-weight: 700; color: #0f172a;
+  line-height: 1.4; margin-bottom: 10px;
+}
+
+.pp-meta {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 6px; margin-bottom: 12px;
+}
+
+.pp-meta-item {
+  background: #f8fafc; border-radius: 8px;
+  padding: 6px 8px; border: 0.5px solid #e2e8f0;
+}
+
+.pp-meta-label {
+  font-size: 9px; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px;
+}
+
+.pp-meta-value { font-size: 11px; font-weight: 700; color: #1e293b; }
+.pp-meta-value.ongoing   { color: #006B3F; }
+.pp-meta-value.abandoned { color: #CE1126; }
+.pp-meta-value.completed { color: #1d4ed8; }
+
+/* progress */
+.pp-progress { margin-bottom: 12px; }
+
+.pp-progress-top {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: #64748b; margin-bottom: 5px;
+}
+
+.pp-progress-pct { font-weight: 700; color: #1e293b; }
+
+.pp-progress-bar {
+  height: 5px; background: #e2e8f0;
+  border-radius: 3px; overflow: hidden;
+}
+
+.pp-progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, #CE1126, #FCD116);
+  border-radius: 3px;
+  animation: pp-bar 0.9s cubic-bezier(0.22,1,0.36,1) 0.5s both;
+  transform-origin: left;
+}
+
+@keyframes pp-bar {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* CTA */
+.pp-cta {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; width: 100%; padding: 10px;
+  background: #CE1126; color: #fff;
+  border: none; border-radius: 8px;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: background 0.2s;
+  margin-bottom: 10px;
+}
+.pp-cta:hover { background: #a50e20; }
+
+/* footer */
+.pp-footer {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 0 14px 12px;
+  gap: 8px;
+}
+
+.pp-pager { display: flex; gap: 5px; align-items: center; }
+
+.pp-pager-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #cbd5e1;
+  transition: width 0.2s, background 0.2s, border-radius 0.2s;
+}
+.pp-pager-dot.active { width: 14px; border-radius: 3px; background: #CE1126; }
+
+.pp-footer-actions { display: flex; align-items: center; gap: 8px; }
+
+.pp-next {
+  display: flex; align-items: center; gap: 4px;
+  background: #0f172a; color: #fff;
+  border: none; border-radius: 6px;
+  padding: 5px 11px; font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.pp-next:hover { background: #1e293b; }
+
+.pp-skip {
+  font-size: 10px; color: #94a3b8;
+  background: none; border: none;
+  cursor: pointer; text-decoration: underline; padding: 0;
+}
+.pp-skip:hover { color: #64748b; }
+
+/* reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .pp-card, .pp-overlay, .pp-progress-fill { animation: none; }
+  .pp-live-dot { animation: none; }
+}
+
+/* mobile */
+@media (max-width: 480px) {
+  .pp-overlay { align-items: flex-end; justify-content: center; padding: 0; }
+  .pp-card { width: 100%; max-width: 100%; border-radius: 16px 16px 0 0; }
+}

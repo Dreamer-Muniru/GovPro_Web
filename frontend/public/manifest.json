@@ -1,25 +1,43 @@
 {
-  "short_name": "Project Tracker",
+  "short_name": "GhanaPT",
   "name": "Ghana Project Tracker",
+  "description": "Track government infrastructure projects across Ghana — real-time, citizen-powered.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["government", "news", "utilities"],
   "icons": [
     {
-      "src": "logo192.png",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "logo192.png",
+      "src": "/images/logo.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo192.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "shortcuts": [
+    {
+      "name": "Add Project",
+      "short_name": "Add",
+      "description": "Submit a new project",
+      "url": "/add-project",
+      "icons": [{ "src": "/images/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Project Insights",
+      "short_name": "Insights",
+      "description": "View regional statistics",
+      "url": "/project-insights",
+      "icons": [{ "src": "/images/logo.png", "sizes": "96x96" }]
+    }
+  ]
 }
