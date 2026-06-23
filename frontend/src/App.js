@@ -21,9 +21,6 @@ import OfflineSyncBanner from './components/OfflineSyncBanner';
 import { useOfflineSync } from './utils/useOfflineSync';
 
 function App() {
-  // The sync hook lives here so it persists across route changes and
-  // triggers syncs as soon as the user reconnects — regardless of which
-  // page they are on.
   const { isOnline, pending, syncing, syncNow } = useOfflineSync();
 
   const ProtectedRoute = ({ children }) => {
@@ -35,7 +32,6 @@ function App() {
     <Router>
       <Navbar />
 
-      {/* Global offline/sync status banner — renders itself only when needed */}
       <OfflineSyncBanner
         isOnline={isOnline}
         pending={pending}
@@ -43,11 +39,12 @@ function App() {
         syncNow={syncNow}
       />
 
+      {/* Single ToastContainer for the whole app */}
       <ToastContainer position="top-right" />
 
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/add-project"element={<AddProjectForm />} />
+        <Route path="/add-project" element={<AddProjectForm />} />
         <Route path="/project/:id" element={<ProjectDetail />} />
         <Route path="/edit/:id" element={<EditProject />} />
         <Route path="/project-insights" element={<ProjectInsights />} />
