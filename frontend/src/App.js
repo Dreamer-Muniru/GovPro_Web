@@ -10,28 +10,44 @@ import AdminPanel from './pages/AdminPanel';
 import EditProject from './pages/EditProject';
 import { AuthContext } from './context/AuthContext';
 import { useContext } from 'react';
-import AdminLogin from './pages/AdminLogin'
+import AdminLogin from './pages/AdminLogin';
 import { ToastContainer } from 'react-toastify';
 import ProjectInsights from './pages/ProjectInsights';
 import CreateForum from './pages/CreateForum';
 import ForumDetail from './pages/ForumDetail';
 import ForumFeed from './components/ForumFeed';
 import ProfilePage from './pages/ProfilePage';
-
+import OfflineSyncBanner from './components/OfflineSyncBanner';
+import { useOfflineSync } from './utils/useOfflineSync';
 
 function App() {
+  // The sync hook lives here so it persists across route changes and
+  // triggers syncs as soon as the user reconnects — regardless of which
+  // page they are on.
+  const { isOnline, pending, syncing, syncNow } = useOfflineSync();
+
   const ProtectedRoute = ({ children }) => {
-  const { user } = useContext(AuthContext);
-  return user?.isAdmin ? children : <Navigate to="/admin-login" />;
-};
+    const { user } = useContext(AuthContext);
+    return user?.isAdmin ? children : <Navigate to="/admin-login" />;
+  };
 
   return (
     <Router>
       <Navbar />
-       <ToastContainer /> 
+
+      {/* Global offline/sync status banner — renders itself only when needed */}
+      <OfflineSyncBanner
+        isOnline={isOnline}
+        pending={pending}
+        syncing={syncing}
+        syncNow={syncNow}
+      />
+
+      <ToastContainer position="top-right" />
+
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/add-project" element={<AddProjectForm />} />
+        <Route path="/add-project"element={<AddProjectForm />} />
         <Route path="/project/:id" element={<ProjectDetail />} />
         <Route path="/edit/:id" element={<EditProject />} />
         <Route path="/project-insights" element={<ProjectInsights />} />
@@ -41,16 +57,14 @@ function App() {
         <Route path="/forum-feed" element={<ForumFeed />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/profile" element={<ProfilePage />} />
-       
 
         {/* Admin routes */}
-        <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>}/>
+        <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-
       </Routes>
     </Router>
   );
 }
 
-export default App
+export default App;

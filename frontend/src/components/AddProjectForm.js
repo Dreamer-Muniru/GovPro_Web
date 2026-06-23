@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { createProject } from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiUrl } from '../utils/api';
@@ -6,11 +6,15 @@ import ghanaRegions from '../data/ghanaRegions';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import 'leaflet/dist/leaflet.css';
 import '../css/AddProjectForm.css';
+import '../css/AddProjectForm.offline.css';   // <-- new offline-specific styles
+import { saveToQueue, fileToBase64 } from '../utils/offlineDB';
+import { AuthContext } from '../context/AuthContext';
 
 const DEFAULT_LAT = 5.5546;
-const DEFAULT_LNG = -0.1963
+const DEFAULT_LNG = -0.1963;
 
 const pinpointIcon = new Icon({
   iconUrl: '/images/marker-icon.png',
@@ -18,57 +22,34 @@ const pinpointIcon = new Icon({
   iconAnchor: [12, 41],
 });
 
-// Repositions the map whenever `position` changes — avoids full remount.
 const MapUpdater = ({ position }) => {
   const map = useMap();
   useEffect(() => {
-    if (position) {
-      map.flyTo(position, 15, { animate: false });
-    }
+    if (position) map.flyTo(position, 15, { animate: false });
   }, [position, map]);
   return null;
 };
 
-// Component to handle map centering on user location
 const MapView = ({ position, handleMarkerDrag }) => {
   if (!position) {
     return (
       <div style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f3f4f6',
-        color: '#6b7280',
-        fontSize: '0.9rem',
-        gap: '10px',
+        height: '100%', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        background: '#f3f4f6', color: '#6b7280', fontSize: '0.9rem', gap: '10px',
       }}>
         <div className="spinner" style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #e5e7eb',
-          borderTop: '4px solid #3b82f6',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
+          width: '40px', height: '40px',
+          border: '4px solid #e5e7eb', borderTop: '4px solid #3b82f6',
+          borderRadius: '50%', animation: 'spin 1s linear infinite',
+        }} />
         <span>Detecting your location…</span>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+        <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
-
   return (
-    <MapContainer
-      center={position}
-      zoom={15}
-      style={{ height: '100%', width: '100%' }}
-    >
+    <MapContainer center={position} zoom={15} style={{ height: '100%', width: '100%' }}>
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <MapUpdater position={position} />
       <Marker
@@ -81,41 +62,60 @@ const MapView = ({ position, handleMarkerDrag }) => {
   );
 };
 
+// ─── main component ──────────────────────────────────────────────────────────
+
 const AddProjectForm = () => {
-  const navigate = useNavigate();
+  const navigate    = useNavigate();
   const queryClient = useQueryClient();
+  const { user }    = useContext(AuthContext);
+
   const [formData, setFormData] = useState({
-    title: '',
-    type: '',
-    fundingSource: '',
-    otherFundingSources: '',
-    description: '',
-    region: '',
-    district: '',
-    location_address: '',
-    location_city: '',
-    gps_latitude: '',
-    gps_longitude: '',
-    contractor: '',
-    status: '',
-    startDate: '',
-    submittedBy: '',
+    title: '', type: '', fundingSource: '', otherFundingSources: '',
+    description: '', region: '', district: '', location_address: '',
+    location_city: '', gps_latitude: '', gps_longitude: '',
+    contractor: '', status: '', startDate: '', submittedBy: '',
   });
 
-  const [image, setImage] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [position, setPosition] = useState(null);
-  const [locationStatus, setLocationStatus] = useState('loading');
+  const [image,          setImage]          = useState(null);
+  const [previewUrl,     setPreviewUrl]      = useState('');
+  const [loading,        setLoading]         = useState(false);
+  const [error,          setError]           = useState('');
+  const [position,       setPosition]        = useState(null);
+  const [locationStatus, setLocationStatus]  = useState('loading');
+  const [isOnline,       setIsOnline]        = useState(navigator.onLine);
+  // After a successful offline save we show a confirmation panel instead of navigating
+  const [savedOffline,   setSavedOffline]    = useState(false);
 
+  // ── pre-fill submittedBy from logged-in user ──────────────────────────────
+  useEffect(() => {
+    if (user?.fullName || user?.username) {
+      setFormData((prev) => ({
+        ...prev,
+        submittedBy: prev.submittedBy || user.fullName || user.username,
+      }));
+    }
+  }, [user]);
+
+  // ── online / offline detection ────────────────────────────────────────────
+  useEffect(() => {
+    const goOnline  = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online',  goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online',  goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
+
+  // ── geolocation ───────────────────────────────────────────────────────────
   const applyPosition = (latitude, longitude) => {
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
     setPosition([lat, lng]);
     setFormData((prev) => ({
       ...prev,
-      gps_latitude: lat.toFixed(6),
+      gps_latitude:  lat.toFixed(6),
       gps_longitude: lng.toFixed(6),
     }));
   };
@@ -123,226 +123,230 @@ const AddProjectForm = () => {
   const requestLocation = () => {
     if (!('geolocation' in navigator)) {
       setLocationStatus('unsupported');
-      // Set default position when geolocation is not supported
-      const defaultLat = DEFAULT_LAT;
-      const defaultLng = DEFAULT_LNG;
-      setPosition([defaultLat, defaultLng]);
-      setFormData((prev) => ({
-        ...prev,
-        gps_latitude: defaultLat.toFixed(6),
-        gps_longitude: defaultLng.toFixed(6),
-      }));
+      applyPosition(DEFAULT_LAT, DEFAULT_LNG);
       return;
     }
-
     setLocationStatus('loading');
-    setPosition(null); // Reset position while loading
+    setPosition(null);
 
-    const handleSuccess = (pos) => {
-      const { latitude, longitude } = pos.coords;
-      applyPosition(latitude, longitude);
+    const onSuccess = (pos) => {
+      applyPosition(pos.coords.latitude, pos.coords.longitude);
       setLocationStatus('success');
     };
-
-    const handleError = (err) => {
-      console.error('Geolocation error:', err);
-      
-      if (err.code === 1) {
-        // PERMISSION_DENIED
-        setLocationStatus('denied');
-      } else if (err.code === 2) {
-        // POSITION_UNAVAILABLE
-        setLocationStatus('unavailable');
-      } else if (err.code === 3) {
-        // TIMEOUT
-        setLocationStatus('timeout');
-      } else {
-        setLocationStatus('unavailable');
-      }
-
-      // Use default position as fallback
-      const defaultLat = DEFAULT_LAT;
-      const defaultLng = DEFAULT_LNG;
-      setPosition([defaultLat, defaultLng]);
-      setFormData((prev) => ({
-        ...prev,
-        gps_latitude: defaultLat.toFixed(6),
-        gps_longitude: defaultLng.toFixed(6),
-      }));
+    const onError = (err) => {
+      const codeMap = { 1: 'denied', 2: 'unavailable', 3: 'timeout' };
+      setLocationStatus(codeMap[err.code] || 'unavailable');
+      applyPosition(DEFAULT_LAT, DEFAULT_LNG);
     };
 
-    // Try with high accuracy first
-    navigator.geolocation.getCurrentPosition(
-      handleSuccess,
-      (err) => {
-        console.warn('High accuracy attempt failed, trying with low accuracy...', err);
-        // If high accuracy fails, try with low accuracy (works better on Firefox)
-        navigator.geolocation.getCurrentPosition(
-          handleSuccess,
-          (err2) => {
-            console.warn('Low accuracy attempt failed:', err2);
-            handleError(err2);
-          },
-          { 
-            enableHighAccuracy: false, 
-            timeout: 10000, 
-            maximumAge: 60000,
-            // Added these options for better Firefox compatibility
-          }
-        );
-      },
-      { 
-        enableHighAccuracy: true, 
-        timeout: 8000, 
-        maximumAge: 0 
-      }
-    );
+    navigator.geolocation.getCurrentPosition(onSuccess, (err) => {
+      navigator.geolocation.getCurrentPosition(
+        onSuccess, onError,
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
   };
 
-  useEffect(() => {
-    requestLocation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { requestLocation(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const locationStatusContent = {
-    loading: { text: '📍 Detecting your location…', tone: 'info', showRetry: false },
-    success: { text: '✓ Using your current location', tone: 'success', showRetry: false },
-    denied: {
-      text: "Location access is blocked for this site. Click the location icon in your browser's address bar, allow access, then try again — or drag the pin on the map.",
-      tone: 'warning',
-      showRetry: true,
-    },
-    unavailable: {
-      text: "Couldn't determine your location. Check that location services are enabled on your device, or drag the pin on the map.",
-      tone: 'warning',
-      showRetry: true,
-    },
-    timeout: {
-      text: 'Location request timed out. You can try again, or drag the pin on the map to set it manually.',
-      tone: 'warning',
-      showRetry: true,
-    },
-    unsupported: {
-      text: 'Your browser doesn\u2019t support location detection. Please drag the pin on the map to set your location.',
-      tone: 'warning',
-      showRetry: false,
-    },
-  }[locationStatus];
+  // ── form helpers ──────────────────────────────────────────────────────────
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
 
   const handleMarkerDrag = (event) => {
     const { lat, lng } = event.target.getLatLng();
     setPosition([lat, lng]);
     setFormData((prev) => ({
       ...prev,
-      gps_latitude: lat.toFixed(6),
+      gps_latitude:  lat.toFixed(6),
       gps_longitude: lng.toFixed(6),
     }));
     setLocationStatus('manual');
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setImage(file);
-    setPreviewUrl(URL.createObjectURL(file));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // ── offline save ──────────────────────────────────────────────────────────
+  const handleOfflineSave = async () => {
     setLoading(true);
     setError('');
-
-    // Build FormData
-    const formDataToSend = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) formDataToSend.append(key, value);
-    });
-    formDataToSend.append('location_region', formData.region);
-    if (formData.startDate) formDataToSend.set('projectStartDate', formData.startDate);
-    if (formData.fundingSource) formDataToSend.set('fundingSource', formData.fundingSource);
-    if (formData.otherFundingSources) formDataToSend.set('otherFundingSources', formData.otherFundingSources);
-    if (image) formDataToSend.append('image', image);
-
-    // Debug logs
-    const endpoint = apiUrl('/api/projects');
-    console.log('Submitting project to:', endpoint);
-    for (const pair of formDataToSend.entries()) console.log('FormData:', pair[0], pair[1]);
-
     try {
-      const res = await createProject(formDataToSend);
-      console.log('CreateProject response:', res && res.status, res && res.data);
-      if (res && res.status >= 200 && res.status < 300) {
-        try { await queryClient.invalidateQueries(['projects']); } catch (e) { console.warn('Invalidate projects failed', e); }
-        navigate('/');
-      } else {
-        setError('Failed to submit project. Server returned an error.');
-      }
+      // Serialise image to base64 so it survives IndexedDB storage
+      const imageData = image ? await fileToBase64(image) : null;
+
+      await saveToQueue(
+        { ...formData, startDate: formData.startDate },
+        imageData
+      );
+
+      setSavedOffline(true);
+      toast.info('📦 Project saved locally. It will sync when you reconnect.', {
+        autoClose: 5000,
+      });
     } catch (err) {
-      console.error('Submission error (caught):', err);
-      const serverMessage = err?.response?.data?.message || err?.response?.data?.error || err?.message;
-      setError(serverMessage ? `Failed to submit project: ${serverMessage}` : 'Failed to submit project. Check console/network and try again.');
+      console.error('Offline save failed:', err);
+      setError('Could not save offline. Storage may be full or unavailable.');
     } finally {
       setLoading(false);
     }
   };
 
+  // ── online submit ─────────────────────────────────────────────────────────
+  const handleOnlineSubmit = async () => {
+    setLoading(true);
+    setError('');
+
+    const fd = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) fd.append(key, value);
+    });
+    fd.append('location_region', formData.region);
+    if (formData.startDate) fd.set('projectStartDate', formData.startDate);
+    if (formData.fundingSource) fd.set('fundingSource', formData.fundingSource);
+    if (formData.otherFundingSources) fd.set('otherFundingSources', formData.otherFundingSources);
+    if (image) fd.append('image', image);
+
+    try {
+      const res = await createProject(fd);
+      if (res && res.status >= 200 && res.status < 300) {
+        try { await queryClient.invalidateQueries(['projects']); } catch (_) {}
+        toast.success('✅ Project submitted successfully!', { autoClose: 3000 });
+        navigate('/');
+      } else {
+        setError('Failed to submit project. Server returned an error.');
+      }
+    } catch (err) {
+      // Network error mid-submit → fall back to offline save automatically
+      if (!navigator.onLine || err.message === 'Network Error') {
+        toast.warn('Connection lost. Saving project locally instead…', { autoClose: 4000 });
+        await handleOfflineSave();
+      } else {
+        const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message;
+        setError(msg ? `Submission failed: ${msg}` : 'Submission failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── form submit entry point ───────────────────────────────────────────────
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isOnline) {
+      handleOnlineSubmit();
+    } else {
+      handleOfflineSave();
+    }
+  };
+
+  // ── offline confirmation screen ───────────────────────────────────────────
+  if (savedOffline) {
+    return (
+      <div className="add-project-container">
+        <div className="offline-confirmation">
+          <div className="offline-confirmation__icon">📦</div>
+          <h2 className="offline-confirmation__title">Project Saved Locally</h2>
+          <p className="offline-confirmation__body">
+            Your project has been stored on this device. It will be automatically
+            uploaded to the server as soon as you have an internet connection.
+          </p>
+          <p className="offline-confirmation__hint">
+            You can close this page safely — the sync will happen in the background
+            next time the app is opened with connectivity.
+          </p>
+          <div className="offline-confirmation__actions">
+            <button
+              className="submit-btn"
+              onClick={() => {
+                setSavedOffline(false);
+                setFormData({
+                  title: '', type: '', fundingSource: '', otherFundingSources: '',
+                  description: '', region: '', district: '', location_address: '',
+                  location_city: '', gps_latitude: '', gps_longitude: '',
+                  contractor: '', status: '', startDate: '',
+                  submittedBy: user?.fullName || user?.username || '',
+                });
+                setImage(null);
+                setPreviewUrl('');
+              }}
+            >
+              Submit Another Project
+            </button>
+            <button
+              className="submit-btn submit-btn--secondary"
+              onClick={() => navigate('/')}
+            >
+              Go to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── location status messaging ─────────────────────────────────────────────
+  const locationStatusContent = {
+    loading:     { text: '📍 Detecting your location…',            tone: 'info',    showRetry: false },
+    success:     { text: '✓ Using your current location',          tone: 'success', showRetry: false },
+    denied:      { text: "Location access blocked. Allow access in your browser settings, then try again — or drag the pin.", tone: 'warning', showRetry: true },
+    unavailable: { text: "Couldn't determine your location. Check device settings, or drag the pin on the map.", tone: 'warning', showRetry: true },
+    timeout:     { text: 'Location request timed out. Try again, or drag the pin manually.', tone: 'warning', showRetry: true },
+    unsupported: { text: "Browser doesn't support location. Drag the pin to set it manually.", tone: 'warning', showRetry: false },
+    manual:      { text: '📍 Location set manually via map pin.',  tone: 'success', showRetry: false },
+  }[locationStatus];
+
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="add-project-container">
       <div className="add-project-header">
         <h1 className="add-project-title">Add New Project</h1>
       </div>
 
+      {/* ── offline status pill ── */}
+      {!isOnline && (
+        <div className="offline-pill" role="alert">
+          <span className="offline-pill__dot" aria-hidden="true" />
+          <span>
+            <strong>You are offline.</strong> Complete the form and press
+            &ldquo;Save Offline&rdquo; — it will upload automatically when you reconnect.
+          </span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="add-project-form">
+        {/* ════ LOCATION SECTION ═══════════════════════════════════════════ */}
         <div className="form-section">
           <h3 className="section-title">Project Location</h3>
-          
+
           <div className="form-group">
             <label className="form-label">Map Location</label>
             <div className="map-container">
-              <MapView 
-                position={position} 
-                handleMarkerDrag={handleMarkerDrag}
-              />
+              <MapView position={position} handleMarkerDrag={handleMarkerDrag} />
             </div>
             {locationStatusContent && (
               <div
-                className={`location-status location-status--${locationStatusContent.tone}`}
                 style={{
-                  marginTop: '8px',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                  color:
-                    locationStatusContent.tone === 'success'
-                      ? '#15803d'
-                      : locationStatusContent.tone === 'warning'
-                      ? '#b45309'
-                      : '#374151',
+                  marginTop: '8px', fontSize: '0.875rem',
+                  display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+                  color: locationStatusContent.tone === 'success' ? '#15803d'
+                       : locationStatusContent.tone === 'warning' ? '#b45309' : '#374151',
                 }}
               >
                 <span>{locationStatusContent.text}</span>
                 {locationStatusContent.showRetry && (
                   <button
-                    type="button"
-                    onClick={requestLocation}
-                    className="location-retry-btn"
+                    type="button" onClick={requestLocation}
                     style={{
-                      border: '1px solid currentColor',
-                      background: 'transparent',
-                      color: 'inherit',
-                      borderRadius: '4px',
-                      padding: '2px 10px',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
+                      border: '1px solid currentColor', background: 'transparent',
+                      color: 'inherit', borderRadius: '4px', padding: '2px 10px',
+                      fontSize: '0.8rem', cursor: 'pointer',
                     }}
                   >
                     Try Again
@@ -350,8 +354,8 @@ const AddProjectForm = () => {
                 )}
               </div>
             )}
-            <p className="map-hint" style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
-              You can drag the pin on the map at any time to set the exact project location.
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
+              Drag the pin to adjust the exact location.
             </p>
           </div>
 
@@ -360,28 +364,18 @@ const AddProjectForm = () => {
               <div>
                 <label className="form-label">Latitude</label>
                 <input
-                  type="text"
-                  name="gps_latitude"
-                  value={formData.gps_latitude}
-                  onChange={handleChange}
-                  className="form-input"
-                  placeholder="Waiting for location…"
-                  readOnly
-                  required
+                  type="text" name="gps_latitude" value={formData.gps_latitude}
+                  onChange={handleChange} className="form-input"
+                  placeholder="Waiting for location…" readOnly required
                   style={{ cursor: 'default', background: '#f3f4f6', color: '#374151' }}
                 />
               </div>
               <div>
                 <label className="form-label">Longitude</label>
                 <input
-                  type="text"
-                  name="gps_longitude"
-                  value={formData.gps_longitude}
-                  onChange={handleChange}
-                  className="form-input"
-                  placeholder="Waiting for location…"
-                  readOnly
-                  required
+                  type="text" name="gps_longitude" value={formData.gps_longitude}
+                  onChange={handleChange} className="form-input"
+                  placeholder="Waiting for location…" readOnly required
                   style={{ cursor: 'default', background: '#f3f4f6', color: '#374151' }}
                 />
               </div>
@@ -390,129 +384,70 @@ const AddProjectForm = () => {
 
           <div className="form-group">
             <label className="form-label">Region</label>
-            <select
-              name="region"
-              value={formData.region}
-              onChange={handleChange}
-              className="form-select"
-              required
-            >
+            <select name="region" value={formData.region} onChange={handleChange} className="form-select" required>
               <option value="">Select Region</option>
-              {ghanaRegions.map((region) => (
-                <option key={region.name} value={region.name}>{region.name}</option>
+              {ghanaRegions.map((r) => (
+                <option key={r.name} value={r.name}>{r.name}</option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
             <label className="form-label">District</label>
-            <select
-              name="district"
-              value={formData.district}
-              onChange={handleChange}
-              className="form-select"
-              required
-              disabled={!formData.region}
-            >
+            <select name="district" value={formData.district} onChange={handleChange}
+              className="form-select" required disabled={!formData.region}>
               <option value="">Select District</option>
-              {ghanaRegions
-                .find((r) => r.name === formData.region)
-                ?.districts.map((district) => (
-                  <option key={district} value={district}>{district}</option>
-                ))}
+              {ghanaRegions.find((r) => r.name === formData.region)?.districts.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label">City/Town</label>
-            <input
-              type="text"
-              name="location_city"
-              value={formData.location_city}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Enter city or town"
-              required
-            />
+            <label className="form-label">City / Town</label>
+            <input type="text" name="location_city" value={formData.location_city}
+              onChange={handleChange} className="form-input" placeholder="Enter city or town" required />
           </div>
 
           <div className="form-group">
             <label className="form-label">Address</label>
-            <input
-              type="text"
-              name="location_address"
-              value={formData.location_address}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Enter street address"
-              required
-            />
+            <input type="text" name="location_address" value={formData.location_address}
+              onChange={handleChange} className="form-input" placeholder="Enter street address" required />
           </div>
         </div>
 
+        {/* ════ DETAILS SECTION ════════════════════════════════════════════ */}
         <div className="form-section">
           <h3 className="section-title">Project Details</h3>
 
           <div className="form-group">
             <label className="form-label">Project Title</label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Enter project title"
-              required
-            />
+            <input type="text" name="title" value={formData.title}
+              onChange={handleChange} className="form-input" placeholder="Enter project title" required />
           </div>
 
           <div className="form-group">
             <label className="form-label">Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              className="form-textarea"
-              placeholder="Describe the project details"
-              required
-            />
+            <textarea name="description" value={formData.description}
+              onChange={handleChange} className="form-textarea"
+              placeholder="Describe the project" required />
           </div>
 
           <div className="form-group">
             <label className="form-label">Project Type</label>
-            <select
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              className="form-select"
-              required
-            >
+            <select name="type" value={formData.type} onChange={handleChange} className="form-select" required>
               <option value="">Select Type</option>
-              <option value="School">School</option>
-              <option value="Hospital">Hospital</option>
-              <option value="Road">Road</option>
-              <option value="Residential Bungalow">Residential Bungalow</option>
-              <option value="Market Stall">Market Stall</option>
-              <option value="Drainage System">Drainage System</option>
-              <option value="Bridge">Bridge</option>
-              <option value="Water System">Water System</option>
-              <option value="Power Project">Power Project</option>
-              <option value="Sanitation Facility">Sanitation Facility</option>
-              <option value="Government Office">Government Office</option>
-              <option value="Sports & Recreation Center">Sports & Recreation Center</option>
-              <option value="Other">Other</option>
+              {[
+                'School','Hospital','Road','Residential Bungalow','Market Stall',
+                'Drainage System','Bridge','Water System','Power Project',
+                'Sanitation Facility','Government Office','Sports & Recreation Center','Other',
+              ].map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
 
           <div className="form-group">
             <label className="form-label">Project Status</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="form-select"
-              required
-            >
+            <select name="status" value={formData.status} onChange={handleChange} className="form-select" required>
               <option value="">Select Status</option>
               <option value="Uncompleted">Uncompleted</option>
               <option value="Abandoned">Abandoned</option>
@@ -520,15 +455,10 @@ const AddProjectForm = () => {
               <option value="Completed">Completed</option>
             </select>
           </div>
-          {/* Select Source of funding */}
+
           <div className="form-group">
             <label className="form-label">Source of Funding</label>
-            <select
-              name="fundingSource"
-              value={formData.fundingSource}
-              onChange={handleChange}
-              className="form-select"
-            >
+            <select name="fundingSource" value={formData.fundingSource} onChange={handleChange} className="form-select">
               <option value="">Select (optional)</option>
               <option value="Government">Government budget allocations</option>
               <option value="GIIF">Ghana Infrastructure Investment Fund (GIIF)</option>
@@ -539,69 +469,39 @@ const AddProjectForm = () => {
               <option value="Other">Other Funding</option>
             </select>
           </div>
-          {/* Conditionally show "other funding" input only when Other selected */}
+
           {formData.fundingSource === 'Other' && (
             <div className="form-group">
               <label className="form-label">Please specify other funding source</label>
-              <input
-                type="text"
-                name="otherFundingSources"
-                value={formData.otherFundingSources || ''}
-                onChange={handleChange}
-                className="form-input"
-                placeholder="Enter source of funding"
-                required
-              />
+              <input type="text" name="otherFundingSources" value={formData.otherFundingSources || ''}
+                onChange={handleChange} className="form-input"
+                placeholder="Enter source of funding" required />
             </div>
           )}
 
           <div className="form-group">
             <label className="form-label">Start Date</label>
-            <input
-              type="date"
-              name="startDate"
-              value={formData.startDate}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
+            <input type="date" name="startDate" value={formData.startDate}
+              onChange={handleChange} className="form-input" required />
           </div>
 
           <div className="form-group">
             <label className="form-label">Contractor</label>
-            <input
-              type="text"
-              name="contractor"
-              value={formData.contractor}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Enter contractor name"
-              required
-            />
+            <input type="text" name="contractor" value={formData.contractor}
+              onChange={handleChange} className="form-input"
+              placeholder="Enter contractor name" required />
           </div>
 
           <div className="form-group">
             <label className="form-label">Submitted By</label>
-            <input
-              type="text"
-              name="submittedBy"
-              value={formData.submittedBy}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Your name"
-              required
-            />
+            <input type="text" name="submittedBy" value={formData.submittedBy}
+              onChange={handleChange} className="form-input" placeholder="Your name" required />
           </div>
 
           <div className="form-group image-upload">
             <label className="form-label">Project Image</label>
             <label className="file-upload-label">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="file-upload-input"
-              />
+              <input type="file" accept="image/*" onChange={handleImageChange} className="file-upload-input" />
               Choose Project Image
             </label>
             {previewUrl && (
@@ -609,19 +509,33 @@ const AddProjectForm = () => {
                 <img src={previewUrl} alt="Project Preview" />
               </div>
             )}
+            {!isOnline && image && (
+              <p className="offline-image-note">
+                📸 Image captured — it will be included when the project syncs.
+              </p>
+            )}
           </div>
 
-          <button type="submit" className="submit-btn" disabled={loading}>
+          {/* ── submit button — label changes based on connectivity ── */}
+          <button type="submit" className={`submit-btn ${!isOnline ? 'submit-btn--offline' : ''}`} disabled={loading}>
             {loading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg className="animate-spin" style={{ display:'inline',width:'1rem',height:'1rem',marginRight:'0.4rem' }}
+                  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                Submitting...
+                {isOnline ? 'Submitting…' : 'Saving locally…'}
               </>
-            ) : 'Submit Project'}
+            ) : isOnline ? 'Submit Project' : '💾 Save Offline'}
           </button>
+
+          {!isOnline && (
+            <p className="offline-submit-note">
+              This project will be stored on your device and uploaded automatically once you reconnect.
+            </p>
+          )}
         </div>
 
         {error && <div className="error-message">{error}</div>}

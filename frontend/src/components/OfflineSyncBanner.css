@@ -1,0 +1,133 @@
+/* OfflineSyncBanner.css
+   Sticky banner that sits just below the navbar.
+   Three visual states: offline (red), pending (amber), syncing (green).
+*/
+
+.osb-root {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  position: sticky;
+  top: 0;
+  z-index: 900;          /* below navbar (1000) but above page content */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ── colour themes ─────────────────────────────────────── */
+
+.osb-offline {
+  background: #CE1126;   /* Ghana red */
+  color: #fff;
+}
+
+.osb-pending {
+  background: #FCD116;   /* Ghana gold */
+  color: #1a1a1a;
+}
+
+.osb-syncing {
+  background: #006B3F;   /* Ghana green */
+  color: #fff;
+}
+
+/* ── icon ──────────────────────────────────────────────── */
+
+.osb-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ── message text ──────────────────────────────────────── */
+
+.osb-message {
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* ── sync button ───────────────────────────────────────── */
+
+.osb-sync-btn {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  color: inherit;
+  padding: 0.3rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.osb-sync-btn:hover {
+  background: rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+}
+
+.osb-sync-btn:active {
+  transform: translateY(0);
+}
+
+/* ── spinner ───────────────────────────────────────────── */
+
+.osb-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: osb-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes osb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── reduced motion ────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .osb-spinner {
+    animation: none;
+    border-top-color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* ── mobile ────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .osb-root {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .osb-message {
+    font-size: 0.8rem;
+    flex-basis: 100%;
+    order: 2;
+  }
+
+  .osb-icon {
+    order: 1;
+  }
+
+  .osb-sync-btn {
+    order: 3;
+    width: 100%;
+    text-align: center;
+    padding: 0.45rem;
+  }
+
+  .osb-spinner {
+    order: 3;
+  }
+}

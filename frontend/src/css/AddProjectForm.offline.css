@@ -1,0 +1,150 @@
+/* AddProjectForm.offline.css
+   Styles for the offline UX layer added to AddProjectForm.
+   Import this AFTER AddProjectForm.css so specificity is correct.
+*/
+
+/* ── offline status pill ─────────────────────────────────────────────────── */
+
+.offline-pill {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: #fff8e1;
+  border: 1.5px solid #FCD116;
+  border-left: 4px solid #CE1126;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: #4a3800;
+  line-height: 1.5;
+}
+
+.offline-pill__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  border-radius: 50%;
+  background: #CE1126;
+  margin-top: 5px;
+  animation: offl-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes offl-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ── submit button — offline variant ────────────────────────────────────── */
+
+.submit-btn--offline {
+  background: linear-gradient(to right, #CE1126, #FCD116) !important;
+  position: relative;
+}
+
+.submit-btn--offline::after {
+  content: '📡';
+  margin-left: 0.5rem;
+}
+
+/* ── offline image note ──────────────────────────────────────────────────── */
+
+.offline-image-note {
+  font-size: 0.8rem;
+  color: #15803d;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: #f0fdf4;
+  border-radius: 6px;
+  border: 1px solid #bbf7d0;
+}
+
+/* ── offline submit hint ─────────────────────────────────────────────────── */
+
+.offline-submit-note {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── offline confirmation screen ─────────────────────────────────────────── */
+
+.offline-confirmation {
+  max-width: 520px;
+  margin: 4rem auto;
+  padding: 2.5rem 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border-top: 6px solid #006B3F;
+}
+
+.offline-confirmation__icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  animation: offl-bounce 0.6s ease-out;
+}
+
+@keyframes offl-bounce {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.offline-confirmation__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #006B3F;
+  margin: 0 0 1rem;
+}
+
+.offline-confirmation__body {
+  font-size: 1rem;
+  color: #374151;
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+
+.offline-confirmation__hint {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+}
+
+.offline-confirmation__actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* secondary button variant */
+.submit-btn--secondary {
+  background: white !important;
+  color: #374151 !important;
+  border: 2px solid #d1d5db !important;
+  box-shadow: none !important;
+}
+
+.submit-btn--secondary:hover {
+  border-color: #CE1126 !important;
+  color: #CE1126 !important;
+}
+
+/* ── reduced motion ──────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .offline-pill__dot,
+  .offline-confirmation__icon {
+    animation: none;
+  }
+}
