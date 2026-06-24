@@ -46,11 +46,12 @@ const STS_CLS     = { 'Open':'ap-mini-badge-open', 'Under Review':'ap-mini-badge
 const PER_PAGE    = 8;
 
 const NAV = [
-  { id:'dashboard', label:'Dashboard',   icon:'📊' },
-  { id:'issues',    label:'Issues',      icon:'📨' },
-  { id:'projects',  label:'Projects',    icon:'🏗️'  },
-  { id:'users',     label:'MMDCE Users', icon:'👥' },
-  { id:'settings',  label:'Settings',    icon:'⚙️'  },
+  { id:'dashboard',   label:'Dashboard',   icon:'📊' },
+  { id:'issues',      label:'Issues',      icon:'📨' },
+  { id:'projects',    label:'Projects',    icon:'🏗️'  },
+  { id:'contractors', label:'Contractors', icon:'🏢' },
+  { id:'users',       label:'MMDCE Users', icon:'👥' },
+  { id:'settings',    label:'Settings',    icon:'⚙️'  },
 ];
 
 const Spinner = ({ size=32 }) => (
@@ -91,6 +92,39 @@ const AdminPanel = () => {
   const [loadingUsers,  setLoadingUsers]  = useState(true);
 
   // settings
+  // contractors
+  const [contractors,     setContractors]     = useState([]);
+  const [loadingCon,      setLoadingCon]      = useState(true);
+  const [conFilter,       setConFilter]       = useState({ search:'', category:'', status:'' });
+  const [selContractor,   setSelContractor]   = useState(null);   // open profile panel
+  const [profileTab,      setProfileTab]      = useState('overview');
+  const [showOnboard,     setShowOnboard]     = useState(false);
+  const [onboardStep,     setOnboardStep]     = useState(1);
+  const [onboardErr,      setOnboardErr]      = useState('');
+  const [onboarding,      setOnboarding]      = useState(false);
+  const [onboardForm,     setOnboardForm]     = useState({
+    companyName:'', registrationNumber:'', category:'', status:'Active',
+    contactName:'', contactPhone:'', contactEmail:'',
+    address:'', region:'', district:'', notes:'',
+  });
+  const [onboardFiles,    setOnboardFiles]    = useState([]);        // [{file, type}]
+  // progress upload
+  const [progDesc,        setProgDesc]        = useState('');
+  const [progDate,        setProgDate]        = useState('');
+  const [progFile,        setProgFile]        = useState(null);
+  const [savingProg,      setSavingProg]      = useState(false);
+  // payment upload
+  const [payDesc,         setPayDesc]         = useState('');
+  const [payAmount,       setPayAmount]       = useState('');
+  const [payDate,         setPayDate]         = useState('');
+  const [payStatus,       setPayStatus]       = useState('Pending');
+  const [payReceipt,      setPayReceipt]      = useState(null);
+  const [payCert,         setPayCert]         = useState(null);
+  const [savingPay,       setSavingPay]       = useState(false);
+  // doc upload
+  const [addDocFiles,     setAddDocFiles]     = useState([]);
+  const [savingDocs,      setSavingDocs]      = useState(false);
+
   const [settingsForm,  setSettingsForm]  = useState({ username:'', currentPassword:'', newPassword:'', confirmPassword:'' });
   const [savingSettings,setSavingSettings] = useState(false);
   const [settingsMsg,   setSettingsMsg]   = useState({ text:'', type:'' });
@@ -115,7 +149,13 @@ const AdminPanel = () => {
     catch(e) { console.error(e); } finally { setLoadingUsers(false); }
   }, [hdrs]);
 
-  useEffect(() => { fetchIssues(); fetchProjects(); fetchUsers(); }, [fetchIssues, fetchProjects, fetchUsers]);
+  const fetchContractors = useCallback(async () => {
+    setLoadingCon(true);
+    try { const r = await axios.get(apiUrl('/api/contractors'), { headers: hdrs }); setContractors(Array.isArray(r.data) ? r.data : []); }
+    catch(e) { console.error(e); } finally { setLoadingCon(false); }
+  }, [hdrs]);
+
+  useEffect(() => { fetchIssues(); fetchProjects(); fetchUsers(); fetchContractors(); }, [fetchIssues, fetchProjects, fetchUsers, fetchContractors]);
 
   useEffect(() => {
     if (!selIssue) return;
@@ -171,6 +211,105 @@ const AdminPanel = () => {
     catch(e) { alert('Failed.'); }
   };
 
+  // ── Contractor handlers ────────────────────────────────────────────────
+  const handleOnboardSubmit = async () => {
+    if (!onboardForm.companyName || !onboardForm.registrationNumber || !onboardForm.category) {
+      setOnboardErr('Company name, registration number and category are required.'); return;
+    }
+    setOnboarding(true); setOnboardErr('');
+    try {
+      const fd = new FormData();
+      Object.entries(onboardForm).forEach(([k,v]) => { if (v) fd.append(k, v); });
+      onboardFiles.forEach(({ file, type }) => {
+        fd.append('documents', file);
+        fd.append('documentTypes', type || 'other');
+      });
+      await axios.post(apiUrl('/api/contractors'), fd, {
+        headers: { ...hdrs, 'Content-Type': 'multipart/form-data' },
+      });
+      setShowOnboard(false);
+      setOnboardStep(1);
+      setOnboardForm({ companyName:'', registrationNumber:'', category:'', status:'Active', contactName:'', contactPhone:'', contactEmail:'', address:'', region:'', district:'', notes:'' });
+      setOnboardFiles([]);
+      fetchContractors();
+    } catch(e) { setOnboardErr(e?.response?.data?.error || 'Failed to onboard contractor.'); }
+    finally { setOnboarding(false); }
+  };
+
+  const handleDeleteContractor = async (id) => {
+    if (!window.confirm('Remove this contractor permanently?')) return;
+    try { await axios.delete(apiUrl(`/api/contractors/${id}`), { headers: hdrs }); fetchContractors(); if (selContractor?._id === id) setSelContractor(null); }
+    catch(e) { alert('Failed to delete.'); }
+  };
+
+  const handleUpdateContractorStatus = async (id, status) => {
+    try {
+      await axios.put(apiUrl(`/api/contractors/${id}`), { status }, { headers: hdrs });
+      fetchContractors();
+      if (selContractor?._id === id) setSelContractor(prev => ({ ...prev, status }));
+    } catch(e) { alert('Failed to update status.'); }
+  };
+
+  const handleAddProgress = async () => {
+    if (!progDesc.trim() || !selContractor) return;
+    setSavingProg(true);
+    try {
+      const fd = new FormData();
+      fd.append('description', progDesc.trim());
+      if (progDate) fd.append('date', progDate);
+      if (progFile) fd.append('file', progFile);
+      const r = await axios.post(apiUrl(`/api/contractors/${selContractor._id}/progress`), fd, {
+        headers: { ...hdrs, 'Content-Type': 'multipart/form-data' },
+      });
+      setSelContractor(prev => ({ ...prev, workProgress: r.data }));
+      setProgDesc(''); setProgDate(''); setProgFile(null);
+    } catch(e) { alert(e?.response?.data?.error || 'Failed to add progress.'); }
+    finally { setSavingProg(false); }
+  };
+
+  const handleAddPayment = async () => {
+    if (!payDesc.trim() || !payAmount || !selContractor) return;
+    setSavingPay(true);
+    try {
+      const fd = new FormData();
+      fd.append('description', payDesc.trim());
+      fd.append('amount', payAmount);
+      fd.append('status', payStatus);
+      if (payDate) fd.append('date', payDate);
+      if (payReceipt)  fd.append('receipt',     payReceipt);
+      if (payCert)     fd.append('certificate', payCert);
+      const r = await axios.post(apiUrl(`/api/contractors/${selContractor._id}/payments`), fd, {
+        headers: { ...hdrs, 'Content-Type': 'multipart/form-data' },
+      });
+      setSelContractor(prev => ({ ...prev, paymentRecords: r.data }));
+      setPayDesc(''); setPayAmount(''); setPayDate(''); setPayStatus('Pending'); setPayReceipt(null); setPayCert(null);
+    } catch(e) { alert(e?.response?.data?.error || 'Failed to add payment.'); }
+    finally { setSavingPay(false); }
+  };
+
+  const handleAddDocs = async () => {
+    if (!addDocFiles.length || !selContractor) return;
+    setSavingDocs(true);
+    try {
+      const fd = new FormData();
+      addDocFiles.forEach(({ file, type }) => { fd.append('documents', file); fd.append('documentTypes', type || 'other'); });
+      const r = await axios.post(apiUrl(`/api/contractors/${selContractor._id}/documents`), fd, {
+        headers: { ...hdrs, 'Content-Type': 'multipart/form-data' },
+      });
+      setSelContractor(prev => ({ ...prev, documents: r.data }));
+      setAddDocFiles([]);
+    } catch(e) { alert(e?.response?.data?.error || 'Failed to upload documents.'); }
+    finally { setSavingDocs(false); }
+  };
+
+  const handleDeleteDoc = async (docId) => {
+    if (!window.confirm('Remove this document?')) return;
+    try {
+      await axios.delete(apiUrl(`/api/contractors/${selContractor._id}/documents/${docId}`), { headers: hdrs });
+      setSelContractor(prev => ({ ...prev, documents: prev.documents.filter(d => d._id !== docId) }));
+    } catch(e) { alert('Failed to remove document.'); }
+  };
+
   const handleLogout = () => { logout(); navigate('/ministry-portal/auth'); };
 
   const stats = useMemo(() => ({
@@ -203,6 +342,21 @@ const AdminPanel = () => {
 
   const projTotalPages  = Math.max(1, Math.ceil(filteredProjects.length / PER_PAGE));
   const currentProjects = filteredProjects.slice((projPage-1)*PER_PAGE, projPage*PER_PAGE);
+
+  const filteredContractors = useMemo(() => {
+    let list = [...contractors];
+    if (conFilter.category) list = list.filter(c => c.category === conFilter.category);
+    if (conFilter.status)   list = list.filter(c => c.status   === conFilter.status);
+    if (conFilter.search) {
+      const q = conFilter.search.toLowerCase();
+      list = list.filter(c =>
+        c.companyName?.toLowerCase().includes(q) ||
+        c.registrationNumber?.toLowerCase().includes(q) ||
+        c.contactPerson?.name?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [contractors, conFilter]);
 
   const ministryReplies = useMemo(() =>
     issueComments.filter(c => c.createdBy?.isAdmin || c.fromMinistry), [issueComments]);
@@ -265,16 +419,18 @@ const AdminPanel = () => {
           </button>
           <div>
             <div className="ap-topbar-title">
-              {tab === 'dashboard' && 'Dashboard'}
-              {tab === 'issues'    && 'District Issues'}
-              {tab === 'projects'  && 'Project Management'}
-              {tab === 'users'     && 'MMDCE Accounts'}
-              {tab === 'settings'  && 'Account Settings'}
+              {tab === 'dashboard'   && 'Dashboard'}
+              {tab === 'issues'      && 'District Issues'}
+              {tab === 'projects'    && 'Project Management'}
+              {tab === 'contractors' && 'Contractors'}
+              {tab === 'users'       && 'MMDCE Accounts'}
+              {tab === 'settings'    && 'Account Settings'}
             </div>
             <div className="ap-topbar-sub">
-              {tab === 'issues'   && `${filteredIssues.length} issues · ${stats.newIssues} new today`}
-              {tab === 'projects' && `${filteredProjects.length} projects`}
-              {tab === 'users'    && `${users.length} registered officials`}
+              {tab === 'issues'      && `${filteredIssues.length} issues · ${stats.newIssues} new today`}
+              {tab === 'projects'    && `${filteredProjects.length} projects`}
+              {tab === 'contractors' && `${filteredContractors.length} contractor${filteredContractors.length !== 1 ? 's' : ''}`}
+              {tab === 'users'       && `${users.length} registered officials`}
             </div>
           </div>
           <div className="ap-topbar-right">
@@ -613,6 +769,433 @@ const AdminPanel = () => {
             </div>
           )}
 
+          {/* ═══════ CONTRACTORS ═══════ */}
+          {tab === 'contractors' && (
+            <>
+              {/* Header row */}
+              <div className="ap-contractors-header">
+                <div className="ap-contractors-filters">
+                  <input className="ap-filter-input" style={{width:200}}
+                    placeholder="Search contractors…"
+                    value={conFilter.search}
+                    onChange={e => setConFilter(p => ({...p, search: e.target.value}))} />
+                  <select className="ap-filter-select" value={conFilter.category}
+                    onChange={e => setConFilter(p => ({...p, category: e.target.value}))}>
+                    <option value="">All Categories</option>
+                    {['Road & Transport','Building & Construction','Water & Sanitation',
+                      'Electrical & Power','ICT & Communications','Agriculture','General']
+                      .map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select className="ap-filter-select" value={conFilter.status}
+                    onChange={e => setConFilter(p => ({...p, status: e.target.value}))}>
+                    <option value="">All Statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Blacklisted">Blacklisted</option>
+                  </select>
+                </div>
+                <button className="ap-create-btn" onClick={() => { setShowOnboard(true); setOnboardStep(1); setOnboardErr(''); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Onboard Contractor
+                </button>
+              </div>
+
+              {loadingCon ? <Spinner/> : filteredContractors.length === 0 ? (
+                <div className="ap-empty" style={{background:'#fff',borderRadius:14,border:'1.5px dashed #e2e8f0',padding:'4rem 2rem'}}>
+                  <div style={{fontSize:'3rem',marginBottom:'1rem'}}>🏢</div>
+                  <p style={{fontWeight:600,color:'#475569',marginBottom:4}}>No contractors yet</p>
+                  <p style={{fontSize:12,color:'#94a3b8'}}>Click "Onboard Contractor" to add the first one.</p>
+                </div>
+              ) : (
+                <div className="ap-contractor-grid">
+                  {filteredContractors.map(c => {
+                    const stripeCls = c.status === 'Active' ? 'ap-contractor-stripe-active'
+                      : c.status === 'Suspended' ? 'ap-contractor-stripe-suspended'
+                      : 'ap-contractor-stripe-blacklisted';
+                    const statusCls = c.status === 'Active' ? 'ap-contractor-status-active'
+                      : c.status === 'Suspended' ? 'ap-contractor-status-suspended'
+                      : 'ap-contractor-status-blacklisted';
+                    return (
+                      <div key={c._id} className="ap-contractor-card"
+                        onClick={() => { setSelContractor(c); setProfileTab('overview'); }}>
+                        <div className={`ap-contractor-card-stripe ${stripeCls}`}/>
+                        <div className="ap-contractor-card-body">
+                          <div className="ap-contractor-card-top">
+                            <div className="ap-contractor-avatar">🏢</div>
+                            <div className="ap-contractor-card-info">
+                              <div className="ap-contractor-card-name">{c.companyName}</div>
+                              <div className="ap-contractor-card-reg">{c.registrationNumber}</div>
+                            </div>
+                            <span className={`ap-contractor-status ${statusCls}`}>
+                              {c.status === 'Active' ? '●' : c.status === 'Suspended' ? '⏸' : '✕'} {c.status}
+                            </span>
+                          </div>
+                          <div className="ap-contractor-card-meta">
+                            <span className="ap-contractor-chip">📁 {c.category}</span>
+                            {c.district && <span className="ap-contractor-chip">📍 {c.district}</span>}
+                            {c.contactPerson?.phone && <span className="ap-contractor-chip">📞 {c.contactPerson.phone}</span>}
+                          </div>
+                          <div className="ap-contractor-card-footer">
+                            <span className="ap-contractor-doc-count">
+                              📄 {c.documents?.length || 0} doc{(c.documents?.length||0) !== 1 ? 's' : ''}
+                            </span>
+                            <span>{c.paymentRecords?.length || 0} payment{(c.paymentRecords?.length||0) !== 1 ? 's' : ''}</span>
+                            <span style={{color:'#94a3b8',fontSize:10}}>
+                              {new Date(c.onboardedAt||c.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── Contractor profile slide-in panel ── */}
+              {selContractor && (
+                <>
+                  <div className="ap-profile-overlay" onClick={() => setSelContractor(null)}/>
+                  <div className="ap-profile-panel">
+                    {/* Panel header */}
+                    <div className="ap-profile-header">
+                      <div className="ap-profile-flag">
+                        <div className="ap-profile-flag-r"/><div className="ap-profile-flag-g"/><div className="ap-profile-flag-gr"/>
+                      </div>
+                      <div className="ap-profile-header-inner">
+                        <div className="ap-profile-header-avatar">🏢</div>
+                        <div className="ap-profile-header-info">
+                          <div className="ap-profile-header-name">{selContractor.companyName}</div>
+                          <div className="ap-profile-header-reg">{selContractor.registrationNumber}</div>
+                          <div className="ap-profile-header-meta">
+                            <span className={`ap-contractor-status ${
+                              selContractor.status === 'Active' ? 'ap-contractor-status-active'
+                                : selContractor.status === 'Suspended' ? 'ap-contractor-status-suspended'
+                                : 'ap-contractor-status-blacklisted'}`}>
+                              {selContractor.status}
+                            </span>
+                            <span style={{fontSize:10,color:'rgba(255,255,255,0.45)'}}>{selContractor.category}</span>
+                            {selContractor.district && <span style={{fontSize:10,color:'rgba(255,255,255,0.45)'}}>📍 {selContractor.district}</span>}
+                          </div>
+                        </div>
+                        <button className="ap-profile-close" onClick={() => setSelContractor(null)}>×</button>
+                      </div>
+                    </div>
+
+                    {/* Profile inner tabs */}
+                    <div className="ap-profile-tabs">
+                      {[
+                        { id:'overview',  label:'Overview'  },
+                        { id:'documents', label:`Documents (${selContractor.documents?.length||0})` },
+                        { id:'progress',  label:`Work Progress (${selContractor.workProgress?.length||0})` },
+                        { id:'payments',  label:`Payments (${selContractor.paymentRecords?.length||0})` },
+                      ].map(t => (
+                        <button key={t.id} className={`ap-profile-tab ${profileTab===t.id?'active':''}`}
+                          onClick={() => setProfileTab(t.id)}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Profile body */}
+                    <div className="ap-profile-body">
+
+                      {/* ── Overview ── */}
+                      {profileTab === 'overview' && (
+                        <>
+                          <div className="ap-info-grid">
+                            {[
+                              { label:'Company Name',       value: selContractor.companyName },
+                              { label:'Registration No.',   value: selContractor.registrationNumber },
+                              { label:'Category',           value: selContractor.category },
+                              { label:'Region',             value: selContractor.region || '—' },
+                              { label:'District',           value: selContractor.district || '—' },
+                              { label:'Address',            value: selContractor.address || '—' },
+                              { label:'Contact Person',     value: selContractor.contactPerson?.name || '—' },
+                              { label:'Contact Phone',      value: selContractor.contactPerson?.phone || '—' },
+                              { label:'Contact Email',      value: selContractor.contactPerson?.email || '—' },
+                              { label:'Onboarded',          value: new Date(selContractor.onboardedAt||selContractor.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) },
+                            ].map(item => (
+                              <div key={item.label} className="ap-info-item">
+                                <div className="ap-info-label">{item.label}</div>
+                                <div className="ap-info-value">{item.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {selContractor.notes && (
+                            <div style={{background:'#fff',borderRadius:10,border:'1px solid #e2e8f0',padding:'1rem',marginBottom:'1rem'}}>
+                              <div className="ap-info-label" style={{marginBottom:6}}>Notes</div>
+                              <p style={{fontSize:13,color:'#374151',lineHeight:1.6,whiteSpace:'pre-wrap',margin:0}}>{selContractor.notes}</p>
+                            </div>
+                          )}
+                          <div style={{background:'#fff',borderRadius:10,border:'1px solid #e2e8f0',padding:'1rem'}}>
+                            <div className="ap-info-label" style={{marginBottom:8}}>Update Status</div>
+                            <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                              {['Active','Suspended','Blacklisted'].map(s => (
+                                <button key={s} onClick={() => handleUpdateContractorStatus(selContractor._id, s)}
+                                  style={{
+                                    padding:'7px 16px', borderRadius:8, border:'1.5px solid', fontWeight:600, fontSize:12, cursor:'pointer',
+                                    background: selContractor.status===s ? (s==='Active'?'#006B3F':s==='Suspended'?'#f97316':'#CE1126') : '#fff',
+                                    color:      selContractor.status===s ? '#fff' : '#475569',
+                                    borderColor: selContractor.status===s ? 'transparent' : '#e2e8f0',
+                                    transition: 'all 0.15s',
+                                  }}>
+                                  {s}
+                                </button>
+                              ))}
+                              <button onClick={() => handleDeleteContractor(selContractor._id)}
+                                style={{marginLeft:'auto',padding:'7px 16px',borderRadius:8,border:'1px solid #fecaca',background:'#fff5f5',color:'#CE1126',fontWeight:600,fontSize:12,cursor:'pointer'}}>
+                                Remove Contractor
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* ── Documents ── */}
+                      {profileTab === 'documents' && (
+                        <>
+                          <div className="ap-section-subheader">
+                            <div className="ap-section-subheader-title">Uploaded Documents</div>
+                          </div>
+                          {(!selContractor.documents || selContractor.documents.length === 0) ? (
+                            <div className="ap-empty"><p>No documents uploaded yet.</p></div>
+                          ) : (
+                            <div className="ap-doc-list" style={{marginBottom:'1.5rem'}}>
+                              {selContractor.documents.map(doc => (
+                                <div key={doc._id} className="ap-doc-row">
+                                  <div className="ap-doc-icon">
+                                    {doc.type === 'businessCertificate' ? '📋' : doc.type === 'taxClearance' ? '🧾' : doc.type === 'incorporation' ? '🏛️' : doc.type === 'insurance' ? '🛡️' : '📄'}
+                                  </div>
+                                  <div className="ap-doc-info">
+                                    <div className="ap-doc-name">{doc.name}</div>
+                                    <div className="ap-doc-type">{doc.type?.replace(/([A-Z])/g,' $1').trim()}</div>
+                                  </div>
+                                  <a className="ap-doc-download" href={apiUrl(doc.fileUrl)} target="_blank" rel="noreferrer">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    Download
+                                  </a>
+                                  <button className="ap-doc-delete" onClick={() => handleDeleteDoc(doc._id)} title="Remove document">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Add more documents */}
+                          <div className="ap-upload-section">
+                            <div className="ap-upload-section-title">📎 Upload Additional Documents</div>
+                            <div className="ap-upload-form">
+                              {addDocFiles.map((item, i) => (
+                                <div key={i} style={{display:'flex',gap:8,alignItems:'center'}}>
+                                  <div style={{flex:1,fontSize:12,color:'#475569',background:'#f8fafc',borderRadius:8,padding:'7px 10px',border:'1px solid #e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                    {item.file.name}
+                                  </div>
+                                  <select className="ap-filter-select" value={item.type}
+                                    onChange={e => setAddDocFiles(prev => prev.map((x,j) => j===i ? {...x, type: e.target.value} : x))}>
+                                    <option value="businessCertificate">Business Certificate</option>
+                                    <option value="taxClearance">Tax Clearance</option>
+                                    <option value="incorporation">Incorporation</option>
+                                    <option value="insurance">Insurance</option>
+                                    <option value="other">Other</option>
+                                  </select>
+                                  <button onClick={() => setAddDocFiles(prev => prev.filter((_,j) => j!==i))}
+                                    style={{background:'none',border:'none',color:'#CE1126',cursor:'pointer',fontSize:18,lineHeight:1,padding:'4px'}}>×</button>
+                                </div>
+                              ))}
+                              <label className="ap-file-label" style={{cursor:'pointer'}}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                Click to select files (PDF, images)
+                                <input type="file" className="ap-file-input" multiple accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={e => {
+                                    const newFiles = Array.from(e.target.files).map(f => ({ file: f, type: 'other' }));
+                                    setAddDocFiles(prev => [...prev, ...newFiles]);
+                                    e.target.value = '';
+                                  }}/>
+                              </label>
+                              {addDocFiles.length > 0 && (
+                                <button className="ap-send-btn" disabled={savingDocs} onClick={handleAddDocs}>
+                                  {savingDocs ? 'Uploading…' : `Upload ${addDocFiles.length} file${addDocFiles.length!==1?'s':''}`}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* ── Work Progress ── */}
+                      {profileTab === 'progress' && (
+                        <>
+                          <div className="ap-section-subheader">
+                            <div className="ap-section-subheader-title">Work Progress Timeline</div>
+                          </div>
+                          {(!selContractor.workProgress || selContractor.workProgress.length === 0) ? (
+                            <div className="ap-empty" style={{marginBottom:'1.5rem'}}><p>No progress entries yet.</p></div>
+                          ) : (
+                            <div className="ap-progress-timeline" style={{marginBottom:'1.5rem'}}>
+                              {[...selContractor.workProgress].reverse().map((entry, i) => (
+                                <div key={entry._id || i} className="ap-progress-entry">
+                                  <div className="ap-progress-dot">📋</div>
+                                  <div className="ap-progress-content">
+                                    <p className="ap-progress-desc">{entry.description}</p>
+                                    <div className="ap-progress-meta">
+                                      <span>📅 {new Date(entry.date||entry.uploadedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+                                      {entry.fileUrl && (
+                                        <a href={apiUrl(entry.fileUrl)} target="_blank" rel="noreferrer"
+                                          style={{color:'#0369a1',fontWeight:600,display:'flex',alignItems:'center',gap:3}}>
+                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                          {entry.fileName || 'Attachment'}
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="ap-upload-section">
+                            <div className="ap-upload-section-title">➕ Add Progress Report</div>
+                            <div className="ap-upload-form">
+                              <textarea className="ap-reply-textarea" style={{minHeight:80}}
+                                placeholder="Describe the work progress…"
+                                value={progDesc} onChange={e => setProgDesc(e.target.value)}/>
+                              <div className="ap-upload-row">
+                                <div className="ap-form-group">
+                                  <label className="ap-label">Date</label>
+                                  <input type="date" className="ap-input" value={progDate} onChange={e => setProgDate(e.target.value)}/>
+                                </div>
+                                <div className="ap-form-group">
+                                  <label className="ap-label">Attachment (optional)</label>
+                                  <label className="ap-file-label">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    {progFile ? progFile.name : 'Choose file…'}
+                                    <input type="file" className="ap-file-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                      onChange={e => setProgFile(e.target.files[0] || null)}/>
+                                  </label>
+                                </div>
+                              </div>
+                              <div style={{display:'flex',justifyContent:'flex-end'}}>
+                                <button className="ap-send-btn" disabled={savingProg || !progDesc.trim()} onClick={handleAddProgress}>
+                                  {savingProg ? 'Saving…' : 'Add Progress Entry'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* ── Payments ── */}
+                      {profileTab === 'payments' && (
+                        <>
+                          <div className="ap-section-subheader">
+                            <div className="ap-section-subheader-title">Payment Records</div>
+                          </div>
+                          {(!selContractor.paymentRecords || selContractor.paymentRecords.length === 0) ? (
+                            <div className="ap-empty" style={{marginBottom:'1.5rem'}}><p>No payment records yet.</p></div>
+                          ) : (
+                            <div className="ap-payment-list" style={{marginBottom:'1.5rem'}}>
+                              {[...selContractor.paymentRecords].reverse().map((rec, i) => (
+                                <div key={rec._id || i} className="ap-payment-card">
+                                  <div className="ap-payment-card-top">
+                                    <div style={{flex:1}}>
+                                      <div className="ap-payment-amount">
+                                        {rec.currency || 'GHS'} {Number(rec.amount).toLocaleString('en-GH',{minimumFractionDigits:2})}
+                                      </div>
+                                      <div className="ap-payment-desc">{rec.description}</div>
+                                      <div style={{fontSize:11,color:'#94a3b8',marginTop:4}}>
+                                        📅 {new Date(rec.date||rec.uploadedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
+                                      </div>
+                                    </div>
+                                    <span className={`ap-mini-badge ${
+                                      rec.status==='Paid' ? 'ap-mini-badge-replied'
+                                        : rec.status==='Approved' ? 'ap-mini-badge-low'
+                                        : rec.status==='Rejected' ? 'ap-mini-badge-urgent'
+                                        : 'ap-mini-badge-open'}`}>
+                                      {rec.status}
+                                    </span>
+                                  </div>
+                                  {(rec.receiptUrl || rec.certUrl) && (
+                                    <div className="ap-payment-card-docs">
+                                      {rec.receiptUrl && (
+                                        <a className="ap-doc-download" href={apiUrl(rec.receiptUrl)} target="_blank" rel="noreferrer">
+                                          🧾 {rec.receiptFileName || 'Receipt'}
+                                        </a>
+                                      )}
+                                      {rec.certUrl && (
+                                        <a className="ap-doc-download" href={apiUrl(rec.certUrl)} target="_blank" rel="noreferrer">
+                                          📜 {rec.certFileName || 'Certificate'}
+                                        </a>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="ap-upload-section">
+                            <div className="ap-upload-section-title">💰 Add Payment Record</div>
+                            <div className="ap-upload-form">
+                              <div className="ap-form-group">
+                                <label className="ap-label">Description <span style={{color:'#CE1126'}}>*</span></label>
+                                <input className="ap-input" placeholder="e.g. First instalment payment"
+                                  value={payDesc} onChange={e => setPayDesc(e.target.value)}/>
+                              </div>
+                              <div className="ap-upload-row">
+                                <div className="ap-form-group">
+                                  <label className="ap-label">Amount (GHS) <span style={{color:'#CE1126'}}>*</span></label>
+                                  <input className="ap-input" type="number" min="0" step="0.01" placeholder="0.00"
+                                    value={payAmount} onChange={e => setPayAmount(e.target.value)}/>
+                                </div>
+                                <div className="ap-form-group">
+                                  <label className="ap-label">Date</label>
+                                  <input className="ap-input" type="date" value={payDate} onChange={e => setPayDate(e.target.value)}/>
+                                </div>
+                              </div>
+                              <div className="ap-form-group">
+                                <label className="ap-label">Status</label>
+                                <select className="ap-select" value={payStatus} onChange={e => setPayStatus(e.target.value)}>
+                                  <option value="Pending">Pending</option>
+                                  <option value="Approved">Approved</option>
+                                  <option value="Paid">Paid</option>
+                                  <option value="Rejected">Rejected</option>
+                                </select>
+                              </div>
+                              <div className="ap-upload-row">
+                                <div className="ap-form-group">
+                                  <label className="ap-label">Receipt</label>
+                                  <label className="ap-file-label">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    {payReceipt ? payReceipt.name : 'Upload receipt…'}
+                                    <input type="file" className="ap-file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                      onChange={e => setPayReceipt(e.target.files[0] || null)}/>
+                                  </label>
+                                </div>
+                                <div className="ap-form-group">
+                                  <label className="ap-label">Certificate of Payment</label>
+                                  <label className="ap-file-label">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    {payCert ? payCert.name : 'Upload certificate…'}
+                                    <input type="file" className="ap-file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                      onChange={e => setPayCert(e.target.files[0] || null)}/>
+                                  </label>
+                                </div>
+                              </div>
+                              <div style={{display:'flex',justifyContent:'flex-end'}}>
+                                <button className="ap-send-btn" disabled={savingPay || !payDesc.trim() || !payAmount} onClick={handleAddPayment}>
+                                  {savingPay ? 'Saving…' : 'Add Payment Record'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
           {/* ═══════ SETTINGS ═══════ */}
           {tab === 'settings' && (
             <div style={{maxWidth:540}}>
@@ -781,6 +1364,207 @@ const AdminPanel = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ── Onboard Contractor Modal ── */}
+      {showOnboard && (
+        <div className="ap-modal-overlay" onClick={e => { if(e.target===e.currentTarget){ setShowOnboard(false); setOnboardStep(1); }}}>
+          <div className="ap-modal" style={{maxWidth:600}}>
+            <div className="ap-modal-flag">
+              <div className="ap-modal-flag-r"/><div className="ap-modal-flag-g"/><div className="ap-modal-flag-gr"/>
+            </div>
+            <div className="ap-modal-header">
+              <div>
+                <div className="ap-modal-title">Onboard Contractor</div>
+                <div className="ap-modal-sub">
+                  Step {onboardStep} of 2 — {onboardStep===1 ? 'Company Details' : 'Documents & Files'}
+                </div>
+              </div>
+              <button className="ap-modal-close" onClick={() => { setShowOnboard(false); setOnboardStep(1); }}>×</button>
+            </div>
+
+            {/* Step indicator */}
+            <div style={{display:'flex',gap:0,borderBottom:'1px solid #f1f5f9'}}>
+              {['Company Details','Documents & Files'].map((label,i) => (
+                <div key={i} style={{
+                  flex:1, padding:'10px 16px', fontSize:12, fontWeight:600, textAlign:'center',
+                  borderBottom: onboardStep===i+1 ? '2px solid #CE1126' : '2px solid transparent',
+                  color: onboardStep===i+1 ? '#CE1126' : '#94a3b8',
+                  background: onboardStep===i+1 ? '#fff8f8' : 'transparent',
+                  transition:'all 0.2s',
+                }}>
+                  <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:18,height:18,borderRadius:'50%',background:onboardStep===i+1?'#CE1126':'#e2e8f0',color:onboardStep===i+1?'#fff':'#94a3b8',fontSize:10,fontWeight:700,marginRight:6}}>
+                    {i+1}
+                  </span>
+                  {label}
+                </div>
+              ))}
+            </div>
+
+            <div className="ap-modal-body">
+              {onboardErr && (
+                <div style={{background:'#fee2e2',border:'1px solid #fecaca',borderRadius:8,padding:'10px 14px',fontSize:13,color:'#991b1b',marginBottom:'0.5rem'}}>
+                  {onboardErr}
+                </div>
+              )}
+
+              {/* ── Step 1: Company Details ── */}
+              {onboardStep === 1 && (
+                <>
+                  <div className="ap-form-row">
+                    <div className="ap-form-group">
+                      <label className="ap-label">Company Name <span>*</span></label>
+                      <input className="ap-input" placeholder="e.g. Accra Build Ltd"
+                        value={onboardForm.companyName}
+                        onChange={e => setOnboardForm(p=>({...p,companyName:e.target.value}))}/>
+                    </div>
+                    <div className="ap-form-group">
+                      <label className="ap-label">Registration No. <span>*</span></label>
+                      <input className="ap-input" placeholder="e.g. BN-2024-00123"
+                        value={onboardForm.registrationNumber}
+                        onChange={e => setOnboardForm(p=>({...p,registrationNumber:e.target.value}))}/>
+                    </div>
+                  </div>
+                  <div className="ap-form-row">
+                    <div className="ap-form-group">
+                      <label className="ap-label">Category <span>*</span></label>
+                      <select className="ap-select" value={onboardForm.category}
+                        onChange={e => setOnboardForm(p=>({...p,category:e.target.value}))}>
+                        <option value="">Select category</option>
+                        {['Road & Transport','Building & Construction','Water & Sanitation',
+                          'Electrical & Power','ICT & Communications','Agriculture','General']
+                          .map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="ap-form-group">
+                      <label className="ap-label">Status</label>
+                      <select className="ap-select" value={onboardForm.status}
+                        onChange={e => setOnboardForm(p=>({...p,status:e.target.value}))}>
+                        <option value="Active">Active</option>
+                        <option value="Suspended">Suspended</option>
+                        <option value="Blacklisted">Blacklisted</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="ap-form-row">
+                    <div className="ap-form-group">
+                      <label className="ap-label">Contact Person</label>
+                      <input className="ap-input" placeholder="Full name"
+                        value={onboardForm.contactName}
+                        onChange={e => setOnboardForm(p=>({...p,contactName:e.target.value}))}/>
+                    </div>
+                    <div className="ap-form-group">
+                      <label className="ap-label">Contact Phone</label>
+                      <input className="ap-input" placeholder="+233XXXXXXXXX"
+                        value={onboardForm.contactPhone}
+                        onChange={e => setOnboardForm(p=>({...p,contactPhone:e.target.value}))}/>
+                    </div>
+                  </div>
+                  <div className="ap-form-group">
+                    <label className="ap-label">Contact Email</label>
+                    <input className="ap-input" type="email" placeholder="contractor@email.com"
+                      value={onboardForm.contactEmail}
+                      onChange={e => setOnboardForm(p=>({...p,contactEmail:e.target.value}))}/>
+                  </div>
+                  <div className="ap-form-group">
+                    <label className="ap-label">Physical Address</label>
+                    <input className="ap-input" placeholder="Street / Town"
+                      value={onboardForm.address}
+                      onChange={e => setOnboardForm(p=>({...p,address:e.target.value}))}/>
+                  </div>
+                  <div className="ap-form-row">
+                    <div className="ap-form-group">
+                      <label className="ap-label">Region</label>
+                      <select className="ap-select" value={onboardForm.region}
+                        onChange={e => setOnboardForm(p=>({...p,region:e.target.value,district:''}))}>
+                        <option value="">Select Region</option>
+                        {ghanaRegions.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="ap-form-group">
+                      <label className="ap-label">District</label>
+                      <select className="ap-select" value={onboardForm.district}
+                        onChange={e => setOnboardForm(p=>({...p,district:e.target.value}))}
+                        disabled={!onboardForm.region}>
+                        <option value="">Select District</option>
+                        {(ghanaRegions.find(r=>r.name===onboardForm.region)?.districts||[]).map(d =>
+                          <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="ap-form-group">
+                    <label className="ap-label">Notes</label>
+                    <textarea className="ap-reply-textarea" style={{minHeight:70}}
+                      placeholder="Any additional information about this contractor…"
+                      value={onboardForm.notes}
+                      onChange={e => setOnboardForm(p=>({...p,notes:e.target.value}))}/>
+                  </div>
+                  <div className="ap-modal-footer">
+                    <button className="ap-modal-cancel" onClick={() => setShowOnboard(false)}>Cancel</button>
+                    <button className="ap-modal-submit"
+                      disabled={!onboardForm.companyName || !onboardForm.registrationNumber || !onboardForm.category}
+                      onClick={() => { setOnboardErr(''); setOnboardStep(2); }}>
+                      Next: Upload Documents →
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* ── Step 2: Documents ── */}
+              {onboardStep === 2 && (
+                <>
+                  <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:10,padding:'10px 14px',marginBottom:'1rem',fontSize:13,color:'#166534'}}>
+                    ✅ Company details saved. Now upload supporting documents (optional — can be added later).
+                  </div>
+
+                  {onboardFiles.length > 0 && (
+                    <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:'1rem'}}>
+                      {onboardFiles.map((item,i) => (
+                        <div key={i} style={{display:'flex',gap:8,alignItems:'center',background:'#f8fafc',borderRadius:8,padding:'8px 10px',border:'1px solid #e2e8f0'}}>
+                          <span style={{fontSize:16}}>📄</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:12,fontWeight:600,color:'#374151',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.file.name}</div>
+                            <div style={{fontSize:10,color:'#94a3b8'}}>{(item.file.size/1024).toFixed(1)} KB</div>
+                          </div>
+                          <select className="ap-filter-select" style={{width:160}} value={item.type}
+                            onChange={e => setOnboardFiles(prev => prev.map((x,j) => j===i ? {...x,type:e.target.value} : x))}>
+                            <option value="businessCertificate">Business Certificate</option>
+                            <option value="taxClearance">Tax Clearance</option>
+                            <option value="incorporation">Incorporation</option>
+                            <option value="insurance">Insurance</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <button onClick={() => setOnboardFiles(prev => prev.filter((_,j) => j!==i))}
+                            style={{background:'none',border:'none',color:'#CE1126',cursor:'pointer',fontSize:20,lineHeight:1,padding:'2px 4px',flexShrink:0}}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <label style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,padding:'2rem',border:'2px dashed #e2e8f0',borderRadius:12,cursor:'pointer',background:'#f8fafc',transition:'border-color 0.2s'}}
+                    onMouseEnter={e => e.currentTarget.style.borderColor='#CE1126'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor='#e2e8f0'}>
+                    <span style={{fontSize:'2rem'}}>📎</span>
+                    <span style={{fontSize:13,fontWeight:600,color:'#475569'}}>Click to select documents</span>
+                    <span style={{fontSize:11,color:'#94a3b8'}}>PDF, JPG, PNG — Business certificates, tax clearance, incorporation docs</span>
+                    <input type="file" style={{display:'none'}} multiple accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={e => {
+                        const newFiles = Array.from(e.target.files).map(f => ({file:f, type:'businessCertificate'}));
+                        setOnboardFiles(prev => [...prev, ...newFiles]);
+                        e.target.value = '';
+                      }}/>
+                  </label>
+
+                  <div className="ap-modal-footer" style={{marginTop:'1rem'}}>
+                    <button className="ap-modal-cancel" onClick={() => setOnboardStep(1)}>← Back</button>
+                    <button className="ap-modal-submit" disabled={onboarding} onClick={handleOnboardSubmit}>
+                      {onboarding ? 'Onboarding…' : `Finish — Onboard Contractor${onboardFiles.length > 0 ? ` (${onboardFiles.length} file${onboardFiles.length!==1?'s':''})` : ''}`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

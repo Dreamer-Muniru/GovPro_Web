@@ -60,6 +60,10 @@ app.use(express.urlencoded({ extended: true }));
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // app.use('/api/regions', regionsRouter);
+
+// Contractor routes
+const contractorRoutes = require('./routes/contractorRoutes');
+app.use('/api/contractors', contractorRoutes);
 // Routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
