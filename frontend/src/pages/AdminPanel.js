@@ -45,6 +45,287 @@ const PRI_CLS     = { Urgent:'ap-mini-badge-urgent', High:'ap-mini-badge-high', 
 const STS_CLS     = { 'Open':'ap-mini-badge-open', 'Under Review':'ap-mini-badge-review', 'Replied':'ap-mini-badge-replied', 'Resolved':'ap-mini-badge-resolved' };
 const PER_PAGE    = 8;
 
+// ── AdminEditProjectModal ──────────────────────────────────────────────────────
+// Full-featured project edit modal used inside the admin dashboard.
+// Accepts hdrs, ghanaRegions, apiUrl as props (already in scope of AdminPanel).
+const AdminEditProjectModal = ({ project, hdrs, ghanaRegions, apiUrl, onClose, onSaved }) => {
+  const [form, setForm] = React.useState({
+    title:                  project.title                  || '',
+    type:                   project.type                   || '',
+    status:                 project.status                 || '',
+    description:            project.description            || '',
+    contractor:             project.contractor             || '',
+    fundingSource:          project.fundingSource          || '',
+    otherFundingSources:    project.otherFundingSources    || '',
+    location_address:       project.location_address       || '',
+    location_city:          project.location_city          || '',
+    projectStartDate:       project.projectStartDate
+                              ? new Date(project.projectStartDate).toISOString().split('T')[0] : '',
+    expectedCompletionDate: project.expectedCompletionDate
+                              ? new Date(project.expectedCompletionDate).toISOString().split('T')[0] : '',
+    completionPercentage:   project.completionPercentage   ?? 0,
+    totalCost:              project.totalCost         != null ? project.totalCost         : '',
+    amountPaid:             project.amountPaid        != null ? project.amountPaid        : '',
+    outstandingAmount:      project.outstandingAmount != null ? project.outstandingAmount : '',
+  });
+  const [imageFile,    setImageFile]    = React.useState(null);
+  const [imagePreview, setImagePreview] = React.useState(project.imageUrl ? apiUrl(project.imageUrl) : null);
+  const [saving,       setSaving]       = React.useState(false);
+  const [err,          setErr]          = React.useState('');
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const PROJECT_TYPES = ['School','Hospital','Road','Bridge','Water System','Power Project',
+    'Market Stall','Drainage System','Sanitation Facility','Government Office',
+    'Residential Bungalow','Sports & Recreation Center'];
+
+  const FUNDING_SOURCES = [
+    { value:'Government', label:'Government Budget Allocation' },
+    { value:'GIIF',       label:'Ghana Infrastructure Investment Fund (GIIF)' },
+    { value:'DACF',       label:'District Assemblies Common Fund (DACF)' },
+    { value:'WorldBank',  label:'World Bank Group' },
+    { value:'IMF',        label:'International Monetary Fund (IMF)' },
+    { value:'UNDP',       label:'United Nations Development Programme (UNDP)' },
+    { value:'Other',      label:'Other' },
+  ];
+
+  const handleSave = async () => {
+    if (!form.title.trim()) { setErr('Title is required.'); return; }
+    setSaving(true); setErr('');
+    try {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => {
+        if (v !== '' && v !== null && v !== undefined) fd.append(k, String(v));
+      });
+      if (imageFile) fd.append('image', imageFile);
+      const res = await axios.put(apiUrl(`/api/projects/${project._id}`), fd, {
+        headers: { ...hdrs, 'Content-Type': 'multipart/form-data' },
+      });
+      onSaved(res.data);
+    } catch (e) { setErr(e?.response?.data?.error || 'Failed to save.'); }
+    finally { setSaving(false); }
+  };
+
+  // Shared input style helpers
+  const inputStyle = {
+    width:'100%', padding:'8px 11px', border:'1.5px solid #e2e8f0', borderRadius:8,
+    fontSize:13, fontFamily:'inherit', color:'#1e293b', background:'#f8fafc',
+    boxSizing:'border-box',
+  };
+  const labelStyle = { fontSize:11, fontWeight:700, color:'#374151', marginBottom:3, display:'block' };
+  const sectionStyle = {
+    fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.8px',
+    color:'#94a3b8', borderBottom:'1px solid #f1f5f9', paddingBottom:4, marginBottom:2,
+  };
+  const rowStyle = { display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 };
+  const row3Style = { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 };
+
+  return (
+    <div
+      style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',backdropFilter:'blur(5px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{background:'#fff',borderRadius:18,width:'100%',maxWidth:'min(700px,96vw)',maxHeight:'92vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.25)',display:'flex',flexDirection:'column'}}>
+
+        {/* Header */}
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',padding:'1.25rem 1.5rem 1rem',borderBottom:'1px solid #f1f5f9',flexShrink:0}}>
+          <div>
+            <div style={{fontSize:'1rem',fontWeight:700,color:'#0f172a'}}>Edit Project</div>
+            <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>
+              {project.title} — update any field and save
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{width:28,height:28,borderRadius:'50%',border:'1px solid #e2e8f0',background:'#f8fafc',fontSize:16,color:'#64748b',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            ×
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{padding:'1.25rem 1.5rem',display:'flex',flexDirection:'column',gap:'0.875rem',overflowX:'hidden'}}>
+          {err && (
+            <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8,padding:'10px 14px',fontSize:13,color:'#991b1b'}}>
+              {err}
+            </div>
+          )}
+
+          {/* Basic Info */}
+          <div style={sectionStyle}>Basic Information</div>
+          <div style={{...inputStyle,padding:0}}>
+            <input style={{...inputStyle,border:'none',background:'transparent'}}
+              placeholder="Project title *" value={form.title}
+              onChange={e => set('title', e.target.value)} />
+          </div>
+          <div style={rowStyle}>
+            <div>
+              <label style={labelStyle}>Project Type</label>
+              <select style={inputStyle} value={form.type} onChange={e => set('type', e.target.value)}>
+                <option value="">Select type</option>
+                {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Status</label>
+              <select style={inputStyle} value={form.status} onChange={e => set('status', e.target.value)}>
+                <option value="Uncompleted">Uncompleted</option>
+                <option value="Resumed">Ongoing</option>
+                <option value="Completed">Completed</option>
+                <option value="Abandoned">Abandoned</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Description</label>
+            <textarea style={{...inputStyle,minHeight:70,resize:'vertical'}} value={form.description}
+              onChange={e => set('description', e.target.value)} placeholder="Project description…" />
+          </div>
+
+          {/* Progress */}
+          <div style={sectionStyle}>Progress &amp; Timeline</div>
+          <div>
+            <label style={{...labelStyle,display:'flex',alignItems:'center',gap:8}}>
+              Completion Progress
+              <span style={{background:'#006B3F',color:'#fff',fontSize:11,fontWeight:700,padding:'2px 9px',borderRadius:10}}>
+                {form.completionPercentage}%
+              </span>
+            </label>
+            {/* Custom visual range */}
+            <div style={{position:'relative',marginBottom:4}}>
+              <input type="range" min={0} max={100} step={1}
+                value={form.completionPercentage}
+                onChange={e => set('completionPercentage', Number(e.target.value))}
+                style={{position:'absolute',inset:0,width:'100%',height:28,opacity:0,cursor:'pointer',zIndex:2,margin:0}} />
+              <div style={{height:10,background:'#e2e8f0',borderRadius:5,overflow:'hidden',margin:'9px 0'}}>
+                <div style={{height:'100%',background:'linear-gradient(90deg,#CE1126,#FCD116,#006B3F)',borderRadius:5,width:`${form.completionPercentage}%`,transition:'width 0.12s ease'}}/>
+              </div>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#94a3b8',padding:'0 2px'}}>
+              <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+            </div>
+          </div>
+          <div style={rowStyle}>
+            <div>
+              <label style={labelStyle}>Start Date</label>
+              <input type="date" style={inputStyle} value={form.projectStartDate}
+                onChange={e => set('projectStartDate', e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>Expected Completion</label>
+              <input type="date" style={inputStyle} value={form.expectedCompletionDate}
+                onChange={e => set('expectedCompletionDate', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Financial */}
+          <div style={sectionStyle}>Financial Details (GHS)</div>
+          <div style={row3Style}>
+            {[
+              { label:'Total Project Cost',        key:'totalCost' },
+              { label:'Amount Paid to Contractor', key:'amountPaid' },
+              { label:'Outstanding Balance',       key:'outstandingAmount' },
+            ].map(({ label, key }) => (
+              <div key={key}>
+                <label style={labelStyle}>{label}</label>
+                <div style={{display:'flex',border:'1.5px solid #e2e8f0',borderRadius:8,overflow:'hidden'}}>
+                  <span style={{padding:'0 9px',background:'#f8fafc',borderRight:'1.5px solid #e2e8f0',fontSize:11,fontWeight:700,color:'#64748b',display:'flex',alignItems:'center'}}>GHS</span>
+                  <input type="number" min={0} step={0.01}
+                    style={{...inputStyle,border:'none',borderRadius:0,flex:1}}
+                    value={form[key]} onChange={e => set(key, e.target.value)}
+                    placeholder="0.00" />
+                </div>
+                {key === 'outstandingAmount' && form.totalCost && form.amountPaid && (
+                  <div style={{fontSize:11,color:'#006B3F',marginTop:3,fontWeight:500}}>
+                    Suggested: GHS {Math.max(0, Number(form.totalCost) - Number(form.amountPaid))
+                      .toLocaleString('en-GH', { minimumFractionDigits:2 })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Location */}
+          <div style={sectionStyle}>Location</div>
+          <div style={rowStyle}>
+            <div>
+              <label style={labelStyle}>City / Town</label>
+              <input style={inputStyle} value={form.location_city}
+                onChange={e => set('location_city', e.target.value)} placeholder="e.g. Kumasi" />
+            </div>
+            <div>
+              <label style={labelStyle}>Street Address</label>
+              <input style={inputStyle} value={form.location_address}
+                onChange={e => set('location_address', e.target.value)} placeholder="e.g. Main Street" />
+            </div>
+          </div>
+
+          {/* People & Funding */}
+          <div style={sectionStyle}>People &amp; Funding</div>
+          <div>
+            <label style={labelStyle}>Contractor</label>
+            <input style={inputStyle} value={form.contractor}
+              onChange={e => set('contractor', e.target.value)} placeholder="Contractor name" />
+          </div>
+          <div>
+            <label style={labelStyle}>Source of Funding</label>
+            <select style={inputStyle} value={form.fundingSource}
+              onChange={e => set('fundingSource', e.target.value)}>
+              <option value="">Select funding source</option>
+              {FUNDING_SOURCES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+            </select>
+          </div>
+          {form.fundingSource === 'Other' && (
+            <div>
+              <label style={labelStyle}>Specify funding source</label>
+              <input style={inputStyle} value={form.otherFundingSources}
+                onChange={e => set('otherFundingSources', e.target.value)}
+                placeholder="Actual funding source" />
+            </div>
+          )}
+
+          {/* Image */}
+          <div style={sectionStyle}>Project Image</div>
+          {imagePreview && (
+            <div style={{position:'relative',marginBottom:4}}>
+              <img src={imagePreview} alt="Preview"
+                style={{width:'100%',maxHeight:100,objectFit:'cover',borderRadius:8,border:'1px solid #e2e8f0',display:'block'}} />
+              <button onClick={() => { setImageFile(null); setImagePreview(null); }}
+                style={{position:'absolute',top:6,right:6,background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,cursor:'pointer'}}>
+                ✕ Remove
+              </button>
+            </div>
+          )}
+          <label style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,padding:'1.25rem',border:'2px dashed #e2e8f0',borderRadius:12,cursor:'pointer',textAlign:'center',background:'#f8fafc'}}>
+            <input type="file" accept="image/*" style={{display:'none'}}
+              onChange={e => {
+                const f = e.target.files?.[0];
+                if (f) { setImageFile(f); setImagePreview(URL.createObjectURL(f)); }
+              }} />
+            <span style={{fontSize:'1.5rem'}}>🖼️</span>
+            <span style={{fontSize:12,fontWeight:600,color:'#374151'}}>
+              {imageFile ? imageFile.name : 'Click to upload a new image'}
+            </span>
+            <span style={{fontSize:11,color:'#94a3b8'}}>JPG, PNG — replaces existing image</span>
+          </label>
+        </div>
+
+        {/* Footer */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'0.75rem',padding:'1rem 1.5rem',borderTop:'1px solid #f1f5f9',flexShrink:0}}>
+          <button onClick={onClose}
+            style={{padding:'8px 18px',border:'1.5px solid #e2e8f0',background:'#fff',color:'#64748b',borderRadius:9,fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:'inherit'}}>
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            style={{padding:'8px 22px',background:saving?'#94a3b8':'#006B3F',color:'#fff',border:'none',borderRadius:9,fontSize:13,fontWeight:600,cursor:saving?'not-allowed':'pointer',fontFamily:'inherit',transition:'background 0.15s'}}>
+            {saving ? 'Saving…' : 'Save all changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
 const NAV = [
   { id:'dashboard',   label:'Dashboard',   icon:'📊' },
   { id:'issues',      label:'Issues',      icon:'📨' },
@@ -97,6 +378,7 @@ const AdminPanel = () => {
   const [loadingCon,      setLoadingCon]      = useState(true);
   const [conFilter,       setConFilter]       = useState({ search:'', category:'', status:'' });
   const [selContractor,   setSelContractor]   = useState(null);   // open profile panel
+  const [editProject,     setEditProject]     = useState(null);   // project being edited in modal
   const [profileTab,      setProfileTab]      = useState('overview');
   const [showOnboard,     setShowOnboard]     = useState(false);
   const [onboardStep,     setOnboardStep]     = useState(1);
@@ -695,7 +977,7 @@ const AdminPanel = () => {
                               <button
                                 className="ap-action-btn"
                                 style={{background:'#eff6ff',color:'#1d4ed8',borderColor:'#bfdbfe'}}
-                                onClick={() => navigate(`/edit/${p._id}`)}
+                                onClick={() => setEditProject(p)}
                               >
                                 Edit
                               </button>
@@ -1367,6 +1649,21 @@ const AdminPanel = () => {
           </div>
         </div>
       )}
+      {/* ── Edit Project Modal ── */}
+      {editProject && (
+        <AdminEditProjectModal
+          project={editProject}
+          hdrs={hdrs}
+          ghanaRegions={ghanaRegions}
+          apiUrl={apiUrl}
+          onClose={() => setEditProject(null)}
+          onSaved={(updated) => {
+            setProjects(prev => prev.map(p => p._id === updated._id ? updated : p));
+            setEditProject(null);
+          }}
+        />
+      )}
+
       {/* ── Onboard Contractor Modal ── */}
       {showOnboard && (
         <div className="ap-modal-overlay" onClick={e => { if(e.target===e.currentTarget){ setShowOnboard(false); setOnboardStep(1); }}}>

@@ -73,6 +73,7 @@ const AddProjectForm = () => {
     description: '', region: '', district: '', location_address: '',
     location_city: '', gps_latitude: '', gps_longitude: '',
     contractor: '', status: '', startDate: '', submittedBy: '',
+    completionPercentage: 0, totalCost: '', amountPaid: '', outstandingAmount: '', expectedCompletionDate: '',
   });
 
   const [image,          setImage]          = useState(null);
@@ -271,6 +272,8 @@ const AddProjectForm = () => {
                   location_city: '', gps_latitude: '', gps_longitude: '',
                   contractor: '', status: '', startDate: '',
                   submittedBy: user?.fullName || user?.username || '',
+                  completionPercentage: 0, totalCost: '', amountPaid: '',
+                  outstandingAmount: '', expectedCompletionDate: '',
                 });
                 setImage(null);
                 setPreviewUrl('');
@@ -497,7 +500,96 @@ const AddProjectForm = () => {
               onChange={handleChange} className="form-input" placeholder="Your name" required />
           </div>
 
-          <div className="form-group image-upload">
+          {/* ════ FINANCIAL & PROGRESS SECTION ═══════════════════════════════ */}
+          <div className="form-section-divider">
+            <h3 className="section-title">Financial &amp; Progress Details</h3>
+          </div>
+
+          {/* Progress percentage with interactive bar */}
+          <div className="form-group">
+            <label className="form-label">
+              Project Completion Progress
+              <span className="progress-pct-badge">{formData.completionPercentage}%</span>
+            </label>
+            <div className="progress-slider-wrap">
+              <input
+                type="range"
+                name="completionPercentage"
+                min="0" max="100" step="1"
+                value={formData.completionPercentage}
+                onChange={handleChange}
+                className="progress-slider"
+              />
+              <div className="progress-track">
+                <div
+                  className="progress-track-fill"
+                  style={{ width: `${formData.completionPercentage}%` }}
+                />
+              </div>
+            </div>
+            <div className="progress-labels">
+              <span>0%</span>
+              <span>25%</span>
+              <span>50%</span>
+              <span>75%</span>
+              <span>100%</span>
+            </div>
+          </div>
+
+          <div className="form-row-two">
+            <div className="form-group">
+              <label className="form-label">Total Project Cost (GHS)</label>
+              <div className="input-prefix-wrap">
+                <span className="input-prefix">GHS</span>
+                <input
+                  type="number" name="totalCost" value={formData.totalCost}
+                  onChange={handleChange} className="form-input input-with-prefix"
+                  placeholder="0.00" min="0" step="0.01"
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Amount Paid to Contractor (GHS)</label>
+              <div className="input-prefix-wrap">
+                <span className="input-prefix">GHS</span>
+                <input
+                  type="number" name="amountPaid" value={formData.amountPaid}
+                  onChange={handleChange} className="form-input input-with-prefix"
+                  placeholder="0.00" min="0" step="0.01"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-row-two">
+            <div className="form-group">
+              <label className="form-label">Outstanding Amount (GHS)</label>
+              <div className="input-prefix-wrap">
+                <span className="input-prefix">GHS</span>
+                <input
+                  type="number" name="outstandingAmount" value={formData.outstandingAmount}
+                  onChange={handleChange} className="form-input input-with-prefix"
+                  placeholder="0.00" min="0" step="0.01"
+                />
+              </div>
+              {/* Auto-hint: outstanding = total - paid */}
+              {formData.totalCost && formData.amountPaid && (
+                <p className="field-hint">
+                  Suggested: GHS {Math.max(0, parseFloat(formData.totalCost || 0) - parseFloat(formData.amountPaid || 0)).toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+                </p>
+              )}
+            </div>
+            <div className="form-group">
+              <label className="form-label">Expected Date of Completion</label>
+              <input
+                type="date" name="expectedCompletionDate"
+                value={formData.expectedCompletionDate}
+                onChange={handleChange} className="form-input"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
             <label className="form-label">Project Image</label>
             <label className="file-upload-label">
               <input type="file" accept="image/*" onChange={handleImageChange} className="file-upload-input" />
@@ -535,9 +627,9 @@ const AddProjectForm = () => {
               This project will be stored on your device and uploaded automatically once you reconnect.
             </p>
           )}
-        </div>
 
-        {error && <div className="error-message">{error}</div>}
+          {error && <div className="error-message">{error}</div>}
+        </div>
       </form>
     </div>
   );

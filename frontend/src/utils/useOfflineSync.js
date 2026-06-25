@@ -1,12 +1,7 @@
 /**
  * useOfflineSync.js
- *
- * Central hook that:
- *  - tracks online/offline status
- *  - exposes pendingCount so any component can show a badge
- *  - runs automatic sync whenever the browser comes back online
- *  - exposes a manual syncNow() trigger
- *  - handles exponential back-off on repeated failures (max 3 retries)
+ * Syncs queued offline project submissions once connectivity is restored.
+ * Mirrors the exact FormData fields that AddProjectForm sends online.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -21,7 +16,7 @@ import { createProject } from '../services/api';
 
 const MAX_RETRIES = 3;
 
-// Build a multipart FormData from a queued record (mirrors AddProjectForm logic)
+// Build a multipart FormData from a queued record — mirrors AddProjectForm logic
 function buildFormData(record) {
   const fd = new FormData();
   const f  = record.fields;
@@ -31,10 +26,15 @@ function buildFormData(record) {
     'description', 'region', 'district', 'location_address',
     'location_city', 'gps_latitude', 'gps_longitude',
     'contractor', 'status', 'submittedBy',
+    // new fields
+    'completionPercentage', 'totalCost', 'amountPaid',
+    'outstandingAmount', 'expectedCompletionDate',
   ];
 
   textFields.forEach((key) => {
-    if (f[key] !== undefined && f[key] !== null) fd.append(key, f[key]);
+    if (f[key] !== undefined && f[key] !== null && f[key] !== '') {
+      fd.append(key, f[key]);
+    }
   });
 
   // Mirror the two overrides AddProjectForm applies before sending
@@ -53,19 +53,15 @@ export function useOfflineSync() {
   const [isOnline,    setIsOnline]    = useState(navigator.onLine);
   const [pending,     setPending]     = useState(0);
   const [syncing,     setSyncing]     = useState(false);
-  const isSyncingRef = useRef(false);   // guard against concurrent sync runs
+  const isSyncingRef = useRef(false);
 
-  // ── refresh pending count ────────────────────────────────────────────────
   const refreshCount = useCallback(async () => {
     try {
       const rows = await getPendingQueued();
       setPending(rows.length);
-    } catch {
-      // IndexedDB unavailable (e.g. private browsing in some browsers)
-    }
+    } catch { /* IndexedDB unavailable */ }
   }, []);
 
-  // ── core sync logic ──────────────────────────────────────────────────────
   const syncNow = useCallback(async () => {
     if (isSyncingRef.current || !navigator.onLine) return;
 
@@ -80,11 +76,7 @@ export function useOfflineSync() {
       let failCount    = 0;
 
       for (const record of rows) {
-        // Skip if already exceeded retry limit
-        if (record.retryCount >= MAX_RETRIES) {
-          failCount++;
-          continue;
-        }
+        if (record.retryCount >= MAX_RETRIES) { failCount++; continue; }
 
         await updateStatus(record.id, 'syncing', record.retryCount);
 
@@ -105,7 +97,6 @@ export function useOfflineSync() {
         }
       }
 
-      // User-facing feedback
       if (successCount > 0) {
         toast.success(
           `✅ ${successCount} offline project${successCount > 1 ? 's' : ''} synced successfully!`,
@@ -114,10 +105,7 @@ export function useOfflineSync() {
       }
       if (failCount > 0) {
         toast.error(
-          `⚠️ ${failCount} project${failCount > 1 ? 's' : ''} failed to sync. ` +
-          (failCount > 0 && rows.some(r => r.retryCount + 1 >= MAX_RETRIES)
-            ? 'Manual retry needed.'
-            : 'Will retry automatically.'),
+          `⚠️ ${failCount} project${failCount > 1 ? 's' : ''} failed to sync. Will retry automatically.`,
           { autoClose: 6000 }
         );
       }
@@ -128,15 +116,9 @@ export function useOfflineSync() {
     }
   }, [refreshCount]);
 
-  // ── online / offline listeners ───────────────────────────────────────────
   useEffect(() => {
-    const goOnline = () => {
-      setIsOnline(true);
-      // Small delay so the connection is stable before hitting the server
-      setTimeout(() => syncNow(), 1500);
-    };
+    const goOnline  = () => { setIsOnline(true);  setTimeout(() => syncNow(), 1500); };
     const goOffline = () => setIsOnline(false);
-
     window.addEventListener('online',  goOnline);
     window.addEventListener('offline', goOffline);
     return () => {
@@ -145,7 +127,6 @@ export function useOfflineSync() {
     };
   }, [syncNow]);
 
-  // ── on mount: sync any leftover queue from a previous session ────────────
   useEffect(() => {
     refreshCount();
     if (navigator.onLine) syncNow();

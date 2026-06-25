@@ -1,266 +1,337 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Icon } from 'leaflet';
 import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 import { apiUrl } from '../utils/api';
-import '../ProjectDetail.css';
-import Footer from '../components/Footer';
-// import PetitionActionButton from '../components/PetitionActionButton';
+import CommentBox from '../components/CommentBox';
+import '../css/ProjectDetail.css';
 
-const pinpointIcon = new Icon({
-  iconUrl: '/images/marker-icon.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+// ── Funding source display map ─────────────────────────────────────────────────
+const FUNDING_LABELS = {
+  Government: 'Government Budget Allocation',
+  GIIF:       'Ghana Infrastructure Investment Fund (GIIF)',
+  DACF:       'District Assemblies Common Fund (DACF)',
+  WorldBank:  'World Bank Group',
+  IMF:        'International Monetary Fund (IMF)',
+  UNDP:       'United Nations Development Programme (UNDP)',
+};
 
+const getFundingDisplay = (project) => {
+  if (!project.fundingSource) return null;
+  if (project.fundingSource === 'Other') return project.otherFundingSources || 'Other';
+  return FUNDING_LABELS[project.fundingSource] || project.fundingSource;
+};
+
+// ── Status config ──────────────────────────────────────────────────────────────
+const STATUS_CONFIG = {
+  Resumed:     { label: 'Ongoing',      color: '#006B3F', bg: '#dcfce7', dot: '#006B3F' },
+  Completed:   { label: 'Completed',    color: '#1d4ed8', bg: '#dbeafe', dot: '#3b82f6' },
+  Abandoned:   { label: 'Abandoned',    color: '#CE1126', bg: '#fee2e2', dot: '#CE1126' },
+  Uncompleted: { label: 'Uncompleted',  color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
+};
+
+// ── Currency formatter ─────────────────────────────────────────────────────────
+const fmtGHS = (val) => {
+  if (val === null || val === undefined) return null;
+  return `GHS ${Number(val).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+// ── Date formatter ─────────────────────────────────────────────────────────────
+const fmtDate = (val) => {
+  if (!val) return null;
+  return new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+// ── Type icons ─────────────────────────────────────────────────────────────────
+const TYPE_ICON = {
+  School: '🏫', Hospital: '🏥', Road: '🛣️', Bridge: '🌉',
+  'Water System': '💧', 'Power Project': '⚡', 'Market Stall': '🏪',
+  'Drainage System': '🌊', 'Sanitation Facility': '🚽',
+  'Government Office': '🏛️', 'Residential Bungalow': '🏠',
+  'Sports & Recreation Center': '🏟️',
+};
+
+// ── Circular progress SVG ──────────────────────────────────────────────────────
+const CircularProgress = ({ pct = 0 }) => {
+  const r = 54;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+  const color = pct >= 75 ? '#006B3F' : pct >= 40 ? '#FCD116' : '#CE1126';
+  return (
+    <div className="pd-progress-ring-wrap">
+      <svg width="130" height="130" viewBox="0 0 130 130" aria-label={`${pct}% complete`}>
+        <circle cx="65" cy="65" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="10"/>
+        <circle
+          cx="65" cy="65" r={r} fill="none"
+          stroke={color} strokeWidth="10" strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          style={{ transform: 'rotate(-90deg)', transformOrigin: '65px 65px',
+                   transition: 'stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1)' }}
+        />
+      </svg>
+      <div className="pd-progress-ring-center">
+        <div className="pd-progress-ring-pct">{pct}%</div>
+        <div className="pd-progress-ring-label">complete</div>
+      </div>
+    </div>
+  );
+};
+
+// ── Main component ─────────────────────────────────────────────────────────────
 const ProjectDetail = () => {
-  const { id } = useParams(); // This is your projectId
-  const navigate = useNavigate();
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [petitionCount, setPetitionCount] = useState(0);
-  const [petitionExists, setPetitionExists] = useState(false);
+  const { id }    = useParams();
+  const navigate  = useNavigate();
+  const { token } = useContext(AuthContext);
+
+  const [project,  setProject]  = useState(null);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState('');
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const fetchProject = async () => {
+      setLoading(true);
       try {
         const res = await axios.get(apiUrl(`/api/projects/${id}`));
-
-        if (res.data) {
-          setProject(res.data);
-          // Fetch petition count after getting project
-          fetchPetitionCount(res.data._id);
-        } else {
-          console.error('Project not found');
-          navigate('/');
-        }
+        setProject(res.data);
       } catch (err) {
-        console.error('Error fetching project details:', err);
-        navigate('/');
+        setError('Project not found or failed to load.');
       } finally {
         setLoading(false);
       }
     };
-
-    if (id) {
-      fetchProject();
-    }
-  }, [id, navigate]);
-
-  const fetchPetitionCount = async (projectId) => {
-    try {
-      const response = await fetch(`/api/petitions/project/${projectId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPetitionCount(data.signatures?.length || 0);
-        setPetitionExists(true);
-      } else {
-        setPetitionCount(0);
-        setPetitionExists(false);
-      }
-    } catch (error) {
-      console.error('Error fetching petition count:', error);
-      setPetitionCount(0);
-      setPetitionExists(false);
-    }
-  };
+    fetchProject();
+  }, [id]);
 
   if (loading) {
     return (
-      <div className="project-detail-wrapper">
-        <div className="project-detail-container">
-          <div className="project-detail-content">
-            <div className="loading-spinner"></div>
-            <p>Loading project details...</p>
-          </div>
-        </div>
-        <Footer />
+      <div className="pd-loading">
+        <div className="pd-spinner"/>
+        <p>Loading project…</p>
       </div>
     );
   }
 
-  if (!project) {
+  if (error || !project) {
     return (
-      <div className="project-detail-wrapper">
-        <div className="project-detail-container">
-          <div className="project-detail-content">
-            <p>Project not found</p>
-            <button className="back-button" onClick={() => navigate('/')}>← Back to Homepage</button>
-          </div>
-        </div>
-        <Footer />
+      <div className="pd-error">
+        <div className="pd-error-icon">🔍</div>
+        <h2>Project not found</h2>
+        <p>{error}</p>
+        <button className="pd-back-btn" onClick={() => navigate('/')}>← Back to Home</button>
       </div>
     );
   }
+
+  const statusCfg   = STATUS_CONFIG[project.status] || STATUS_CONFIG.Uncompleted;
+  const fundingDisplay = getFundingDisplay(project);
+  const pct         = Number(project.completionPercentage) || 0;
+  const typeIcon    = TYPE_ICON[project.type] || '🏗️';
+  const startDate   = fmtDate(project.projectStartDate || project.startDate);
+  const endDate     = fmtDate(project.expectedCompletionDate);
+  const hasFinancials = project.totalCost != null || project.amountPaid != null || project.outstandingAmount != null;
 
   return (
-    <div className="project-detail-wrapper">
-      {/* Main content container with centered layout */}
-      <div className="project-detail-container">
-        <div className="project-detail-content">
-          <button className="back-button" onClick={() => navigate('/')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <div className="pd-root">
+
+      {/* ── Ghana flag stripe ── */}
+      <div className="pd-flag">
+        <div className="pd-flag-r"/><div className="pd-flag-g"/><div className="pd-flag-gr"/>
+      </div>
+
+      {/* ── Back nav ── */}
+      <div className="pd-nav">
+        <button className="pd-back-btn" onClick={() => navigate(-1)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Back
+        </button>
+        <span className="pd-breadcrumb">Projects / {project.title}</span>
+      </div>
+
+      {/* ══════════════════════ HERO SECTION ══════════════════════ */}
+      <div className="pd-hero">
+        {/* Left — image or placeholder */}
+        <div className="pd-hero-media">
+          {project.imageUrl && !imgError ? (
+            <img
+              src={apiUrl(project.imageUrl)}
+              alt={project.title}
+              className="pd-hero-image"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="pd-hero-placeholder">
+              <span className="pd-hero-placeholder-icon">{typeIcon}</span>
+            </div>
+          )}
+          {/* Status badge over image */}
+          <div className="pd-status-badge" style={{ background: statusCfg.bg, color: statusCfg.color }}>
+            <span className="pd-status-dot" style={{ background: statusCfg.dot }}/>
+            {statusCfg.label}
+          </div>
+        </div>
+
+        {/* Right — identity + progress */}
+        <div className="pd-hero-content">
+          <div className="pd-hero-type-chip">
+            <span>{typeIcon}</span> {project.type}
+          </div>
+
+          <h1 className="pd-hero-title">{project.title}</h1>
+
+          <div className="pd-hero-location">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
             </svg>
-            Back to Homepage
-          </button>
+            {[project.district, project.region].filter(Boolean).join(', ')}
+          </div>
 
-          <div className="project-header">
-            <h1 className="project-title">{project.title}</h1>
-            
-            {/* Petition Count Badge */}
-            {petitionExists && petitionCount > 0 && (
-              <div className="petition-count-badge">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>
-                  <strong>{petitionCount.toLocaleString()}</strong> {petitionCount === 1 ? 'person' : 'people'} demanding completion
-                </span>
+          {/* Completion ring */}
+          <CircularProgress pct={pct} />
+
+          {/* Quick stat chips */}
+          <div className="pd-hero-chips">
+            {startDate && (
+              <div className="pd-chip">
+                <div className="pd-chip-label">Started</div>
+                <div className="pd-chip-value">{startDate}</div>
               </div>
             )}
-
-            {project.imageUrl && (
-              <img 
-                src={apiUrl(project.imageUrl)} 
-                alt={project.title} 
-                className="project-image" 
-              />
+            {endDate && (
+              <div className="pd-chip">
+                <div className="pd-chip-label">Expected completion</div>
+                <div className="pd-chip-value">{endDate}</div>
+              </div>
             )}
-          </div>
-
-          {/* Petition Action Button */}
-          {/* <PetitionActionButton 
-            projectId={project._id} 
-            projectName={project.title}
-          /> */}
-
-          <div className="project-details">
-            <div className="detail-card">
-              <h3>Basic Information</h3>
-              <div className="detail-item">
-                <span className="detail-label">Type:</span>
-                <span className="detail-value">{project.type}</span>
+            {project.contractor && (
+              <div className="pd-chip">
+                <div className="pd-chip-label">Contractor</div>
+                <div className="pd-chip-value">{project.contractor}</div>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">Status:</span>
-                <span className="detail-value">{project.status}</span>
-              </div>
-              {project.contractor && (
-                <div className="detail-item">
-                  <span className="detail-label">Contractor:</span>
-                  <span className="detail-value">{project.contractor}</span>
-                </div>
-              )}
-              {project.fundingSource && (
-                <div className="detail-item">
-                  <span className="detail-label">Funding Source:</span>
-                  <span className="detail-value">{project.fundingSource}</span>
-                </div>
-              )}
-              {(project.startDate || project.projectStartDate) && (
-                <div className="detail-item">
-                  <span className="detail-label">Start Date:</span>
-                  <span className="detail-value">{new Date(project.startDate || project.projectStartDate).toLocaleDateString()}</span>
-                </div>
-              )}
-              {project.submittedBy && (
-                <div className="detail-item">
-                  <span className="detail-label">Submitted By:</span>
-                  <span className="detail-value">{project.submittedBy}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="detail-card">
-              <h3>Location Details</h3>
-              <div className="detail-item">
-                <span className="detail-label">Region:</span>
-                <span className="detail-value">{project.region}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">District:</span>
-                <span className="detail-value">{project.district}</span>
-              </div>
-              {project.city && (
-                <div className="detail-item">
-                  <span className="detail-label">City/Town:</span>
-                  <span className="detail-value">{project.city}</span>
-                </div>
-              )}
-              {project.address && (
-                <div className="detail-item">
-                  <span className="detail-label">Address:</span>
-                  <span className="detail-value">{project.address}</span>
-                </div>
-              )}
-              <div className="detail-item">
-                <span className="detail-label">GPS Coordinates:</span>
-                <span className="detail-value">
-                  {parseFloat(project.gps.latitude).toFixed(6)}, {parseFloat(project.gps.longitude).toFixed(6)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="description-section">
-            <h3>Project Description</h3>
-            <p>{project.description}</p>
-          </div>
-
-          <div className="map-section">
-            <h3>Project Location</h3>
-            <div className="map-container">
-              <MapContainer 
-                center={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
-                zoom={14} 
-                style={{ height: '100%', width: '100%' }}
-              >
-                <TileLayer 
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-                <Marker 
-                  position={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]} 
-                  icon={pinpointIcon}
-                >
-                  <Popup>
-                    <h4>{project.title}</h4>
-                    {project.imageUrl && (
-                      <img 
-                        src={apiUrl(project.imageUrl)} 
-                        alt={project.title} 
-                        style={{ 
-                          width: '100px', 
-                          height: '80px', 
-                          display: 'block', 
-                          marginBottom: '5px',
-                          borderRadius: '4px'
-                        }} 
-                      />
-                    )}
-                    <p><strong>Type :</strong> {project.type}</p>
-                    <p><strong>Status:</strong> {project.status}</p>
-                    <p><strong>Region:</strong> {project.region}, {project.district}</p>
-                    <a 
-                      href={`https://www.google.com/maps?q=${project.gps.latitude},${project.gps.longitude}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="gmaps-link"
-                    >
-                      Open in Google Maps
-                    </a>
-                  </Popup>
-                </Marker>
-              </MapContainer>
-            </div>
+            )}
           </div>
         </div>
       </div>
-      
-      {/* Footer placed outside the main container to span full width */}
-      <Footer />
+
+      {/* ══════════════════════ BODY ══════════════════════ */}
+      <div className="pd-body">
+
+        {/* ── Description ── */}
+        {project.description && (
+          <section className="pd-section">
+            <h2 className="pd-section-title">
+              <span className="pd-section-icon">📋</span> About this project
+            </h2>
+            <p className="pd-description">{project.description}</p>
+          </section>
+        )}
+
+        {/* ── Financial summary ── */}
+        {hasFinancials && (
+          <section className="pd-section">
+            <h2 className="pd-section-title">
+              <span className="pd-section-icon">💰</span> Financial overview
+            </h2>
+            <div className="pd-finance-grid">
+              {project.totalCost != null && (
+                <div className="pd-finance-card pd-finance-total">
+                  <div className="pd-finance-label">Total project cost</div>
+                  <div className="pd-finance-amount">{fmtGHS(project.totalCost)}</div>
+                </div>
+              )}
+              {project.amountPaid != null && (
+                <div className="pd-finance-card pd-finance-paid">
+                  <div className="pd-finance-label">Paid to contractor</div>
+                  <div className="pd-finance-amount">{fmtGHS(project.amountPaid)}</div>
+                  {project.totalCost != null && project.totalCost > 0 && (
+                    <div className="pd-finance-pct-bar">
+                      <div className="pd-finance-pct-fill"
+                        style={{ width: `${Math.min(100, (project.amountPaid / project.totalCost) * 100).toFixed(1)}%` }}/>
+                    </div>
+                  )}
+                </div>
+              )}
+              {project.outstandingAmount != null && (
+                <div className="pd-finance-card pd-finance-outstanding">
+                  <div className="pd-finance-label">Outstanding balance</div>
+                  <div className="pd-finance-amount">{fmtGHS(project.outstandingAmount)}</div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Project details grid ── */}
+        <section className="pd-section">
+          <h2 className="pd-section-title">
+            <span className="pd-section-icon">📁</span> Project details
+          </h2>
+          <div className="pd-details-grid">
+            {[
+              { label: 'Project type',     value: project.type },
+              { label: 'Status',           value: statusCfg.label },
+              { label: 'Region',           value: project.region },
+              { label: 'District',         value: project.district },
+              { label: 'City / Town',      value: project.location_city },
+              { label: 'Address',          value: project.location_address },
+              { label: 'Contractor',       value: project.contractor },
+              { label: 'Submitted by',     value: project.submittedBy },
+              { label: 'Source of funding',value: fundingDisplay },
+              { label: 'Start date',       value: startDate },
+              { label: 'Expected completion', value: endDate },
+              { label: 'Completion progress', value: pct > 0 ? `${pct}%` : null },
+            ].filter(item => item.value).map(item => (
+              <div key={item.label} className="pd-detail-item">
+                <div className="pd-detail-label">{item.label}</div>
+                <div className="pd-detail-value">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Map coordinates (if available) ── */}
+        {(project.gps?.latitude && project.gps?.longitude) && (
+          <section className="pd-section">
+            <h2 className="pd-section-title">
+              <span className="pd-section-icon">📍</span> GPS coordinates
+            </h2>
+            <div className="pd-gps-row">
+              <div className="pd-gps-chip">
+                <span className="pd-gps-label">Latitude</span>
+                <span className="pd-gps-value">{project.gps.latitude}</span>
+              </div>
+              <div className="pd-gps-chip">
+                <span className="pd-gps-label">Longitude</span>
+                <span className="pd-gps-value">{project.gps.longitude}</span>
+              </div>
+              <a
+                className="pd-map-link"
+                href={`https://www.google.com/maps?q=${project.gps.latitude},${project.gps.longitude}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Open in Maps
+              </a>
+            </div>
+          </section>
+        )}
+
+        {/* ── Comments ── */}
+        <section className="pd-section">
+          <h2 className="pd-section-title">
+            <span className="pd-section-icon">💬</span> Public comments
+          </h2>
+          <CommentBox projectId={id} showHeader={false} />
+        </section>
+
+      </div>
     </div>
   );
 };

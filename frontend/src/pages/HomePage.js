@@ -74,7 +74,7 @@ const HomePage = () => {
   const navigate    = useNavigate();
   const queryClient = useQueryClient();
 
-  const [filters, setFilters]               = useState({ region:'', district:'', type:'' });
+  const [filters, setFilters]               = useState({ region:'', district:'', type:'', status:'', fundingSource:'' });
   const [modalProject, setModalProject]     = useState(null);
   const [currentPage, setCurrentPage]       = useState(1);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -94,13 +94,18 @@ const HomePage = () => {
   });
 
   const uniqueValues = useMemo(() => {
-    if (!projects.length) return { regions:[], districts:[], types:[] };
+    if (!projects.length) return { regions:[], districts:[], types:[], fundingSources:[] };
+    // Districts cascade: if a region is selected, only show districts in that region
+    const districtPool = filters.region
+      ? projects.filter(p => p.region === filters.region)
+      : projects;
     return {
-      regions:   [...new Set(projects.map(p => p.region))].filter(Boolean),
-      districts: [...new Set(projects.map(p => p.district))].filter(Boolean),
-      types:     [...new Set(projects.map(p => p.type))].filter(Boolean),
+      regions:       [...new Set(projects.map(p => p.region))].filter(Boolean).sort(),
+      districts:     [...new Set(districtPool.map(p => p.district))].filter(Boolean).sort(),
+      types:         [...new Set(projects.map(p => p.type))].filter(Boolean).sort(),
+      fundingSources:[...new Set(projects.map(p => p.fundingSource))].filter(Boolean).sort(),
     };
-  }, [projects]);
+  }, [projects, filters.region]);
 
   // Popup
   useEffect(() => {
@@ -156,7 +161,12 @@ const HomePage = () => {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    // When region changes, reset district so stale districts don't persist
+    if (name === 'region') {
+      setFilters(prev => ({ ...prev, region: value, district: '' }));
+    } else {
+      setFilters(prev => ({ ...prev, [name]: value }));
+    }
     setCurrentPage(1);
   };
 
@@ -172,9 +182,11 @@ const HomePage = () => {
 
   const filteredProjects = useMemo(() =>
     projects.filter(p =>
-      (filters.region   ? p.region   === filters.region   : true) &&
-      (filters.district ? p.district === filters.district : true) &&
-      (filters.type     ? p.type     === filters.type     : true)
+      (filters.region        ? p.region        === filters.region        : true) &&
+      (filters.district      ? p.district      === filters.district      : true) &&
+      (filters.type          ? p.type          === filters.type          : true) &&
+      (filters.status        ? p.status        === filters.status        : true) &&
+      (filters.fundingSource ? p.fundingSource === filters.fundingSource : true)
     ), [projects, filters]);
 
   const { currentProjects, totalPages } = useMemo(() => {
@@ -200,14 +212,14 @@ const HomePage = () => {
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <div className="hp-hero">
-          <div className="hp-hero-eyebrow">🇬🇭 &nbsp;Ministry of Chieftency and Local Government</div>
+          <div className="hp-hero-eyebrow">🇬🇭 &nbsp;Civic Transparency Platform</div>
           <h1 className="hp-hero-title">
             Tracking&nbsp;<span className="accent-gold">Government</span>&nbsp;Projects
             <br />Across&nbsp;<span className="accent-green">Ghana</span>
           </h1>
           <p className="hp-hero-sub">
             Real-time visibility into infrastructure projects in every region and
-            district — submitted by government officials, verified for accountability.
+            district — submitted by citizens, verified for accountability.
           </p>
 
           {/* ── Live data carousel — replaces static stat pills ── */}
@@ -266,6 +278,7 @@ const HomePage = () => {
 
         {/* ── Filter bar ───────────────────────────────────────────────────── */}
         <div className="filter-section">
+          {/* Row 1 — always visible: Region, District, Type */}
           <div className="filter-controls">
             <span className="filter-label">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -274,19 +287,79 @@ const HomePage = () => {
               </svg>
               Filter
             </span>
-            <select name="region"   value={filters.region}   onChange={handleFilterChange} aria-label="Filter by region">
+            <select name="region" value={filters.region} onChange={handleFilterChange} aria-label="Filter by region">
               <option value="">All Regions</option>
               {uniqueValues.regions.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
-            <select name="district" value={filters.district} onChange={handleFilterChange} aria-label="Filter by district">
-              <option value="">All Districts</option>
+            <select name="district" value={filters.district} onChange={handleFilterChange} aria-label="Filter by district"
+              disabled={!filters.region}>
+              <option value="">{filters.region ? 'All Districts' : 'Select region first'}</option>
               {uniqueValues.districts.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
-            <select name="type"     value={filters.type}     onChange={handleFilterChange} aria-label="Filter by type">
+            <select name="type" value={filters.type} onChange={handleFilterChange} aria-label="Filter by type">
               <option value="">All Types</option>
               {uniqueValues.types.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+            {/* Clear all button — only when any filter active */}
+            {(filters.region || filters.district || filters.type || filters.status || filters.fundingSource) && (
+              <button
+                className="filter-clear-btn"
+                onClick={() => { setFilters({ region:'', district:'', type:'', status:'', fundingSource:'' }); setCurrentPage(1); }}
+                aria-label="Clear all filters"
+              >
+                ✕ Clear
+              </button>
+            )}
           </div>
+
+          {/* Row 2 — appears once a district is selected: Status + Funding Source */}
+          {filters.district && (
+            <div className="filter-controls filter-controls--secondary">
+              <span className="filter-label filter-label--secondary">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Refine
+              </span>
+              <select name="status" value={filters.status} onChange={handleFilterChange} aria-label="Filter by status"
+                className="filter-select--status">
+                <option value="">All Statuses</option>
+                <option value="Resumed">🔨 Ongoing</option>
+                <option value="Completed">✅ Completed</option>
+                <option value="Abandoned">⚠️ Abandoned</option>
+                <option value="Uncompleted">⏳ Uncompleted</option>
+              </select>
+              <select name="fundingSource" value={filters.fundingSource} onChange={handleFilterChange} aria-label="Filter by funding source"
+                className="filter-select--funding">
+                <option value="">All Funding Sources</option>
+                <option value="Government">Government Budget</option>
+                <option value="GIIF">GIIF</option>
+                <option value="DACF">DACF</option>
+                <option value="WorldBank">World Bank</option>
+                <option value="IMF">IMF</option>
+                <option value="UNDP">UNDP</option>
+                {uniqueValues.fundingSources
+                  .filter(f => !['Government','GIIF','DACF','WorldBank','IMF','UNDP'].includes(f))
+                  .map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+              {/* Active filter chips */}
+              <div className="filter-active-chips">
+                {filters.status && (
+                  <span className="filter-chip">
+                    {filters.status === 'Resumed' ? 'Ongoing' : filters.status}
+                    <button onClick={() => setFilters(p => ({...p, status:''}))} aria-label="Remove status filter">×</button>
+                  </span>
+                )}
+                {filters.fundingSource && (
+                  <span className="filter-chip">
+                    {filters.fundingSource}
+                    <button onClick={() => setFilters(p => ({...p, fundingSource:''}))} aria-label="Remove funding filter">×</button>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Projects ─────────────────────────────────────────────────────── */}
