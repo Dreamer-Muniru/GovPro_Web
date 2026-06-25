@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { apiUrl } from '../utils/api';
 import ghanaRegions from '../data/ghanaRegions';
-import '../css/ProfilePage.css';
+import '../css/profile.css';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 const getInitials = (name = '') =>
