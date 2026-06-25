@@ -1,17 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { apiUrl } from '../utils/api';
-import ghanaRegions from '../data/ghanaRegions';
 import '../css/ProjectInsights.css';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
-const STATUS_LABEL = {
-  Resumed:     'Ongoing',
-  Completed:   'Completed',
-  Abandoned:   'Abandoned',
-  Uncompleted: 'Uncompleted',
-};
-
 // Normalise any raw status value → one of our 4 canonical keys
 const normalise = (s) => {
   if (!s) return 'Uncompleted';
@@ -35,14 +27,6 @@ const STATUS_CFG = {
 
 // Ordered for display
 const STATUS_KEYS = ['Resumed', 'Completed', 'Uncompleted', 'Abandoned'];
-
-// ── Horizontal bar ─────────────────────────────────────────────────────────────
-const HBar = ({ value, max, color }) => (
-  <div className="pi-hbar-track">
-    <div className="pi-hbar-fill"
-      style={{ width: max > 0 ? `${(value / max) * 100}%` : '0%', background: color }}/>
-  </div>
-);
 
 // ── main component ─────────────────────────────────────────────────────────────
 const ProjectInsights = () => {

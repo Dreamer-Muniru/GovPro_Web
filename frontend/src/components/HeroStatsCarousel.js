@@ -3,27 +3,6 @@ import '../css/HeroStatsCarousel.css';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function useCountUp(target, active, duration = 1200) {
-  const [value, setValue] = useState(0);
-  const raf = useRef(null);
-
-  useEffect(() => {
-    if (!active) { setValue(0); return; }
-    let start = null;
-    const step = (ts) => {
-      if (!start) start = ts;
-      const progress = Math.min((ts - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(eased * target));
-      if (progress < 1) raf.current = requestAnimationFrame(step);
-    };
-    raf.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf.current);
-  }, [target, active, duration]);
-
-  return value;
-}
-
 // Shorten region/district labels for display
 const shortenLabel = (name = '') =>
   name
