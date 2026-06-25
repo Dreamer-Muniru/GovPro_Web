@@ -89,7 +89,7 @@
 
 .hsc-bar-row {
   display: grid;
-  grid-template-columns: 130px 1fr 36px;
+  grid-template-columns: 120px 1fr auto;
   align-items: center;
   gap: 10px;
 }
@@ -401,10 +401,92 @@
 /* ── mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .hsc-slide-wrap { padding: 1.25rem 1.25rem 0.5rem; }
-  .hsc-bar-row { grid-template-columns: 100px 1fr 32px; }
+  .hsc-bar-row { grid-template-columns: 90px 1fr auto; }
   .hsc-status-value { font-size: 1.4rem; }
   .hsc-comparison { gap: 1.25rem; }
   .hsc-ring-wrap { width: 90px; height: 90px; }
   .hsc-ring-pct { font-size: 1.2rem; }
   .hsc-podium { gap: 10px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BREAKDOWN LABEL (region slide — replaces raw count)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.hsc-bar-breakdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 90px;
+  text-align: right;
+}
+
+.hsc-bd-total {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.95);
+  line-height: 1;
+}
+
+.hsc-bd-detail {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.hsc-bd-ongoing,
+.hsc-bd-completed,
+.hsc-bd-abandoned {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.hsc-bd-ongoing   { background: rgba(74,222,128,0.18);  color: #4ade80; }
+.hsc-bd-completed { background: rgba(252,209,22,0.18);  color: #FCD116; }
+.hsc-bd-abandoned { background: rgba(248,113,113,0.18); color: #f87171; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DISTRICT BAR CHART OVERRIDES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* District bars are slightly shorter — fit 8 rows comfortably */
+.hsc-bars--district .hsc-bar-row {
+  grid-template-columns: 130px 1fr 44px;
+}
+
+.hsc-bar-label--district {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  text-align: right;
+  justify-content: flex-end;
+}
+
+.hsc-bar-rank {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(252,209,22,0.6);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REDUCED BAR HEIGHT FOR 8-ITEM LIST
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.hsc-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* When showing 8 bars, tighten the gap slightly */
+.hsc-bars--district { gap: 6px; }
+
+.hsc-bars--district .hsc-bar-track {
+  height: 7px;
 }
