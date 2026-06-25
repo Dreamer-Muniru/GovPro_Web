@@ -9,6 +9,7 @@ import { apiUrl } from '../utils/api';
 import ProjectPopup from '../components/ProjectPopup';
 import HeroStatsCarousel from '../components/HeroStatsCarousel';
 import ProjectMap from '../components/ProjectMap';
+import ReportGenerator from '../components/ReportGenerator';
 
 const TYPE_ICON = {
   'School':'🏫','Hospital':'🏥','Road':'🛣️','Bridge':'🌉',
@@ -226,9 +227,12 @@ const HomePage = () => {
               <div className="hp-map-dot" aria-hidden="true" />
               Live project map
             </div>
-            <span className="hp-map-hint">
-              Click any pin to view details · toggle heatmap to see coverage gaps
-            </span>
+            <div style={{display:'flex',alignItems:'center',gap:'0.75rem',flexWrap:'wrap'}}>
+              <span className="hp-map-hint">
+                Click any pin to view details · toggle heatmap to see coverage gaps
+              </span>
+              <ReportGenerator projects={projects} />
+            </div>
           </div>
           <ProjectMap projects={projects} />
         </div>

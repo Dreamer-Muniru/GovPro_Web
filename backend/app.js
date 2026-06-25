@@ -61,6 +61,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // app.use('/api/regions', regionsRouter);
 
+
 // Contractor routes
 const contractorRoutes = require('./routes/contractorRoutes');
 app.use('/api/contractors', contractorRoutes);
@@ -72,6 +73,12 @@ app.use('/api/admin-auth', authAdminRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/forums', forumRoutes);
 // app.use('/api/petitions', petitionRoutes);
+
+// Report routes
+const reportRoutes = require('./routes/reportRoutes');
+app.use('/api/reports', reportRoutes);
+
+
 
 // ===============================================
 

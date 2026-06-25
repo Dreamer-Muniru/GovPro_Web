@@ -1,0 +1,342 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ReportGenerator.css
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Trigger button ──────────────────────────────────────────────────────── */
+.rg-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.12s;
+  white-space: nowrap;
+}
+.rg-trigger-btn:hover {
+  background: #CE1126;
+  transform: translateY(-1px);
+}
+
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+.rg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: rg-overlay-in 0.18s ease;
+}
+@keyframes rg-overlay-in { from { opacity:0; } to { opacity:1; } }
+
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+.rg-modal {
+  background: #fff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+  animation: rg-modal-in 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes rg-modal-in {
+  from { transform: scale(0.94) translateY(12px); opacity:0; }
+  to   { transform: scale(1)    translateY(0);    opacity:1; }
+}
+
+/* Ghana flag stripe */
+.rg-flag { display:flex; height:4px; border-radius:18px 18px 0 0; overflow:hidden; }
+.rg-flag-r  { flex:1; background:#CE1126; }
+.rg-flag-g  { flex:1; background:#FCD116; }
+.rg-flag-gr { flex:1; background:#006B3F; }
+
+/* Modal header */
+.rg-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.rg-modal-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.rg-modal-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.rg-modal-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rg-modal-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+.rg-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 17px;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.rg-close:hover { background: #fff; color: #CE1126; border-color: #CE1126; }
+
+/* Modal body */
+.rg-modal-body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* Error */
+.rg-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #991b1b;
+  font-weight: 500;
+}
+
+/* Form fields */
+.rg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rg-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.rg-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.rg-select {
+  padding: 9px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e293b;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+.rg-select:focus {
+  outline: none;
+  border-color: #006B3F;
+  box-shadow: 0 0 0 3px rgba(0,107,63,0.09);
+  background: #fff;
+}
+.rg-select:disabled { opacity:0.5; cursor:not-allowed; }
+
+/* Match count */
+.rg-match-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+}
+.rg-match-count.rg-match-zero {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.rg-match-num {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #006B3F;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.rg-match-count.rg-match-zero .rg-match-num { color: #CE1126; }
+
+.rg-match-lab {
+  font-size: 12px;
+  color: #166534;
+  font-weight: 500;
+}
+.rg-match-count.rg-match-zero .rg-match-lab { color: #991b1b; }
+
+/* PDF preview card */
+.rg-preview-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rg-preview-header {
+  background: #0f172a;
+  padding: 0.875rem 1rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rg-preview-flag {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.rg-preview-flag div {
+  width: 18px;
+  height: 4px;
+  border-radius: 1px;
+}
+.rg-preview-flag div:nth-child(1) { background:#CE1126; }
+.rg-preview-flag div:nth-child(2) { background:#FCD116; }
+.rg-preview-flag div:nth-child(3) { background:#006B3F; }
+
+.rg-preview-ministry {
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(252,209,22,0.7);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.rg-preview-report-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+.rg-preview-scope {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 2px;
+}
+
+.rg-preview-contents {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.rg-preview-contents span {
+  font-size: 11px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Modal footer */
+.rg-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.rg-cancel-btn {
+  padding: 9px 18px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.rg-cancel-btn:hover { border-color: #cbd5e1; color: #374151; }
+
+.rg-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 22px;
+  background: #006B3F;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.12s;
+}
+.rg-generate-btn:hover:not(:disabled) {
+  background: #004d2e;
+  transform: translateY(-1px);
+}
+.rg-generate-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spinner */
+.rg-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: rg-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes rg-spin { to { transform: rotate(360deg); } }
+
+/* Responsive */
+@media (max-width: 500px) {
+  .rg-field-row   { grid-template-columns: 1fr; }
+  .rg-modal       { border-radius: 14px; }
+  .rg-modal-body  { padding: 1rem; }
+  .rg-modal-header{ padding: 1rem; }
+  .rg-modal-footer{ padding: 0.875rem 1rem; }
+}
