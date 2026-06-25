@@ -1,6 +1,4 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Icon } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -10,12 +8,7 @@ import CommentModal from '../components/CommentModal';
 import { apiUrl } from '../utils/api';
 import ProjectPopup from '../components/ProjectPopup';
 import HeroStatsCarousel from '../components/HeroStatsCarousel';
-
-const pinpointIcon = new Icon({
-  iconUrl: '/images/marker-icon.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+import ProjectMap from '../components/ProjectMap';
 
 const TYPE_ICON = {
   'School':'🏫','Hospital':'🏥','Road':'🛣️','Bridge':'🌉',
@@ -234,46 +227,10 @@ const HomePage = () => {
               Live project map
             </div>
             <span className="hp-map-hint">
-              {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''} shown
+              Click any pin to view details · toggle heatmap to see coverage gaps
             </span>
           </div>
-          <div className="map-container">
-            <MapContainer
-              center={[7.9465, -1.0232]} zoom={7} minZoom={3} maxZoom={10}
-              maxBounds={[[4.5,-3.5],[11.2,1.3]]} maxBoundsViscosity={1.0}
-              scrollWheelZoom zoomControl
-              style={{ height:'100%', width:'100%' }}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              />
-              {filteredProjects.map(project =>
-                project.gps?.latitude && project.gps?.longitude ? (
-                  <Marker
-                    key={project._id}
-                    position={[parseFloat(project.gps.latitude), parseFloat(project.gps.longitude)]}
-                    icon={pinpointIcon}
-                  >
-                    <Popup autoPan autoPanPadding={[50,50]} maxWidth={230} minWidth={210} offset={[0,-20]}>
-                      <div className="popup-content-wrapper">
-                        <h4 className="popup-title">{project.title}</h4>
-                        {project.imageUrl && (
-                          <img src={apiUrl(project.imageUrl)} alt={project.title} className="popup-image" />
-                        )}
-                        <p className="popup-detail"><strong>Type:</strong> {project.type}</p>
-                        <p className="popup-detail"><strong>Status:</strong> {STATUS_LABEL[project.status] || project.status}</p>
-                        <p className="popup-detail"><strong>Location:</strong> {project.district}, {project.region}</p>
-                        <button onClick={() => navigate(`/project/${project._id}`)} className="view-details-btn">
-                          View Details
-                        </button>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ) : null
-              )}
-            </MapContainer>
-          </div>
+          <ProjectMap projects={projects} />
         </div>
 
         {/* ── Filter bar ───────────────────────────────────────────────────── */}
