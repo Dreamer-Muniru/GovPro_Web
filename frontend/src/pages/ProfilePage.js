@@ -3,7 +3,6 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { apiUrl } from '../utils/api';
-import ghanaRegions from '../data/ghanaRegions';
 import '../css/profile.css';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
