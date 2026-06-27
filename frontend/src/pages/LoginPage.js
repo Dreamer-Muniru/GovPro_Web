@@ -1,6 +1,6 @@
 import { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiUrl } from '../utils/api';
 
@@ -92,9 +92,9 @@ const LoginPage = () => {
         </button>
       </form>
 
-      <div className="register-link">
+      {/* <div className="register-link">
         Don't have an account? <Link to="/register">Register here</Link>
-      </div>
+      </div> */}
     </div>
   );
 };

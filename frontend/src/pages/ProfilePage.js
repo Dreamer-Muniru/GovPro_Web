@@ -3,7 +3,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { apiUrl } from '../utils/api';
-import ghanaRegions from '../data/ghanaRegions';
+// import ghanaRegions from '../data/ghanaRegions';
 import '../css/profile.css';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
@@ -762,8 +762,8 @@ const ProfilePage = () => {
                     { label: 'Full name',    value: form.fullName || '—' },
                     { label: 'Username',     value: `@${form.username}` },
                     { label: 'Phone',        value: form.phone    || '—' },
-                    { label: 'Region',       value: form.region   || '—' },
-                    { label: 'District',     value: form.district || '—' },
+                    // { label: 'Region',       value: form.region   || '—' },
+                    // { label: 'District',     value: form.district || '—' },
                   ].map(item => (
                     <div key={item.label} className="prp-info-item">
                       <div className="prp-info-label">{item.label}</div>
@@ -792,7 +792,7 @@ const ProfilePage = () => {
                     <input className="prp-input" value={form.username}
                       onChange={e => setForm(p => ({ ...p, username: e.target.value }))} />
                   </div>
-                  <div className="prp-field-row">
+                  {/* <div className="prp-field-row">
                     <div className="prp-field">
                       <label className="prp-label">Region</label>
                       <select className="prp-select" value={form.region}
@@ -812,7 +812,7 @@ const ProfilePage = () => {
                         )}
                       </select>
                     </div>
-                  </div>
+                  </div> */}
                   <div className="prp-field">
                     <label className="prp-label">New password <span className="prp-label-hint">(leave blank to keep current)</span></label>
                     <input className="prp-input" type="password" value={form.password}
