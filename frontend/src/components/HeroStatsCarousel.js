@@ -58,7 +58,7 @@ const RegionSlide = ({ projects, active }) => {
                 <span className="hsc-bd-detail">
                   {data.ongoing > 0   && <span className="hsc-bd-ongoing">{data.ongoing} ongoing</span>}
                   {data.completed > 0 && <span className="hsc-bd-completed">{data.completed} done</span>}
-                  {data.abandoned > 0 && <span className="hsc-bd-abandoned">{data.abandoned} stalled</span>}
+                  {data.abandoned > 0 && <span className="hsc-bd-abandoned">{data.abandoned} abandoned</span>}
                 </span>
               </span>
             </div>

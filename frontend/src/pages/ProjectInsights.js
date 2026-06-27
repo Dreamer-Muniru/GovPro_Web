@@ -343,11 +343,11 @@ const ProjectInsights = () => {
                       <div className="pi-district-list">
                         <div className="pi-district-table-head">
                           <span className="pi-dt-district">District</span>
-                          <span className="pi-dt-total">Total</span>
                           <span className="pi-dt-stat" style={{color: STATUS_CFG.Resumed.color}}>Ongoing</span>
                           <span className="pi-dt-stat" style={{color: STATUS_CFG.Completed.color}}>Completed</span>
                           <span className="pi-dt-stat" style={{color: STATUS_CFG.Uncompleted.color}}>Uncompleted</span>
                           <span className="pi-dt-stat" style={{color: STATUS_CFG.Abandoned.color}}>Abandoned</span>
+                          <span className="pi-dt-total">Total</span>
                         </div>
                         {region.districtList.map(d => (
                           <div key={d.name} className="pi-district-row">

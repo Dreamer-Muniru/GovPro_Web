@@ -110,19 +110,20 @@ router.post('/login', async (req, res) => {
 
   // ── Sign and return the JWT
   try {
-    const token = await jwt.sign(
-      {
-        _id: finalUser._id, // ✅ Use _id to match MongoDB and frontend expectations
-        username: finalUser.username,
-        phone: finalUser.phone,
-        fullName: finalUser.fullName,
-        isAdmin: finalUser.isAdmin,
-        district: finalUser.district,
-        region: finalUser.region
-      },
-      jwtSecret,
-      { expiresIn: '7d' }
-    );
+   const token = jwt.sign(
+  {
+    id:       user._id,
+    username: user.username,
+    fullName: user.fullName  || '',
+    phone:    user.phone     || '',
+    region:   user.region    || '',
+    district: user.district  || '',
+    // isAdmin is NOT included here — regular user login only.
+    // Admin login in authAdmin.js already sets isAdmin: true separately.
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: '7d' }
+);
 
 
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { createProject } from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
-import ghanaRegions from '../data/ghanaRegions';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { useNavigate } from 'react-router-dom';
@@ -87,11 +86,16 @@ const AddProjectForm = () => {
   const [savedOffline,   setSavedOffline]    = useState(false);
 
   // ── pre-fill submittedBy from logged-in user ──────────────────────────────
+  // Pre-fill submittedBy, region and district from logged-in user's account.
+  // MMDCE officials are locked to the region/district assigned at account creation —
+  // they cannot onboard projects from other districts.
   useEffect(() => {
-    if (user?.fullName || user?.username) {
+    if (user) {
       setFormData((prev) => ({
         ...prev,
-        submittedBy: prev.submittedBy || user.fullName || user.username,
+        submittedBy: prev.submittedBy || user.fullName || user.username || '',
+        region:      user.region   || prev.region   || '',
+        district:    user.district || prev.district || '',
       }));
     }
   }, [user]);
@@ -268,10 +272,13 @@ const AddProjectForm = () => {
                 setSavedOffline(false);
                 setFormData({
                   title: '', type: '', fundingSource: '', otherFundingSources: '',
-                  description: '', region: '', district: '', location_address: '',
+                  description: '', location_address: '',
                   location_city: '', gps_latitude: '', gps_longitude: '',
                   contractor: '', status: '', startDate: '',
                   submittedBy: user?.fullName || user?.username || '',
+                  // Preserve region & district from user account — never clear them
+                  region:   user?.region   || '',
+                  district: user?.district || '',
                   completionPercentage: 0, totalCost: '', amountPaid: '',
                   outstandingAmount: '', expectedCompletionDate: '',
                 });
@@ -384,25 +391,41 @@ const AddProjectForm = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Region</label>
-            <select name="region" value={formData.region} onChange={handleChange} className="form-select" required>
-              <option value="">Select Region</option>
-              {ghanaRegions.map((r) => (
-                <option key={r.name} value={r.name}>{r.name}</option>
-              ))}
-            </select>
-          </div>
+          {/* Region & District — locked to MMDCE account values, not editable */}
+          <div className="form-group-row">
+            <div className="form-group">
+              <label className="form-label">Region</label>
+              <div className="form-locked-field">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  style={{flexShrink:0,opacity:0.5}}>
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+                <span className="form-locked-value">
+                  {formData.region || <span className="form-locked-empty">Not set — contact admin</span>}
+                </span>
+                <span className="form-locked-badge">Auto</span>
+              </div>
+              <p className="form-locked-hint">Assigned to your account by the Ministry</p>
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">District</label>
-            <select name="district" value={formData.district} onChange={handleChange}
-              className="form-select" required disabled={!formData.region}>
-              <option value="">Select District</option>
-              {ghanaRegions.find((r) => r.name === formData.region)?.districts.map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
+            <div className="form-group">
+              <label className="form-label">District</label>
+              <div className="form-locked-field">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  style={{flexShrink:0,opacity:0.5}}>
+                  <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                <span className="form-locked-value">
+                  {formData.district || <span className="form-locked-empty">Not set — contact admin</span>}
+                </span>
+                <span className="form-locked-badge">Auto</span>
+              </div>
+              <p className="form-locked-hint">Projects will be filed under this district</p>
+            </div>
           </div>
 
           <div className="form-group">
@@ -589,7 +612,7 @@ const AddProjectForm = () => {
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="form-group image-upload">
             <label className="form-label">Project Image</label>
             <label className="file-upload-label">
               <input type="file" accept="image/*" onChange={handleImageChange} className="file-upload-input" />
@@ -627,9 +650,9 @@ const AddProjectForm = () => {
               This project will be stored on your device and uploaded automatically once you reconnect.
             </p>
           )}
-
-          {error && <div className="error-message">{error}</div>}
         </div>
+
+        {error && <div className="error-message">{error}</div>}
       </form>
     </div>
   );
