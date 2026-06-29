@@ -3,8 +3,9 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { apiUrl } from '../utils/api';
-// import ghanaRegions from '../data/ghanaRegions';
+import ghanaRegions from '../data/ghanaRegions';
 import '../css/profile.css';
+import MEExportButton from '../components/MEExportButton';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 const getInitials = (name = '') =>
@@ -359,6 +360,7 @@ const ProfilePage = () => {
   }, [user, navigate]);
 
   const [activeTab,   setActiveTab]   = useState('overview');
+
   const [editing,     setEditing]     = useState(false);
   const [saving,      setSaving]      = useState(false);
   const [msg,         setMsg]         = useState({ text: '', type: '' });
@@ -762,8 +764,8 @@ const ProfilePage = () => {
                     { label: 'Full name',    value: form.fullName || '—' },
                     { label: 'Username',     value: `@${form.username}` },
                     { label: 'Phone',        value: form.phone    || '—' },
-                    // { label: 'Region',       value: form.region   || '—' },
-                    // { label: 'District',     value: form.district || '—' },
+                    { label: 'Region',       value: form.region   || '—' },
+                    { label: 'District',     value: form.district || '—' },
                   ].map(item => (
                     <div key={item.label} className="prp-info-item">
                       <div className="prp-info-label">{item.label}</div>
@@ -792,7 +794,7 @@ const ProfilePage = () => {
                     <input className="prp-input" value={form.username}
                       onChange={e => setForm(p => ({ ...p, username: e.target.value }))} />
                   </div>
-                  {/* <div className="prp-field-row">
+                  <div className="prp-field-row">
                     <div className="prp-field">
                       <label className="prp-label">Region</label>
                       <select className="prp-select" value={form.region}
@@ -812,7 +814,7 @@ const ProfilePage = () => {
                         )}
                       </select>
                     </div>
-                  </div> */}
+                  </div>
                   <div className="prp-field">
                     <label className="prp-label">New password <span className="prp-label-hint">(leave blank to keep current)</span></label>
                     <input className="prp-input" type="password" value={form.password}
@@ -836,6 +838,80 @@ const ProfilePage = () => {
         {/* ─── MY PROJECTS TAB ─── */}
         {activeTab === 'projects' && (
           <div className="prp-content">
+
+            {/* ── District M&E Scorecard ── */}
+            {projects.length > 0 && (() => {
+              const total      = projects.length;
+              const completed  = projects.filter(p=>p.status==='Completed').length;
+              const ongoing    = projects.filter(p=>p.status==='Resumed').length;
+              const abandoned  = projects.filter(p=>p.status==='Abandoned').length;
+              const compRate   = total>0 ? Math.round((completed/total)*100) : 0;
+
+              // Budget efficiency: avg of (progress / budget utilisation) for projects with financial data
+              const withFinancials = projects.filter(p=>p.totalCost>0 && p.amountPaid!=null);
+              const avgEfficiency = withFinancials.length>0
+                ? Math.round(withFinancials.reduce((sum,p)=>{
+                    const budgetUtil = Number(p.amountPaid)/Number(p.totalCost);
+                    const prog       = (Number(p.completionPercentage)||0)/100;
+                    // efficiency: progress per unit of budget spent (higher = better)
+                    return sum + (budgetUtil>0 ? Math.min(prog/budgetUtil, 1) : 0);
+                  }, 0) / withFinancials.length * 100)
+                : null;
+
+              const atRisk = projects.filter(p => {
+                const paid  = Number(p.amountPaid)||0;
+                const total = Number(p.totalCost)||0;
+                const prog  = (Number(p.completionPercentage)||0)/100;
+                const gap   = total>0 ? (paid/total - prog) : 0;
+                return gap > 0.3 || p.status==='Abandoned';
+              }).length;
+
+              return (
+                <div className="prp-me-scorecard">
+                  <div className="prp-me-scorecard-header">
+                    <div className="prp-me-scorecard-title">
+                      📈 District M&amp;E Scorecard
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:'0.75rem',flexWrap:'wrap'}}>
+                      <span style={{fontSize:11,color:'#94a3b8'}}>
+                        {user?.district ? `${user.district}` : 'Your district'}
+                      </span>
+                      <MEExportButton
+                        region={user?.region||''}
+                        district={user?.district||''}
+                        token={token}
+                        label="M&amp;E PDF"
+                      />
+                    </div>
+                  </div>
+                  <div className="prp-me-metrics">
+                    {[
+                      { label:'Total Projects',    value: total,           unit:'',  color:'#1d4ed8', bg:'#eff6ff' },
+                      { label:'Completion Rate',   value: compRate,        unit:'%', color:'#006B3F', bg:'#f0fdf4' },
+                      { label:'Active / Ongoing',  value: ongoing,         unit:'',  color:'#d97706', bg:'#fffbeb' },
+                      { label:'Flagged / At Risk', value: atRisk,          unit:'',  color:'#CE1126', bg:'#fef2f2' },
+                      avgEfficiency!=null
+                        ? { label:'Budget Efficiency', value: avgEfficiency, unit:'%', color:'#7c3aed', bg:'#f5f3ff' }
+                        : { label:'Abandoned',       value: abandoned,        unit:'',  color:'#CE1126', bg:'#fef2f2' },
+                    ].map(m => (
+                      <div key={m.label} className="prp-me-metric" style={{background:m.bg}}>
+                        <div className="prp-me-metric-val" style={{color:m.color}}>
+                          {m.value}{m.unit}
+                        </div>
+                        <div className="prp-me-metric-lab">{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {atRisk > 0 && (
+                    <div className="prp-me-alert">
+                      ⚠️ {atRisk} project{atRisk!==1?'s':''} showing budget vs progress misalignment or abandoned status.
+                      Review these projects and submit field reports to improve your district score.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {loadingProj ? (
               <div className="prp-loading"><div className="prp-spinner"/><p>Loading your projects…</p></div>
             ) : projects.length === 0 ? (

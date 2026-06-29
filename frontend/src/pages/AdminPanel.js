@@ -5,6 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import { apiUrl } from '../utils/api';
 import ghanaRegions from '../data/ghanaRegions';
 import '../css/AdminPanel.css';
+import MEExportButton from '../components/MEExportButton';
 
 const getInitials = (name = '') =>
   name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
@@ -334,6 +335,7 @@ const NAV = [
   { id:'users',       label:'MMDCE Users', icon:'👥' },
   { id:'settings',    label:'Settings',    icon:'⚙️'  },
   { id:'reports',     label:'Citizen Reports', icon:'📣' },
+  { id:'me',          label:'M&E Dashboard',  icon:'📈' },
 ];
 
 const Spinner = ({ size=32 }) => (
@@ -408,13 +410,18 @@ const AdminPanel = () => {
   const [addDocFiles,     setAddDocFiles]     = useState([]);
   const [savingDocs,      setSavingDocs]      = useState(false);
 
+  // M&E
+  const [meScores,      setMeScores]      = useState([]);
+  const [loadingME,     setLoadingME]     = useState(false);
+  const [meFilter,      setMeFilter]      = useState({ region:'', light:'' });
+  const [meFetched,     setMeFetched]     = useState(false);
+
   // citizen reports
   const [reports,       setReports]       = useState([]);
   const [loadingReports,setLoadingReports]= useState(true);
   const [rFilter,       setRFilter]       = useState({ region:'', district:'', status:'' });
   const [updatingReport,setUpdatingReport]= useState(null);
 
-  // const settingsForm_placeholder = null; // keep spacing
   const [settingsForm,  setSettingsForm]  = useState({ username:'', currentPassword:'', newPassword:'', confirmPassword:'' });
   const [savingSettings,setSavingSettings] = useState(false);
   const [settingsMsg,   setSettingsMsg]   = useState({ text:'', type:'' });
@@ -1600,6 +1607,153 @@ const AdminPanel = () => {
             </div>
           )}
 
+
+          {/* ═══════ M&E DASHBOARD ═══════ */}
+          {tab === 'me' && (
+            <div>
+              {/* Controls row */}
+              <div style={{display:'flex',alignItems:'center',gap:'0.75rem',flexWrap:'wrap',marginBottom:'1.5rem'}}>
+                <select className="ap-filter-select" value={meFilter.region}
+                  onChange={e => setMeFilter(p=>({...p,region:e.target.value}))}>
+                  <option value="">All Regions</option>
+                  {ghanaRegions.map(r=><option key={r.name} value={r.name}>{r.name}</option>)}
+                </select>
+                <select className="ap-filter-select" value={meFilter.light}
+                  onChange={e => setMeFilter(p=>({...p,light:e.target.value}))}>
+                  <option value="">All Risk Levels</option>
+                  <option value="red">🔴 At Risk</option>
+                  <option value="amber">🟡 Needs Attention</option>
+                  <option value="green">🟢 On Track</option>
+                </select>
+                <button
+                  style={{padding:'8px 16px',background:'#0f172a',color:'#fff',border:'none',borderRadius:9,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}
+                  onClick={async () => {
+                    setLoadingME(true); setMeFetched(false);
+                    try {
+                      const params = new URLSearchParams();
+                      if (meFilter.region) params.set('region', meFilter.region);
+                      if (meFilter.light)  params.set('light',  meFilter.light);
+                      const r = await axios.get(apiUrl(`/api/reports/me-scores?${params}`), {headers:hdrs});
+                      setMeScores(Array.isArray(r.data)?r.data:[]);
+                      setMeFetched(true);
+                    } catch(e){ console.error(e); }
+                    finally { setLoadingME(false); }
+                  }}>
+                  Run M&amp;E Scoring
+                </button>
+                {meFetched && (
+                  <MEExportButton
+                    region={meFilter.region}
+                    district=""
+                    token={token}
+                    label="Download M&amp;E PDF"
+                  />
+                )}
+              </div>
+
+              {/* Traffic light summary cards */}
+              {meFetched && (() => {
+                const all   = meScores;
+                const red   = all.filter(s=>s.light==='red').length;
+                const amber = all.filter(s=>s.light==='amber').length;
+                const green = all.filter(s=>s.light==='green').length;
+                const avg   = all.length>0 ? Math.round(all.reduce((s,p)=>s+p.score,0)/all.length) : 0;
+                return (
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:'1rem',marginBottom:'1.5rem'}}>
+                    {[
+                      {emoji:'🔴',count:red,   label:'At Risk',          color:'#CE1126', bg:'#fee2e2', border:'#fecaca'},
+                      {emoji:'🟡',count:amber, label:'Needs Attention',   color:'#d97706', bg:'#fffbeb', border:'#fde68a'},
+                      {emoji:'🟢',count:green, label:'On Track',          color:'#006B3F', bg:'#f0fdf4', border:'#bbf7d0'},
+                      {emoji:'📊',count:avg,   label:'Avg M&E Score /100',color:'#1d4ed8', bg:'#eff6ff', border:'#bfdbfe'},
+                    ].map(item=>(
+                      <div key={item.label} style={{background:item.bg,border:`1px solid ${item.border}`,borderRadius:12,padding:'1.25rem',textAlign:'center'}}>
+                        <div style={{fontSize:'1.75rem',lineHeight:1,marginBottom:6}}>{item.emoji}</div>
+                        <div style={{fontSize:'2rem',fontWeight:900,color:item.color,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{item.count}</div>
+                        <div style={{fontSize:11,color:'#64748b',marginTop:4,fontWeight:500}}>{item.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Project risk list */}
+              {loadingME ? <Spinner/> : !meFetched ? (
+                <div className="ap-empty">
+                  <p style={{fontSize:13}}>Select filters above and click <strong>Run M&amp;E Scoring</strong> to analyse all projects.</p>
+                </div>
+              ) : meScores.length === 0 ? (
+                <div className="ap-empty"><p>No projects match the selected filters.</p></div>
+              ) : (
+                <div className="ap-card">
+                  <div className="ap-card-header">
+                    <div className="ap-card-title">📋 Project Risk Rankings</div>
+                    <span style={{fontSize:12,color:'#94a3b8'}}>Sorted by risk — most critical first</span>
+                  </div>
+                  <div style={{overflowX:'auto'}}>
+                    <table className="ap-table">
+                      <thead>
+                        <tr>
+                          <th style={{width:30}}>#</th>
+                          <th>Project</th>
+                          <th>District</th>
+                          <th style={{width:60}}>Score</th>
+                          <th style={{width:100}}>Risk Level</th>
+                          <th style={{width:75}}>Progress</th>
+                          <th style={{width:75}}>Budget %</th>
+                          <th style={{width:80}}>Last Report</th>
+                          <th style={{width:60}}>Citizens</th>
+                          <th>Top Issue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {meScores.map((s,i)=>{
+                          const stripeClr = s.light==='green'?'#006B3F':s.light==='amber'?'#d97706':'#CE1126';
+                          const budgetPct = s.totalCost>0
+                            ? Math.round((Number(s.amountPaid)||0)/Number(s.totalCost)*100)+'%'
+                            : '—';
+                          const topIssue = s.breakdown
+                            ? Object.values(s.breakdown).filter(b=>b.penalty>5).sort((a,b)=>b.penalty-a.penalty)[0]?.detail
+                            : '—';
+                          const lastRpt = (s.breakdown?.reportRecency?.detail||'').match(/(\d+) day/);
+                          return (
+                            <tr key={s._id}>
+                              <td style={{textAlign:'center',color:'#94a3b8',fontSize:11}}>{i+1}</td>
+                              <td>
+                                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                  <div style={{width:3,height:24,borderRadius:2,background:stripeClr,flexShrink:0}}/>
+                                  <span style={{fontWeight:600,color:'#0f172a',fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:200}}>{s.title}</span>
+                                </div>
+                              </td>
+                              <td style={{fontSize:11,color:'#64748b'}}>{s.district||s.region||'—'}</td>
+                              <td style={{textAlign:'center'}}>
+                                <span style={{fontSize:14,fontWeight:900,color:stripeClr}}>{s.score}</span>
+                              </td>
+                              <td>
+                                <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:10,
+                                  background:s.light==='green'?'#dcfce7':s.light==='amber'?'#fef9c3':'#fee2e2',
+                                  color:stripeClr}}>
+                                  {s.emoji} {s.label}
+                                </span>
+                              </td>
+                              <td style={{textAlign:'center',fontSize:12,fontWeight:600}}>{s.completionPercentage||0}%</td>
+                              <td style={{textAlign:'center',fontSize:12}}>{budgetPct}</td>
+                              <td style={{textAlign:'center',fontSize:11,color:lastRpt&&Number(lastRpt[1])>30?'#CE1126':'#64748b'}}>
+                                {lastRpt?`${lastRpt[1]}d ago`:'No reports'}
+                              </td>
+                              <td style={{textAlign:'center',fontSize:12}}>{s.citizenReportCount||0}</td>
+                              <td style={{fontSize:10,color:'#64748b',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={topIssue||'—'}>
+                                {topIssue||'—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ═══════ CITIZEN REPORTS ═══════ */}
           {tab === 'reports' && (

@@ -512,3 +512,363 @@ router.get('/projects', async (req, res) => {
 });
 
 module.exports = router;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// M&E ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+const { scoreProjects } = require('../utils/meScore');
+const CitizenReport = require('../models/CitizenReport');
+const verifyAdminToken = require('../middleware/verifyAdminToken');
+
+// ── GET /api/reports/me-scores ────────────────────────────────────────────────
+// Returns M&E scores for all projects (admin) or district projects (MMDCE)
+// Accepts: ?region=X&district=Y&light=red|amber|green
+router.get('/me-scores', async (req, res) => {
+  try {
+    const { region, district, light } = req.query;
+
+    const filter = {};
+    if (region)   filter.region   = region;
+    if (district) filter.district = district;
+
+    const projects = await Project.find(filter).lean();
+
+    // Fetch all citizen reports for these projects in one query
+    const projectIds = projects.map(p => p._id);
+    const citizenReports = await CitizenReport.find({ projectId: { $in: projectIds } }).lean();
+
+    // Group citizen reports by projectId
+    const reportMap = {};
+    citizenReports.forEach(r => {
+      const key = r.projectId.toString();
+      if (!reportMap[key]) reportMap[key] = [];
+      reportMap[key].push(r);
+    });
+
+    let scored = scoreProjects(projects, reportMap);
+
+    // Filter by traffic light if requested
+    if (light) scored = scored.filter(s => s.light === light);
+
+    // Sort by score ascending (riskiest first)
+    scored.sort((a, b) => a.score - b.score);
+
+    res.json(scored.map(s => ({
+      _id:       s.project._id,
+      title:     s.project.title,
+      type:      s.project.type,
+      region:    s.project.region,
+      district:  s.project.district,
+      status:    s.project.status,
+      contractor:s.project.contractor,
+      completionPercentage: s.project.completionPercentage,
+      totalCost: s.project.totalCost,
+      amountPaid:s.project.amountPaid,
+      expectedCompletionDate: s.project.expectedCompletionDate,
+      score:     s.score,
+      light:     s.light,
+      emoji:     s.emoji,
+      label:     s.label,
+      breakdown: s.breakdown,
+      citizenReportCount: (reportMap[s.project._id?.toString()] || []).length,
+    })));
+  } catch (err) {
+    console.error('ME scores error:', err.message);
+    res.status(500).json({ error: 'Failed to compute M&E scores.' });
+  }
+});
+
+// ── GET /api/reports/me-pdf ───────────────────────────────────────────────────
+// Generates a full M&E PDF report
+router.get('/me-pdf', async (req, res) => {
+  try {
+    const { region = '', district = '' } = req.query;
+    const filter = {};
+    if (region)   filter.region   = region;
+    if (district) filter.district = district;
+
+    const projects      = await Project.find(filter).lean();
+    const projectIds    = projects.map(p => p._id);
+    const citizenReports= await CitizenReport.find({ projectId: { $in: projectIds } }).lean();
+    const reportMap     = {};
+    citizenReports.forEach(r => {
+      const key = r.projectId.toString();
+      if (!reportMap[key]) reportMap[key] = [];
+      reportMap[key].push(r);
+    });
+
+    const scored = scoreProjects(projects, reportMap).sort((a, b) => a.score - b.score);
+
+    const red   = scored.filter(s => s.light === 'red');
+    const amber = scored.filter(s => s.light === 'amber');
+    const green = scored.filter(s => s.light === 'green');
+
+    const totals = projects.reduce((acc, p) => ({
+      totalCost:  acc.totalCost  + (Number(p.totalCost)  || 0),
+      amountPaid: acc.amountPaid + (Number(p.amountPaid) || 0),
+    }), { totalCost: 0, amountPaid: 0 });
+
+    const scope       = [district, region].filter(Boolean).join(', ') || 'National';
+    const reportTitle = `M&E Performance Report — ${scope}`;
+    const generatedAt = new Date().toLocaleString('en-GB', {
+      day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'
+    });
+    const quarter = `Q${Math.ceil((new Date().getMonth()+1)/3)} ${new Date().getFullYear()}`;
+    const totalPages = 1 + Math.ceil(scored.length / 14) + 1;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition',
+      `attachment; filename="ME_Report_${(district||region||'National').replace(/\s+/g,'_')}_${Date.now()}.pdf"`
+    );
+
+    const doc = new PDFDoc({ size:'A4', margin:0, bufferPages:true });
+    doc.pipe(res);
+
+    // ── COVER PAGE ────────────────────────────────────────────────────────────
+    fillRect(doc, 0, 0, A4_W, 220, C.navy);
+    fillRect(doc, 0, 0, A4_W/3, 6, C.red);
+    fillRect(doc, A4_W/3, 0, A4_W/3, 6, C.gold);
+    fillRect(doc, (A4_W/3)*2, 0, A4_W/3, 6, C.green);
+
+    // Star
+    const cx = A4_W/2, cy = 85;
+    const { r:gr, g:gg, b:gb } = hexToRgb(C.gold);
+    doc.circle(cx, cy, 38).lineWidth(2.5).stroke([gr,gg,gb]);
+    const starPts = (function(){
+      const pts=[];
+      for(let i=0;i<10;i++){
+        const ang=(i*Math.PI/5)-Math.PI/2;
+        const r = i%2===0?28:12;
+        pts.push({x:cx+Math.cos(ang)*r, y:cy+Math.sin(ang)*r});
+      }
+      return pts;
+    })();
+    doc.moveTo(starPts[0].x,starPts[0].y);
+    starPts.slice(1).forEach(p=>doc.lineTo(p.x,p.y));
+    doc.closePath().fill([gr,gg,gb]);
+
+    doc.fillColor(C.white).fontSize(8).font('Helvetica')
+       .text('REPUBLIC OF GHANA', 0, 135, {width:A4_W, align:'center'});
+    doc.fontSize(9).font('Helvetica-Bold')
+       .text('MINISTRY OF LOCAL GOVERNMENT AND RURAL DEVELOPMENT', 0, 148, {width:A4_W, align:'center'});
+    doc.fontSize(7).fillColor(C.gold)
+       .text('Monitoring & Evaluation Division', 0, 163, {width:A4_W, align:'center'});
+
+    fillRect(doc, 0, 220, A4_W/3, 8, C.red);
+    fillRect(doc, A4_W/3, 220, A4_W/3, 8, C.gold);
+    fillRect(doc, (A4_W/3)*2, 220, A4_W/3, 8, C.green);
+
+    doc.fillColor(C.navy).fontSize(18).font('Helvetica-Bold')
+       .text('MONITORING & EVALUATION', M, 242, {width:BODY_W, align:'center'});
+    doc.fontSize(18).text('PERFORMANCE REPORT', M, 264, {width:BODY_W, align:'center'});
+    doc.fontSize(13).font('Helvetica').fillColor(C.slate)
+       .text(scope, M, 290, {width:BODY_W, align:'center'});
+    doc.fontSize(10).fillColor(C.muted)
+       .text(quarter, M, 308, {width:BODY_W, align:'center'});
+
+    const {r:rr,g:rg,b:rb}=hexToRgb(C.red);
+    doc.moveTo(M,324).lineTo(A4_W-M,324).lineWidth(1).stroke([rr,rg,rb]);
+    const {r:gr2,g:gg2,b:gb2}=hexToRgb(C.gold);
+    doc.moveTo(M,326).lineTo(A4_W-M,326).lineWidth(0.5).stroke([gr2,gg2,gb2]);
+    const {r:gn,g:gng,b:gnb}=hexToRgb(C.green);
+    doc.moveTo(M,328).lineTo(A4_W-M,328).lineWidth(1).stroke([gn,gng,gnb]);
+
+    // Traffic light summary
+    const tlY = 348;
+    doc.fontSize(9).font('Helvetica-Bold').fillColor(C.navy)
+       .text('PORTFOLIO HEALTH OVERVIEW', M, tlY - 16, {width:BODY_W});
+    const tlW = (BODY_W - 16) / 3;
+    [
+      { count:green.length, label:'On Track',        color:C.green, light:'#f0fdf4', border:'#bbf7d0', emoji:'🟢' },
+      { count:amber.length, label:'Needs Attention', color:'#d97706', light:'#fffbeb', border:'#fde68a', emoji:'🟡' },
+      { count:red.length,   label:'At Risk',         color:C.red,   light:'#fef2f2', border:'#fecaca', emoji:'🔴' },
+    ].forEach((item, i) => {
+      const x = M + i*(tlW+8);
+      const {r,g,b} = hexToRgb(item.light);
+      fillRect(doc, x, tlY, tlW, 70, item.light);
+      strokeRect(doc, x, tlY, tlW, 70, item.border, 1);
+      fillRect(doc, x, tlY, tlW, 4, item.color);
+      doc.fontSize(28).font('Helvetica-Bold').fillColor(hexToRgb(item.color))
+         .text(String(item.count), x+4, tlY+12, {width:tlW-8, align:'center'});
+      doc.fontSize(9).font('Helvetica').fillColor(C.slate)
+         .text(item.label, x+4, tlY+44, {width:tlW-8, align:'center'});
+    });
+
+    // Financial summary
+    const fY = tlY + 90;
+    doc.fontSize(9).font('Helvetica-Bold').fillColor(C.navy)
+       .text('FINANCIAL SUMMARY', M, fY-16, {width:BODY_W});
+    const fiW = (BODY_W-8)/2;
+    [
+      {label:'Total Committed', value:fmtGHS(totals.totalCost),  color:'#f0f9ff', border:'#bae6fd'},
+      {label:'Total Disbursed', value:fmtGHS(totals.amountPaid), color:'#f0fdf4', border:'#bbf7d0'},
+    ].forEach((item,i) => {
+      const x = M + i*(fiW+8);
+      fillRect(doc, x, fY, fiW, 50, item.color);
+      strokeRect(doc, x, fY, fiW, 50, item.border, 1);
+      doc.fontSize(7).font('Helvetica').fillColor(C.muted)
+         .text(item.label.toUpperCase(), x+8, fY+8, {width:fiW-16});
+      doc.fontSize(12).font('Helvetica-Bold').fillColor(C.navy)
+         .text(item.value, x+8, fY+22, {width:fiW-16});
+    });
+
+    // Utilisation bar
+    const util = totals.totalCost>0 ? (totals.amountPaid/totals.totalCost) : 0;
+    const barY = fY + 60;
+    doc.fontSize(8).font('Helvetica').fillColor(C.slate)
+       .text(`Budget utilisation: ${Math.round(util*100)}%`, M, barY, {width:BODY_W});
+    fillRect(doc, M, barY+14, BODY_W, 8, C.light);
+    fillRect(doc, M, barY+14, Math.round(BODY_W*util), 8, C.green);
+
+    doc.fontSize(7).fillColor(C.muted)
+       .text(`Generated: ${generatedAt}`, M, A4_H-55, {width:BODY_W, align:'center'});
+    addFooter(doc, 1, totalPages, reportTitle);
+
+    // ── PROJECT RISK TABLE PAGES ──────────────────────────────────────────────
+    const COLS_ME = [
+      {header:'#',       width:20,  align:'center'},
+      {header:'Project', width:130, align:'left'},
+      {header:'District',width:64,  align:'left'},
+      {header:'Score',   width:36,  align:'center'},
+      {header:'Status',  width:46,  align:'center'},
+      {header:'Progress',width:38,  align:'center'},
+      {header:'Budget %',width:40,  align:'center'},
+      {header:'Last Rpt',width:44,  align:'center'},
+      {header:'Citizen', width:38,  align:'center'},
+      {header:'Issue',   width:49,  align:'left'},
+    ];
+    const ME_TABLE_W = COLS_ME.reduce((s,c)=>s+c.width,0);
+    const ME_ROW_H   = 24;
+    const ME_HEAD_H  = 20;
+    const PER_PAGE   = 14;
+    const dataPages  = Math.ceil(scored.length / PER_PAGE);
+    let pageIdx = 2;
+
+    for (let pg=0; pg<dataPages; pg++) {
+      doc.addPage({size:'A4', margin:0});
+      fillRect(doc, 0,0,A4_W,50,C.navy);
+      fillRect(doc, 0,0,A4_W/3,4,C.red);
+      fillRect(doc, A4_W/3,0,A4_W/3,4,C.gold);
+      fillRect(doc, (A4_W/3)*2,0,A4_W/3,4,C.green);
+      doc.fontSize(11).font('Helvetica-Bold').fillColor(C.white)
+         .text('PROJECT RISK RANKING', M, 14, {width:BODY_W*0.6});
+      doc.fontSize(8).font('Helvetica').fillColor(C.gold)
+         .text(scope, M, 28, {width:BODY_W*0.6});
+
+      // Table header
+      let tx=M;
+      fillRect(doc, M, 60, ME_TABLE_W, ME_HEAD_H, C.navy);
+      COLS_ME.forEach(col=>{
+        doc.fontSize(6).font('Helvetica-Bold').fillColor(C.white)
+           .text(col.header, tx+2, 67, {width:col.width-4, align:col.align});
+        tx+=col.width;
+      });
+
+      const slice = scored.slice(pg*PER_PAGE, (pg+1)*PER_PAGE);
+      let rowY = 60+ME_HEAD_H;
+      slice.forEach((s, i)=>{
+        const globalIdx = pg*PER_PAGE+i;
+        const bg = i%2===0?C.white:C.light;
+        fillRect(doc, M, rowY, ME_TABLE_W, ME_ROW_H, bg);
+
+        // Left stripe = traffic light colour
+        const stripeClr = s.light==='green'?C.green:s.light==='amber'?'#d97706':C.red;
+        fillRect(doc, M, rowY, 3, ME_ROW_H, stripeClr);
+        strokeRect(doc, M, rowY, ME_TABLE_W, ME_ROW_H, C.border, 0.3);
+
+        const budgetPct = s.project.totalCost>0
+          ? Math.round((Number(s.project.amountPaid)||0)/Number(s.project.totalCost)*100)+'%'
+          : '—';
+        const lastRptDays = (s.breakdown.reportRecency?.detail||'').match(/(\d+) day/);
+        const lastRptStr  = lastRptDays ? `${lastRptDays[1]}d` : 'None';
+        const topIssue    = Object.values(s.breakdown)
+          .filter(b=>b.penalty>5)
+          .sort((a,b)=>b.penalty-a.penalty)[0]?.detail || '—';
+
+        const cells = [
+          {v:String(globalIdx+1),                                col:COLS_ME[0]},
+          {v:s.project.title||'—',                               col:COLS_ME[1]},
+          {v:s.project.district||s.project.region||'—',          col:COLS_ME[2]},
+          {v:String(s.score),                                    col:COLS_ME[3], clr:stripeClr},
+          {v:STATUS_LABEL[s.project.status]||s.project.status||'—', col:COLS_ME[4]},
+          {v:`${s.project.completionPercentage||0}%`,            col:COLS_ME[5]},
+          {v:budgetPct,                                          col:COLS_ME[6]},
+          {v:lastRptStr,                                         col:COLS_ME[7]},
+          {v:String(s.citizenReportCount||0),                    col:COLS_ME[8]},
+          {v:topIssue,                                           col:COLS_ME[9]},
+        ];
+        let cx2=M;
+        cells.forEach(({v,col,clr})=>{
+          const {r,g,b}=hexToRgb(clr||C.navy);
+          doc.fontSize(6.5).font('Helvetica').fillColor([r,g,b])
+             .text(v, cx2+4, rowY+8, {width:col.width-6, align:col.align, ellipsis:true});
+          cx2+=col.width;
+        });
+        rowY+=ME_ROW_H;
+      });
+
+      addFooter(doc, pageIdx, totalPages, reportTitle);
+      pageIdx++;
+    }
+
+    // ── SUMMARY PAGE ──────────────────────────────────────────────────────────
+    doc.addPage({size:'A4', margin:0});
+    fillRect(doc, 0,0,A4_W,50,C.navy);
+    fillRect(doc, 0,0,A4_W/3,4,C.red);
+    fillRect(doc, A4_W/3,0,A4_W/3,4,C.gold);
+    fillRect(doc, (A4_W/3)*2,0,A4_W/3,4,C.green);
+    doc.fontSize(11).font('Helvetica-Bold').fillColor(C.white)
+       .text('KEY FINDINGS & RECOMMENDATIONS', M, 18, {width:BODY_W});
+
+    let sy = 65;
+    // Top 5 at-risk projects
+    if (red.length > 0) {
+      doc.fontSize(9).font('Helvetica-Bold').fillColor(C.red)
+         .text(`🔴 Projects Requiring Immediate Attention (${red.length})`, M, sy);
+      sy += 18;
+      red.slice(0,5).forEach(s=>{
+        doc.fontSize(7).font('Helvetica').fillColor(C.navy)
+           .text(`• ${s.project.title} — ${s.project.district||s.project.region||'—'} (Score: ${s.score}/100)`, M+8, sy, {width:BODY_W});
+        sy += 12;
+        const topIssue = Object.values(s.breakdown).filter(b=>b.penalty>5).sort((a,b)=>b.penalty-a.penalty)[0];
+        if (topIssue) {
+          doc.fontSize(6.5).fillColor(C.muted)
+             .text(`  Issue: ${topIssue.detail}`, M+16, sy, {width:BODY_W-16});
+          sy+=10;
+        }
+      });
+      sy+=8;
+    }
+
+    if (amber.length > 0) {
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#d97706')
+         .text(`🟡 Projects Needing Attention (${amber.length})`, M, sy);
+      sy += 16;
+      amber.slice(0,5).forEach(s=>{
+        doc.fontSize(7).font('Helvetica').fillColor(C.navy)
+           .text(`• ${s.project.title} — ${s.project.district||s.project.region||'—'} (Score: ${s.score}/100)`, M+8, sy, {width:BODY_W});
+        sy += 12;
+      });
+      sy+=8;
+    }
+
+    // Avg score
+    const avgScore = scored.length>0 ? Math.round(scored.reduce((s,p)=>s+p.score,0)/scored.length) : 0;
+    sy+=8;
+    fillRect(doc, M, sy, BODY_W, 50, C.light);
+    strokeRect(doc, M, sy, BODY_W, 50, C.border, 0.5);
+    doc.fontSize(8).font('Helvetica').fillColor(C.slate)
+       .text('Portfolio Average M&E Score', M+12, sy+8, {width:BODY_W});
+    doc.fontSize(22).font('Helvetica-Bold').fillColor(avgScore>=70?C.green:avgScore>=40?'#d97706':C.red)
+       .text(`${avgScore}/100`, M+12, sy+20, {width:100});
+    doc.fontSize(7).font('Helvetica').fillColor(C.muted)
+       .text(avgScore>=70?'Portfolio is generally on track.':avgScore>=40?'Portfolio needs monitoring attention.':'Portfolio has critical projects requiring intervention.', M+120, sy+28, {width:BODY_W-130});
+
+    addFooter(doc, pageIdx, totalPages, reportTitle);
+    doc.end();
+
+  } catch (err) {
+    console.error('M&E PDF error:', err.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to generate M&E report.' });
+  }
+});
