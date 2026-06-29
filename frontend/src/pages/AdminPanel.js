@@ -414,7 +414,7 @@ const AdminPanel = () => {
   const [rFilter,       setRFilter]       = useState({ region:'', district:'', status:'' });
   const [updatingReport,setUpdatingReport]= useState(null);
 
-  // const settingsForm_placeholder = null; // keep spacing
+  const settingsForm_placeholder = null; // keep spacing
   const [settingsForm,  setSettingsForm]  = useState({ username:'', currentPassword:'', newPassword:'', confirmPassword:'' });
   const [savingSettings,setSavingSettings] = useState(false);
   const [settingsMsg,   setSettingsMsg]   = useState({ text:'', type:'' });
@@ -1690,7 +1690,7 @@ const AdminPanel = () => {
                               </div>
                               {r.photoUrl && (
                                 <a href={apiUrl(r.photoUrl)} target="_blank" rel="noreferrer" style={{flexShrink:0}}>
-                                  <img src={apiUrl(r.photoUrl)} alt="Site photo"
+                                  <img src={apiUrl(r.photoUrl)} alt="Citizen site observation"
                                     style={{width:72,height:72,objectFit:'cover',borderRadius:8,border:'1px solid #e2e8f0',display:'block'}}/>
                                 </a>
                               )}
@@ -1723,7 +1723,7 @@ const AdminPanel = () => {
                                     } catch(e) { alert('Failed to update status.'); }
                                     finally { setUpdatingReport(null); }
                                   }}
-                                  style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid #e2e8f0',background:'#fff',
+                                  style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid #e2e8f0',
                                     color: r.status===s?STATUS_COLORS[s].color:'#475569',
                                     borderColor: r.status===s?STATUS_COLORS[s].color:'#e2e8f0',
                                     background: r.status===s?STATUS_COLORS[s].bg:'#fff',
