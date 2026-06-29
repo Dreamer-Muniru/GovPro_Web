@@ -124,7 +124,7 @@ export default function CitizenReportPage() {
 
   const slotTaken    = !!periodInfo?.existingReport;
   const nextWindow   = periodInfo?.nextWindowDate ? new Date(periodInfo.nextWindowDate) : null;
-  const obsConfig    = OBSERVATIONS.find(o => o.value === observation);
+  // const obsConfig    = OBSERVATIONS.find(o => o.value === observation);
 
   // ── Submitted success ────────────────────────────────────────────────────────
   if (submitted) {

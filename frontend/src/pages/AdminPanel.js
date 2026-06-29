@@ -414,7 +414,7 @@ const AdminPanel = () => {
   const [rFilter,       setRFilter]       = useState({ region:'', district:'', status:'' });
   const [updatingReport,setUpdatingReport]= useState(null);
 
-  const settingsForm_placeholder = null; // keep spacing
+  // const settingsForm_placeholder = null; // keep spacing
   const [settingsForm,  setSettingsForm]  = useState({ username:'', currentPassword:'', newPassword:'', confirmPassword:'' });
   const [savingSettings,setSavingSettings] = useState(false);
   const [settingsMsg,   setSettingsMsg]   = useState({ text:'', type:'' });
