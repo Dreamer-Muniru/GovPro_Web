@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Navigate, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Navigate, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import AddProjectForm from './components/AddProjectForm';
@@ -21,26 +21,41 @@ import CitizenReportPage from './pages/CitizenReportPage';
 import OfflineSyncBanner from './components/OfflineSyncBanner';
 import { useOfflineSync } from './utils/useOfflineSync';
 
+const ProtectedRoute = ({ children }) => {
+  const { user } = useContext(AuthContext);
+  // Redirect to the new hidden admin login URL
+  return user?.isAdmin ? children : <Navigate to="/ministry-portal/auth" />;
+};
+
 function App() {
   const { isOnline, pending, syncing, syncNow } = useOfflineSync();
 
-  const ProtectedRoute = ({ children }) => {
-    const { user } = useContext(AuthContext);
-    // Redirect to the new hidden admin login URL
-    return user?.isAdmin ? children : <Navigate to="/ministry-portal/auth" />;
-  };
-
   return (
     <Router>
-      <Navbar />
-
-      <OfflineSyncBanner
-        isOnline={isOnline}
-        pending={pending}
-        syncing={syncing}
-        syncNow={syncNow}
+      <AppShell
+        isOnline={isOnline} pending={pending}
+        syncing={syncing} syncNow={syncNow}
       />
+    </Router>
+  );
+}
 
+// Separate component so useLocation can be called inside <Router>
+function AppShell({ isOnline, pending, syncing, syncNow }) {
+  const location = useLocation();
+  const isCitizenPage = location.pathname.startsWith('/citizen/');
+
+  return (
+    <>
+      {!isCitizenPage && <Navbar />}
+      {!isCitizenPage && (
+        <OfflineSyncBanner
+          isOnline={isOnline}
+          pending={pending}
+          syncing={syncing}
+          syncNow={syncNow}
+        />
+      )}
       <ToastContainer position="top-right" />
 
       <Routes>
@@ -72,7 +87,7 @@ function App() {
           element={<ProtectedRoute><AdminPanel /></ProtectedRoute>}
         />
       </Routes>
-    </Router>
+    </>
   );
 }
 

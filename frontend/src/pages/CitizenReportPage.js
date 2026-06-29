@@ -31,6 +31,12 @@ const fmtDateShort = (d) => d
 export default function CitizenReportPage() {
   const { id } = useParams();
 
+  // Set a generic browser tab title — no platform name visible to citizens
+  useEffect(() => {
+    document.title = 'Community Project Report';
+    return () => { document.title = 'GovPro'; };
+  }, []);
+
   const [project,      setProject]      = useState(null);
   const [periodInfo,   setPeriodInfo]   = useState(null);
   const [loadingProj,  setLoadingProj]  = useState(true);
@@ -139,7 +145,7 @@ export default function CitizenReportPage() {
             Your contribution helps ensure accountability for government projects.
           </p>
           <div className="crp-success-ref">
-            Report window: {periodInfo?.period}
+            Submitted for official review
           </div>
         </div>
       </div>
@@ -330,8 +336,8 @@ export default function CitizenReportPage() {
 
       <div className="crp-footer">
         <div className="crp-footer-flag"><div/><div/><div/></div>
-        <p>Ghana Project Tracker · Ministry of Local Government &amp; Rural Development</p>
-        <p>Citizen reports are reviewed by district and ministry officials.</p>
+        <p>Ministry of Local Government &amp; Rural Development</p>
+        <p>Community reports are reviewed by district and government officials.</p>
       </div>
     </div>
   );

@@ -51,7 +51,7 @@ const QRCodeGenerator = ({ project, baseUrl }) => {
           .qr-print-instruction { background: #f0fdf4; border: 2px solid #006B3F; border-radius: 12px; padding: 16px 20px; text-align: center; margin: 16px 0; }
           .qr-print-instruction h3 { font-size: 15px; font-weight: 800; color: #006B3F; margin-bottom: 6px; }
           .qr-print-instruction p { font-size: 12px; color: #166534; line-height: 1.6; }
-          .qr-print-url { font-size: 9px; color: #94a3b8; text-align: center; margin-top: 8px; word-break: break-all; }
+          .qr-print-generated { font-size: 9px; color: #94a3b8; text-align: center; margin-top: 8px; }
           .qr-print-footer-flag { display: flex; width: 100%; height: 5px; margin-top: auto; padding-top: 20px; }
           .qr-print-footer-flag div { flex: 1; }
           .qr-print-footer-flag div:nth-child(1) { background: #CE1126; }
@@ -117,7 +117,7 @@ const QRCodeGenerator = ({ project, baseUrl }) => {
                 <div className="qrg-preview-instruction">
                   📱 Scan to report what you see at this site
                 </div>
-                <div className="qrg-preview-url">{qrUrl}</div>
+                {/* URL intentionally not displayed — citizens must use the QR scanner only */}
               </div>
 
               {/* Print-ready hidden div */}
@@ -163,9 +163,9 @@ const QRCodeGenerator = ({ project, baseUrl }) => {
                       ))}
                     </div>
 
-                    <div className="qr-print-url">{qrUrl}</div>
+                    {/* URL not printed — QR code is the only access point */}
                     <div className="qr-print-footer-flag"><div/><div/><div/></div>
-                    <div className="qr-print-generated">Generated {today} · Ghana Project Tracker</div>
+                    <div className="qr-print-generated">Generated {today} · Official Government Project Monitor</div>
                   </div>
                 </div>
               </div>
