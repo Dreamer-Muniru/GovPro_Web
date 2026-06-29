@@ -333,6 +333,7 @@ const NAV = [
   { id:'contractors', label:'Contractors', icon:'🏢' },
   { id:'users',       label:'MMDCE Users', icon:'👥' },
   { id:'settings',    label:'Settings',    icon:'⚙️'  },
+  { id:'reports',     label:'Citizen Reports', icon:'📣' },
 ];
 
 const Spinner = ({ size=32 }) => (
@@ -407,6 +408,13 @@ const AdminPanel = () => {
   const [addDocFiles,     setAddDocFiles]     = useState([]);
   const [savingDocs,      setSavingDocs]      = useState(false);
 
+  // citizen reports
+  const [reports,       setReports]       = useState([]);
+  const [loadingReports,setLoadingReports]= useState(true);
+  const [rFilter,       setRFilter]       = useState({ region:'', district:'', status:'' });
+  const [updatingReport,setUpdatingReport]= useState(null);
+
+  const settingsForm_placeholder = null; // keep spacing
   const [settingsForm,  setSettingsForm]  = useState({ username:'', currentPassword:'', newPassword:'', confirmPassword:'' });
   const [savingSettings,setSavingSettings] = useState(false);
   const [settingsMsg,   setSettingsMsg]   = useState({ text:'', type:'' });
@@ -437,7 +445,16 @@ const AdminPanel = () => {
     catch(e) { console.error(e); } finally { setLoadingCon(false); }
   }, [hdrs]);
 
-  useEffect(() => { fetchIssues(); fetchProjects(); fetchUsers(); fetchContractors(); }, [fetchIssues, fetchProjects, fetchUsers, fetchContractors]);
+  const fetchReports = useCallback(async () => {
+    setLoadingReports(true);
+    try {
+      const r = await axios.get(apiUrl('/api/citizen-reports'), { headers: hdrs });
+      setReports(Array.isArray(r.data) ? r.data : []);
+    } catch(e) { console.error(e); }
+    finally { setLoadingReports(false); }
+  }, [hdrs]);
+
+  useEffect(() => { fetchIssues(); fetchProjects(); fetchUsers(); fetchContractors(); fetchReports(); }, [fetchIssues, fetchProjects, fetchUsers, fetchContractors, fetchReports]);
 
   useEffect(() => {
     if (!selIssue) return;
@@ -675,6 +692,9 @@ const AdminPanel = () => {
               {item.label}
               {item.id === 'issues' && stats.newIssues > 0 && (
                 <span className="ap-nav-badge">{stats.newIssues} new</span>
+              )}
+              {item.id === 'reports' && reports.filter(r => r.status==='Pending').length > 0 && (
+                <span className="ap-nav-badge">{reports.filter(r => r.status==='Pending').length}</span>
               )}
             </button>
           ))}
@@ -1577,6 +1597,150 @@ const AdminPanel = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+
+          {/* ═══════ CITIZEN REPORTS ═══════ */}
+          {tab === 'reports' && (
+            <div>
+              {/* Filter bar */}
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:'1.25rem'}}>
+                <select className="ap-filter-select" value={rFilter.region}
+                  onChange={e => setRFilter(p=>({...p,region:e.target.value,district:''}))}>
+                  <option value="">All Regions</option>
+                  {ghanaRegions.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
+                </select>
+                <select className="ap-filter-select" value={rFilter.district}
+                  onChange={e => setRFilter(p=>({...p,district:e.target.value}))}
+                  disabled={!rFilter.region}>
+                  <option value="">All Districts</option>
+                  {(ghanaRegions.find(r=>r.name===rFilter.region)?.districts||[]).map(d=>
+                    <option key={d} value={d}>{d}</option>)}
+                </select>
+                <select className="ap-filter-select" value={rFilter.status}
+                  onChange={e => setRFilter(p=>({...p,status:e.target.value}))}>
+                  <option value="">All Statuses</option>
+                  {['Pending','Acknowledged','Escalated','Resolved'].map(s=>
+                    <option key={s} value={s}>{s}</option>)}
+                </select>
+                <span style={{marginLeft:'auto',fontSize:12,color:'#94a3b8',alignSelf:'center'}}>
+                  {reports.filter(r=>
+                    (!rFilter.region   || r.projectId?.region===rFilter.region) &&
+                    (!rFilter.district || r.projectId?.district===rFilter.district) &&
+                    (!rFilter.status   || r.status===rFilter.status)
+                  ).length} reports
+                </span>
+              </div>
+
+              {loadingReports ? <Spinner/> : (() => {
+                const OBS_CONFIG = {
+                  progressing:  {label:'Work progressing well',  color:'#006B3F', bg:'#f0fdf4'},
+                  stalled:      {label:'Work has stopped',        color:'#d97706', bg:'#fffbeb'},
+                  abandoned:    {label:'Site looks abandoned',     color:'#CE1126', bg:'#fff1f2'},
+                  completed:    {label:'Work appears completed',   color:'#1d4ed8', bg:'#eff6ff'},
+                  poor_quality: {label:'Quality concerns',         color:'#7c3aed', bg:'#f5f3ff'},
+                  other:        {label:'Other concern',            color:'#475569', bg:'#f8fafc'},
+                };
+                const STATUS_COLORS = {
+                  Pending:      {color:'#92400e', bg:'#fef3c7'},
+                  Acknowledged: {color:'#1e40af', bg:'#dbeafe'},
+                  Escalated:    {color:'#991b1b', bg:'#fee2e2'},
+                  Resolved:     {color:'#166534', bg:'#dcfce7'},
+                };
+                const filtered = reports.filter(r=>
+                  (!rFilter.region   || r.projectId?.region===rFilter.region) &&
+                  (!rFilter.district || r.projectId?.district===rFilter.district) &&
+                  (!rFilter.status   || r.status===rFilter.status)
+                );
+                if (filtered.length === 0) return (
+                  <div className="ap-empty"><p>No citizen reports yet.</p></div>
+                );
+                return (
+                  <div style={{display:'flex',flexDirection:'column',gap:'0.875rem'}}>
+                    {filtered.map(r => {
+                      const obs = OBS_CONFIG[r.observation] || OBS_CONFIG.other;
+                      const sc  = STATUS_COLORS[r.status]   || STATUS_COLORS.Pending;
+                      const isNew = Date.now() - new Date(r.submittedAt).getTime() < 24*60*60*1000;
+                      return (
+                        <div key={r._id} style={{background:'#fff',borderRadius:14,border:'1px solid #e2e8f0',overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
+                          {/* Top stripe by observation */}
+                          <div style={{height:4,background:obs.color}}/>
+                          <div style={{padding:'1rem 1.25rem'}}>
+                            {/* Header row */}
+                            <div style={{display:'flex',alignItems:'flex-start',gap:10,marginBottom:'0.75rem',flexWrap:'wrap'}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4,flexWrap:'wrap'}}>
+                                  {isNew && <span className="ap-new-badge">NEW</span>}
+                                  <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,background:obs.bg,color:obs.color}}>
+                                    {obs.label}
+                                  </span>
+                                  <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,background:sc.bg,color:sc.color}}>
+                                    {r.status}
+                                  </span>
+                                </div>
+                                <div style={{fontSize:14,fontWeight:700,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                  {r.projectId?.title || 'Unknown project'}
+                                </div>
+                                <div style={{fontSize:11,color:'#94a3b8',marginTop:2,display:'flex',gap:10,flexWrap:'wrap'}}>
+                                  <span>📍 {r.projectId?.district || '—'}, {r.projectId?.region || '—'}</span>
+                                  <span>🕐 {new Date(r.submittedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+                                  <span>📅 Window: {r.reportingPeriod}</span>
+                                </div>
+                              </div>
+                              {r.photoUrl && (
+                                <a href={apiUrl(r.photoUrl)} target="_blank" rel="noreferrer" style={{flexShrink:0}}>
+                                  <img src={apiUrl(r.photoUrl)} alt="Site photo"
+                                    style={{width:72,height:72,objectFit:'cover',borderRadius:8,border:'1px solid #e2e8f0',display:'block'}}/>
+                                </a>
+                              )}
+                            </div>
+
+                            {/* Description */}
+                            {r.description && (
+                              <p style={{fontSize:13,color:'#374151',lineHeight:1.65,margin:'0 0 0.75rem',background:'#f8fafc',borderRadius:8,padding:'8px 12px',border:'1px solid #f1f5f9'}}>
+                                "{r.description}"
+                              </p>
+                            )}
+
+                            {/* Reporter */}
+                            {(r.reporterName || r.reporterPhone) && (
+                              <div style={{fontSize:11,color:'#94a3b8',marginBottom:'0.75rem'}}>
+                                👤 {r.reporterName || 'Anonymous'}{r.reporterPhone ? ` · ${r.reporterPhone}` : ''}
+                              </div>
+                            )}
+
+                            {/* Status update controls */}
+                            <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',borderTop:'1px solid #f1f5f9',paddingTop:'0.75rem'}}>
+                              <span style={{fontSize:11,fontWeight:600,color:'#64748b',marginRight:4}}>Update status:</span>
+                              {['Acknowledged','Escalated','Resolved'].map(s => (
+                                <button key={s} disabled={r.status===s || updatingReport===r._id}
+                                  onClick={async () => {
+                                    setUpdatingReport(r._id);
+                                    try {
+                                      await axios.put(apiUrl(`/api/citizen-reports/${r._id}/status`), {status:s}, {headers:hdrs});
+                                      setReports(prev => prev.map(rr => rr._id===r._id ? {...rr,status:s} : rr));
+                                    } catch(e) { alert('Failed to update status.'); }
+                                    finally { setUpdatingReport(null); }
+                                  }}
+                                  style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid #e2e8f0',background:'#fff',
+                                    color: r.status===s?STATUS_COLORS[s].color:'#475569',
+                                    borderColor: r.status===s?STATUS_COLORS[s].color:'#e2e8f0',
+                                    background: r.status===s?STATUS_COLORS[s].bg:'#fff',
+                                    fontWeight:600,fontSize:11,cursor:r.status===s?'default':'pointer',fontFamily:'inherit',
+                                    opacity: r.status===s ? 1 : 0.85,
+                                    transition:'all 0.15s'}}>
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
 

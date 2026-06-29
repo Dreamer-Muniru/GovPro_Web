@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { apiUrl } from '../utils/api';
 import CommentBox from '../components/CommentBox';
+import QRCodeGenerator from '../components/QRCodeGenerator';
 import '../css/ProjectDetail.css';
 
 // ── Funding source display map ─────────────────────────────────────────────────
@@ -148,6 +149,9 @@ const ProjectDetail = () => {
           Back
         </button>
         <span className="pd-breadcrumb">Projects / {project.title}</span>
+        <div style={{marginLeft:'auto'}}>
+          <QRCodeGenerator project={project} />
+        </div>
       </div>
 
       {/* ══════════════════════ HERO SECTION ══════════════════════ */}

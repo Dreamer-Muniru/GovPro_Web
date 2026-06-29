@@ -17,6 +17,7 @@ import CreateForum from './pages/CreateForum';
 import ForumDetail from './pages/ForumDetail';
 import ForumFeed from './components/ForumFeed';
 import ProfilePage from './pages/ProfilePage';
+import CitizenReportPage from './pages/CitizenReportPage';
 import OfflineSyncBanner from './components/OfflineSyncBanner';
 import { useOfflineSync } from './utils/useOfflineSync';
 
@@ -56,6 +57,9 @@ function App() {
         <Route path="/profile"            element={<ProfilePage />} />
         <Route path="/login"              element={<LoginPage />} />
         <Route path="/register"           element={<RegisterPage />} />
+
+        {/* ── Citizen reporting — fully public, no login ── */}
+        <Route path="/citizen/report/:id" element={<CitizenReportPage />} />
 
         {/* ── Admin routes — obfuscated URL ── */}
         {/* Old /admin-login and /admin redirect to new paths so bookmarks don't 404 */}

@@ -1,0 +1,116 @@
+/* QRCodeGenerator.css */
+
+.qrg-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.12s;
+  white-space: nowrap;
+}
+.qrg-trigger-btn:hover { background: #CE1126; transform: translateY(-1px); }
+
+/* Overlay */
+.qrg-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+  z-index: 600; display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  animation: qrg-in 0.18s ease;
+}
+@keyframes qrg-in { from { opacity:0; } to { opacity:1; } }
+
+/* Modal */
+.qrg-modal {
+  background: #fff; border-radius: 18px;
+  width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+  animation: qrg-modal-in 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes qrg-modal-in {
+  from { transform: scale(0.94) translateY(12px); opacity:0; }
+  to   { transform: scale(1)    translateY(0);    opacity:1; }
+}
+
+.qrg-flag { display:flex; height:4px; border-radius:18px 18px 0 0; overflow:hidden; }
+.qrg-flag div:nth-child(1) { flex:1; background:#CE1126; }
+.qrg-flag div:nth-child(2) { flex:1; background:#FCD116; }
+.qrg-flag div:nth-child(3) { flex:1; background:#006B3F; }
+
+.qrg-modal-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+  padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid #f1f5f9;
+}
+.qrg-modal-title { font-size: 1rem; font-weight: 800; color: #0f172a; }
+.qrg-modal-sub   { font-size: 11px; color: #94a3b8; margin-top:2px; }
+
+.qrg-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid #e2e8f0; background: #f8fafc;
+  font-size: 17px; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.qrg-close:hover { background: #fff; color: #CE1126; border-color: #CE1126; }
+
+.qrg-modal-body { padding: 1.25rem 1.5rem; }
+
+/* Preview area */
+.qrg-preview {
+  display: flex; flex-direction: column; align-items: center;
+  background: #0f172a; border-radius: 12px; padding: 1.25rem;
+  margin-bottom: 1rem; text-align: center;
+}
+.qrg-preview-project {
+  font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 3px;
+  max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qrg-preview-location { font-size: 11px; color: rgba(255,255,255,0.45); margin-bottom: 16px; }
+
+.qrg-qr-box {
+  background: #fff; border-radius: 10px; padding: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  margin-bottom: 16px;
+}
+
+.qrg-preview-instruction {
+  font-size: 12px; font-weight: 600; color: #FCD116; margin-bottom: 8px;
+}
+.qrg-preview-url {
+  font-size: 9px; color: rgba(255,255,255,0.25);
+  word-break: break-all; max-width: 300px;
+}
+
+.qrg-info {
+  font-size: 12px; color: #64748b; line-height: 1.65;
+  background: #f8fafc; border-radius: 8px;
+  padding: 10px 12px; border: 1px solid #e2e8f0;
+  margin: 0;
+}
+
+.qrg-modal-footer {
+  display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end;
+  padding: 1rem 1.5rem; border-top: 1px solid #f1f5f9;
+}
+.qrg-cancel-btn {
+  padding: 8px 16px; border: 1.5px solid #e2e8f0; background: #fff;
+  color: #64748b; border-radius: 9px; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.qrg-cancel-btn:hover { border-color: #cbd5e1; color: #374151; }
+
+.qrg-print-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 20px; background: #006B3F; color: #fff;
+  border: none; border-radius: 9px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: background 0.15s, transform 0.12s;
+}
+.qrg-print-btn:hover { background: #004d2e; transform: translateY(-1px); }

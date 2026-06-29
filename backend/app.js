@@ -61,6 +61,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // app.use('/api/regions', regionsRouter);
 
+// Citien Reporting routes
+const citizenReportRoutes = require('./routes/citizenReportRoutes');
+app.use('/api/citizen-reports', citizenReportRoutes);
 
 // Contractor routes
 const contractorRoutes = require('./routes/contractorRoutes');
