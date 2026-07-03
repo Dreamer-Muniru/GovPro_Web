@@ -186,7 +186,7 @@ router.get('/projects', async (req, res) => {
        .fontSize(8).font('Helvetica')
        .text('REPUBLIC OF GHANA', 0, 130, { width: A4_W, align:'center' })
        .fontSize(9).font('Helvetica-Bold')
-       .text('MINISTRY OF LOCAL GOVERNMENT AND RURAL DEVELOPMENT', 0, 143, { width: A4_W, align:'center' })
+       .text('MINISTRY OF LOCAL GOVERNMENT, CHIEFTAINCY AND RELIGIOUS AFFAIRS', 0, 143, { width: A4_W, align:'center' })
        .fontSize(7).font('Helvetica')
        .fillColor(C.gold)
        .text('Government of Ghana — Official Project Monitoring Report', 0, 158, { width: A4_W, align:'center' });
@@ -630,29 +630,25 @@ router.get('/me-pdf', async (req, res) => {
     fillRect(doc, A4_W/3, 0, A4_W/3, 6, C.gold);
     fillRect(doc, (A4_W/3)*2, 0, A4_W/3, 6, C.green);
 
-    // Star
-    const cx = A4_W/2, cy = 85;
-    const { r:gr, g:gg, b:gb } = hexToRgb(C.gold);
-    doc.circle(cx, cy, 38).lineWidth(2.5).stroke([gr,gg,gb]);
-    const starPts = (function(){
-      const pts=[];
-      for(let i=0;i<10;i++){
-        const ang=(i*Math.PI/5)-Math.PI/2;
-        const r = i%2===0?28:12;
-        pts.push({x:cx+Math.cos(ang)*r, y:cy+Math.sin(ang)*r});
+    // Ministry logo
+    try {
+      const fs   = require('fs');
+      const path = require('path');
+      const logoPath = path.join(__dirname, '..', 'assets', 'ministry_logo.png');
+      if (fs.existsSync(logoPath)) {
+        const logoSize = 80;
+        doc.image(logoPath, (A4_W - logoSize) / 2, 32, { width: logoSize, height: logoSize });
       }
-      return pts;
-    })();
-    doc.moveTo(starPts[0].x,starPts[0].y);
-    starPts.slice(1).forEach(p=>doc.lineTo(p.x,p.y));
-    doc.closePath().fill([gr,gg,gb]);
+    } catch(_) { /* logo not found — skip gracefully */ }
 
     doc.fillColor(C.white).fontSize(8).font('Helvetica')
-       .text('REPUBLIC OF GHANA', 0, 135, {width:A4_W, align:'center'});
-    doc.fontSize(9).font('Helvetica-Bold')
-       .text('MINISTRY OF LOCAL GOVERNMENT AND RURAL DEVELOPMENT', 0, 148, {width:A4_W, align:'center'});
+       .text('REPUBLIC OF GHANA', 0, 122, {width:A4_W, align:'center'});
+    doc.fontSize(8).font('Helvetica-Bold')
+       .text('MINISTRY OF LOCAL GOVERNMENT,', 0, 135, {width:A4_W, align:'center'});
+    doc.fontSize(8).font('Helvetica-Bold')
+       .text('CHIEFTAINCY AND RELIGIOUS AFFAIRS', 0, 147, {width:A4_W, align:'center'});
     doc.fontSize(7).fillColor(C.gold)
-       .text('Monitoring & Evaluation Division', 0, 163, {width:A4_W, align:'center'});
+       .text('Monitoring & Evaluation Division', 0, 161, {width:A4_W, align:'center'});
 
     fillRect(doc, 0, 220, A4_W/3, 8, C.red);
     fillRect(doc, A4_W/3, 220, A4_W/3, 8, C.gold);
@@ -726,16 +722,16 @@ router.get('/me-pdf', async (req, res) => {
 
     // ── PROJECT RISK TABLE PAGES ──────────────────────────────────────────────
     const COLS_ME = [
-      {header:'#',       width:20,  align:'center'},
-      {header:'Project', width:130, align:'left'},
-      {header:'District',width:64,  align:'left'},
-      {header:'Score',   width:36,  align:'center'},
-      {header:'Status',  width:46,  align:'center'},
-      {header:'Progress',width:38,  align:'center'},
-      {header:'Budget %',width:40,  align:'center'},
-      {header:'Last Rpt',width:44,  align:'center'},
-      {header:'Citizen', width:38,  align:'center'},
-      {header:'Issue',   width:49,  align:'left'},
+      {header:'#',            width:20,  align:'center'},   // [0]
+      {header:'Project',      width:118, align:'left'},     // [1]
+      {header:'District',     width:60,  align:'left'},     // [2]
+      {header:'Risk Level',   width:54,  align:'center'},   // [3]
+      {header:'Progress(%)',  width:40,  align:'center'},   // [4]
+      {header:'Expected(GHS)',width:58,  align:'right'},    // [5]
+      {header:'Actual(GHS)',  width:54,  align:'right'},    // [6]
+      {header:'Score',        width:30,  align:'center'},   // [7]
+      {header:'Citizens',     width:36,  align:'center'},   // [8]
+      {header:'Top Issue',    width:35,  align:'left'},     // [9]
     ];
     const ME_TABLE_W = COLS_ME.reduce((s,c)=>s+c.width,0);
     const ME_ROW_H   = 24;
@@ -776,26 +772,29 @@ router.get('/me-pdf', async (req, res) => {
         fillRect(doc, M, rowY, 3, ME_ROW_H, stripeClr);
         strokeRect(doc, M, rowY, ME_TABLE_W, ME_ROW_H, C.border, 0.3);
 
-        const budgetPct = s.project.totalCost>0
-          ? Math.round((Number(s.project.amountPaid)||0)/Number(s.project.totalCost)*100)+'%'
+        const fmtM = v => v!=null&&v>0
+          ? (v>=1000000 ? `${(v/1000000).toFixed(1)}M` : v>=1000 ? `${(v/1000).toFixed(0)}K` : String(Math.round(v)))
           : '—';
-        const lastRptDays = (s.breakdown.reportRecency?.detail||'').match(/(\d+) day/);
-        const lastRptStr  = lastRptDays ? `${lastRptDays[1]}d` : 'None';
+        const expectedGHS = fmtM(s.project.totalCost);
+        const actualGHS   = fmtM(s.project.amountPaid);
         const topIssue    = Object.values(s.breakdown)
           .filter(b=>b.penalty>5)
           .sort((a,b)=>b.penalty-a.penalty)[0]?.detail || '—';
 
+        // citizen count from reportMap (PDF has access to reportMap in this closure)
+        const citizenCount = (reportMap[s.project._id?.toString()] || []).length;
+
         const cells = [
-          {v:String(globalIdx+1),                                col:COLS_ME[0]},
-          {v:s.project.title||'—',                               col:COLS_ME[1]},
-          {v:s.project.district||s.project.region||'—',          col:COLS_ME[2]},
-          {v:String(s.score),                                    col:COLS_ME[3], clr:stripeClr},
-          {v:STATUS_LABEL[s.project.status]||s.project.status||'—', col:COLS_ME[4]},
-          {v:`${s.project.completionPercentage||0}%`,            col:COLS_ME[5]},
-          {v:budgetPct,                                          col:COLS_ME[6]},
-          {v:lastRptStr,                                         col:COLS_ME[7]},
-          {v:String(s.citizenReportCount||0),                    col:COLS_ME[8]},
-          {v:topIssue,                                           col:COLS_ME[9]},
+          {v:String(globalIdx+1),                                           col:COLS_ME[0]},
+          {v:s.project.title||'—',                                          col:COLS_ME[1]},
+          {v:s.project.district||s.project.region||'—',                     col:COLS_ME[2]},
+          {v:`${s.emoji} ${s.label}`,                                       col:COLS_ME[3], clr:stripeClr},
+          {v:`${s.project.completionPercentage||0}%`,                       col:COLS_ME[4]},
+          {v:expectedGHS,                                                   col:COLS_ME[5]},
+          {v:actualGHS,                                                     col:COLS_ME[6]},
+          {v:String(s.score),                                               col:COLS_ME[7], clr:stripeClr},
+          {v:String(citizenCount),                                          col:COLS_ME[8]},
+          {v:topIssue,                                                      col:COLS_ME[9]},
         ];
         let cx2=M;
         cells.forEach(({v,col,clr})=>{

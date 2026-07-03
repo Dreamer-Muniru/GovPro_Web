@@ -1696,11 +1696,11 @@ const AdminPanel = () => {
                           <th style={{width:30}}>#</th>
                           <th>Project</th>
                           <th>District</th>
-                          <th style={{width:60}}>Score</th>
-                          <th style={{width:100}}>Risk Level</th>
-                          <th style={{width:75}}>Progress</th>
-                          <th style={{width:75}}>Budget %</th>
-                          <th style={{width:80}}>Last Report</th>
+                          <th style={{width:95}}>Risk Level</th>
+                          <th style={{width:70}}>Progress</th>
+                          <th style={{width:110}}>Expected (GHS)</th>
+                          <th style={{width:110}}>Actual (GHS)</th>
+                          <th style={{width:55}}>Score</th>
                           <th style={{width:60}}>Citizens</th>
                           <th>Top Issue</th>
                         </tr>
@@ -1708,26 +1708,22 @@ const AdminPanel = () => {
                       <tbody>
                         {meScores.map((s,i)=>{
                           const stripeClr = s.light==='green'?'#006B3F':s.light==='amber'?'#d97706':'#CE1126';
-                          const budgetPct = s.totalCost>0
-                            ? Math.round((Number(s.amountPaid)||0)/Number(s.totalCost)*100)+'%'
+                          const fmtGHS = v => v!=null && v>0
+                            ? `GHS ${Number(v).toLocaleString('en-GH',{minimumFractionDigits:0,maximumFractionDigits:0})}`
                             : '—';
                           const topIssue = s.breakdown
                             ? Object.values(s.breakdown).filter(b=>b.penalty>5).sort((a,b)=>b.penalty-a.penalty)[0]?.detail
                             : '—';
-                          const lastRpt = (s.breakdown?.reportRecency?.detail||'').match(/(\d+) day/);
                           return (
                             <tr key={s._id}>
                               <td style={{textAlign:'center',color:'#94a3b8',fontSize:11}}>{i+1}</td>
                               <td>
                                 <div style={{display:'flex',alignItems:'center',gap:8}}>
                                   <div style={{width:3,height:24,borderRadius:2,background:stripeClr,flexShrink:0}}/>
-                                  <span style={{fontWeight:600,color:'#0f172a',fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:200}}>{s.title}</span>
+                                  <span style={{fontWeight:600,color:'#0f172a',fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:190}}>{s.title}</span>
                                 </div>
                               </td>
                               <td style={{fontSize:11,color:'#64748b'}}>{s.district||s.region||'—'}</td>
-                              <td style={{textAlign:'center'}}>
-                                <span style={{fontSize:14,fontWeight:900,color:stripeClr}}>{s.score}</span>
-                              </td>
                               <td>
                                 <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:10,
                                   background:s.light==='green'?'#dcfce7':s.light==='amber'?'#fef9c3':'#fee2e2',
@@ -1736,12 +1732,17 @@ const AdminPanel = () => {
                                 </span>
                               </td>
                               <td style={{textAlign:'center',fontSize:12,fontWeight:600}}>{s.completionPercentage||0}%</td>
-                              <td style={{textAlign:'center',fontSize:12}}>{budgetPct}</td>
-                              <td style={{textAlign:'center',fontSize:11,color:lastRpt&&Number(lastRpt[1])>30?'#CE1126':'#64748b'}}>
-                                {lastRpt?`${lastRpt[1]}d ago`:'No reports'}
+                              <td style={{textAlign:'right',fontSize:11,color:'#1d4ed8',fontWeight:500,paddingRight:8}}>
+                                {fmtGHS(s.totalCost)}
                               </td>
-                              <td style={{textAlign:'center',fontSize:12}}>{s.citizenReportCount||0}</td>
-                              <td style={{fontSize:10,color:'#64748b',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={topIssue||'—'}>
+                              <td style={{textAlign:'right',fontSize:11,color:'#006B3F',fontWeight:600,paddingRight:8}}>
+                                {fmtGHS(s.amountPaid)}
+                              </td>
+                              <td style={{textAlign:'center'}}>
+                                <span style={{fontSize:14,fontWeight:900,color:stripeClr}}>{s.score}</span>
+                              </td>
+                              <td style={{textAlign:'center',fontSize:11,color:'#94a3b8'}}>{s.citizenReportCount ?? 0}</td>
+                              <td style={{fontSize:10,color:'#64748b',maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={topIssue||'—'}>
                                 {topIssue||'—'}
                               </td>
                             </tr>
