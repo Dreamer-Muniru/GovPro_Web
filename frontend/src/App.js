@@ -60,16 +60,16 @@ function AppShell({ isOnline, pending, syncing, syncNow }) {
 
       <Routes>
         {/* ── Public routes ── */}
-        <Route path="/"                   element={<HomePage />} />
+        {/* <Route path="/"                   element={<HomePage />} /> */}
         <Route path="/add-project"        element={<AddProjectForm />} />
         <Route path="/project/:id"        element={<ProjectDetail />} />
         <Route path="/edit/:id"           element={<EditProject />} />
-        <Route path="/project-insights"   element={<ProjectInsights />} />
+        {/* <Route path="/project-insights"   element={<ProjectInsights />} /> */}
         <Route path="/about"              element={<AboutPage />} />
         <Route path="/create-forum"       element={<CreateForum />} />
         <Route path="/forums/:id"         element={<ForumDetail />} />
-        <Route path="/forum-feed"         element={<ForumFeed />} />
-        <Route path="/profile"            element={<ProfilePage />} />
+        {/* <Route path="/forum-feed"         element={<ForumFeed />} /> */}
+        {/* <Route path="/profile"            element={<ProfilePage />} /> */}
         <Route path="/login"              element={<LoginPage />} />
         <Route path="/register"           element={<RegisterPage />} />
 
