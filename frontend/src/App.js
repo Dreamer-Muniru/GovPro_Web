@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Navigate, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
-// import HomePage from './pages/HomePage';
+import HomePage from './pages/HomePage';
 import AddProjectForm from './components/AddProjectForm';
 import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/LoginPage';
@@ -12,11 +12,11 @@ import { AuthContext } from './context/AuthContext';
 import { useContext } from 'react';
 import AdminLogin from './pages/AdminLogin';
 import { ToastContainer } from 'react-toastify';
-// import ProjectInsights from './pages/ProjectInsights';
+import ProjectInsights from './pages/ProjectInsights';
 import CreateForum from './pages/CreateForum';
 import ForumDetail from './pages/ForumDetail';
-// import ForumFeed from './components/ForumFeed';
-// import ProfilePage from './pages/ProfilePage';
+import ForumFeed from './components/ForumFeed';
+import ProfilePage from './pages/ProfilePage';
 import CitizenReportPage from './pages/CitizenReportPage';
 import OfflineSyncBanner from './components/OfflineSyncBanner';
 import { useOfflineSync } from './utils/useOfflineSync';
@@ -60,16 +60,16 @@ function AppShell({ isOnline, pending, syncing, syncNow }) {
 
       <Routes>
         {/* ── Public routes ── */}
-        {/* <Route path="/"                   element={<HomePage />} /> */}
+        <Route path="/"                   element={<HomePage />} />
         <Route path="/add-project"        element={<AddProjectForm />} />
         <Route path="/project/:id"        element={<ProjectDetail />} />
         <Route path="/edit/:id"           element={<EditProject />} />
-        {/* <Route path="/project-insights"   element={<ProjectInsights />} /> */}
+        <Route path="/project-insights"   element={<ProjectInsights />} />
         <Route path="/about"              element={<AboutPage />} />
         <Route path="/create-forum"       element={<CreateForum />} />
         <Route path="/forums/:id"         element={<ForumDetail />} />
-        {/* <Route path="/forum-feed"         element={<ForumFeed />} /> */}
-        {/* <Route path="/profile"            element={<ProfilePage />} /> */}
+        <Route path="/forum-feed"         element={<ForumFeed />} />
+        <Route path="/profile"            element={<ProfilePage />} />
         <Route path="/login"              element={<LoginPage />} />
         <Route path="/register"           element={<RegisterPage />} />
 
